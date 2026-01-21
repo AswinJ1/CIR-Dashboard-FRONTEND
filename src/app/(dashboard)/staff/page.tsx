@@ -20,6 +20,7 @@ import {
     FileText,
     CalendarCheck,
 } from "lucide-react"
+import DashboardHeader from "@/components/dashboard-header"
 
 interface DailyMetrics {
     todayStatus: DayStatus
@@ -190,6 +191,7 @@ export default function StaffDashboardPage() {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
+            <DashboardHeader/>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>

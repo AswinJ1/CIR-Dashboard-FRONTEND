@@ -1,13 +1,15 @@
 "use client"
 
-import { Search, LogOut, Home, Users, FileText, User, Settings, BarChart, Trophy, BellDotIcon, BellDot, BellIcon, HeartPulseIcon, LucideBuilding, CalendarCheck, Plane } from "lucide-react"
+import { 
+  Search, LogOut, Home, Users, FileText, User, Settings, BarChart, 
+  Building2, ClipboardList, Calendar, CheckSquare, FolderKanban 
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useSession, signOut } from "next-auth/react"
+import { useAuth } from "@/components/providers/auth-context"
 import { Sun, Moon, Bell, Globe, ChevronDown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import Image from "next/image"
 import {
   CommandDialog,
   CommandEmpty,
@@ -54,6 +56,7 @@ interface Notification {
 }
 
 const searchOptions: SearchOption[] = [
+  // ==================== ADMIN Options ====================
   {
     label: "Dashboard",
     href: "/admin",
@@ -61,33 +64,33 @@ const searchOptions: SearchOption[] = [
     roles: ["ADMIN"]
   },
   {
-    label: "Dashboard",
-    href: "/participant",
-    icon: <Home className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
-  },
-  {
-    label: "Create Notification",
-    href: "/admin/notifications",
-    icon: <BellDot className="h-4 w-4" />,
-    roles: ["ADMIN"]
-  },
-   {
-    label: "Manage Notification",
-    href: "/admin/notifications/manage",
-    icon: <BellIcon className="h-4 w-4" />,
-    roles: ["ADMIN"]
-  },
-   {
     label: "User Management",
     href: "/admin/users",
     icon: <Users className="h-4 w-4" />,
     roles: ["ADMIN"]
   },
   {
-    label: "System Logs",
-    href: "/admin/logs",
+    label: "Departments",
+    href: "/admin/departments",
+    icon: <Building2 className="h-4 w-4" />,
+    roles: ["ADMIN"]
+  },
+  {
+    label: "Responsibilities",
+    href: "/admin/responsibilities",
+    icon: <ClipboardList className="h-4 w-4" />,
+    roles: ["ADMIN"]
+  },
+  {
+    label: "Work Submissions",
+    href: "/admin/work-submissions",
     icon: <FileText className="h-4 w-4" />,
+    roles: ["ADMIN"]
+  },
+  {
+    label: "Analytics",
+    href: "/admin/analytics",
+    icon: <BarChart className="h-4 w-4" />,
     roles: ["ADMIN"]
   },
   {
@@ -96,58 +99,98 @@ const searchOptions: SearchOption[] = [
     icon: <User className="h-4 w-4" />,
     roles: ["ADMIN"]
   },
-    {
-    label: "Arrival Details",
-    href: "/admin/arrival-details",
-    icon: <Plane className="h-4 w-4" />,
-    roles: ["ADMIN"]
+
+  // ==================== MANAGER Options ====================
+  {
+    label: "Dashboard",
+    href: "/manager",
+    icon: <Home className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Staff Management",
+    href: "/manager/staff",
+    icon: <Users className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Assignments",
+    href: "/manager/assignments",
+    icon: <FolderKanban className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Responsibilities",
+    href: "/manager/responsibilities",
+    icon: <ClipboardList className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Submissions",
+    href: "/manager/submissions",
+    icon: <FileText className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Analytics",
+    href: "/manager/analytics",
+    icon: <BarChart className="h-4 w-4" />,
+    roles: ["MANAGER"]
   },
   {
     label: "My Profile",
-    href: "/participant/profile",
+    href: "/manager/profile",
     icon: <User className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
+    roles: ["MANAGER"]
   },
-   {
-    label: "Help Desk",
-    href: "/participant/helpdesk",
-    icon: <HeartPulseIcon className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
+
+  // ==================== STAFF Options ====================
+  {
+    label: "Dashboard",
+    href: "/staff",
+    icon: <Home className="h-4 w-4" />,
+    roles: ["STAFF"]
   },
-   {
-    label: "Hostel Check In ",
-    href: "/participant/check_in",
-    icon: <LucideBuilding className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
+  {
+    label: "My Assignments",
+    href: "/staff/assignments",
+    icon: <FolderKanban className="h-4 w-4" />,
+    roles: ["STAFF"]
   },
-   {
-    label: "Schedule",
-    href: "/participant/schedule",
-    icon: <CalendarCheck className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
+  {
+    label: "My Responsibilities",
+    href: "/staff/responsibilities",
+    icon: <ClipboardList className="h-4 w-4" />,
+    roles: ["STAFF"]
   },
-   {
-    label: "Notifications",
-    href: "/participant/notification",
-    icon: <BellDotIcon className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
+  {
+    label: "Work Calendar",
+    href: "/staff/work-calendar",
+    icon: <Calendar className="h-4 w-4" />,
+    roles: ["STAFF"]
   },
-   {
-    label: "Edit Profile",
-    href: "/participant/edit_profile",
+  {
+    label: "My Submissions",
+    href: "/staff/work-submissions",
+    icon: <CheckSquare className="h-4 w-4" />,
+    roles: ["STAFF"]
+  },
+  {
+    label: "Analytics",
+    href: "/staff/analytics",
+    icon: <BarChart className="h-4 w-4" />,
+    roles: ["STAFF"]
+  },
+  {
+    label: "My Profile",
+    href: "/staff/profile",
     icon: <User className="h-4 w-4" />,
-    roles: ["PARTICIPANT"]
-  },
-    {
-    label: "Edit Profile",
-    href: "/admin/edit_profile",
-    icon: <User className="h-4 w-4" />,
-    roles: ["ADMIN"]
+    roles: ["STAFF"]
   },
 ]
 
 export default function DashboardHeader() {
-  const { data: session, status } = useSession()
+  const { user, role, isLoading, isAuthenticated, logout } = useAuth()
   const [profile, setProfile] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -156,11 +199,11 @@ export default function DashboardHeader() {
   const router = useRouter()
 
   useEffect(() => {
-    if (status === "loading") return
-    if (!session) {
+    if (isLoading) return
+    if (!isAuthenticated) {
       router.push("/login")
     }
-  }, [session, status, router])
+  }, [isAuthenticated, isLoading, router])
 
   // Fetch user profile with avatar
   useEffect(() => {
@@ -176,10 +219,10 @@ export default function DashboardHeader() {
       }
     }
 
-    if (session) {
+    if (isAuthenticated) {
       fetchProfile()
     }
-  }, [session])
+  }, [isAuthenticated])
 
   // Fetch notifications
   useEffect(() => {
@@ -196,13 +239,13 @@ export default function DashboardHeader() {
       }
     }
 
-    if (session) {
+    if (isAuthenticated) {
       fetchNotifications()
       // Poll for new notifications every 30 seconds
       const interval = setInterval(fetchNotifications, 30000)
       return () => clearInterval(interval)
     }
-  }, [session])
+  }, [isAuthenticated])
 
   // Keyboard shortcut for search
   useEffect(() => {
@@ -216,11 +259,11 @@ export default function DashboardHeader() {
     return () => document.removeEventListener("keydown", down)
   }, [])
 
-  if (!session) return null
+  if (!isAuthenticated || !role) return null
 
-  const userRole = session.user.role
-  const userEmail = session.user.email || ""
-  const userInitial = userEmail.charAt(0).toUpperCase()
+  const userRole = role
+  const userEmail = user?.email || ""
+  const userInitial = user?.name?.charAt(0).toUpperCase() || userEmail.charAt(0).toUpperCase() || "U"
 
   // Filter search options based on user role
   const filteredOptions = searchOptions.filter(option => 
@@ -241,11 +284,13 @@ export default function DashboardHeader() {
     
     switch (userRole as string) {
       case "ADMIN":
-        return profile.admin?.avatarUrl
-      case "PARTICIPANT":
-        return profile.participant?.avatarUrl
+        return profile.admin?.avatarUrl || profile.avatarUrl
+      case "MANAGER":
+        return profile.manager?.avatarUrl || profile.avatarUrl
+      case "STAFF":
+        return profile.staff?.avatarUrl || profile.avatarUrl
       default:
-        return null
+        return profile.avatarUrl || null
     }
   }
 
@@ -254,11 +299,13 @@ export default function DashboardHeader() {
     
     switch (userRole as string) {
       case "ADMIN":
-        return profile.admin?.name
-      case "PARTICIPANT":
-        return profile.participant?.name
+        return profile.admin?.name || profile.name || userEmail
+      case "MANAGER":
+        return profile.manager?.name || profile.name || userEmail
+      case "STAFF":
+        return profile.staff?.name || profile.name || userEmail
       default:
-        return userEmail
+        return profile.name || userEmail
     }
   }
 
@@ -266,10 +313,12 @@ export default function DashboardHeader() {
     switch (role) {
       case "ADMIN":
         return "destructive"
-      case "PARTICIPANT":
+      case "MANAGER":
         return "default"
-      default:
+      case "STAFF":
         return "secondary"
+      default:
+        return "outline"
     }
   }
 
@@ -349,16 +398,11 @@ export default function DashboardHeader() {
               className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => router.push(`/${userRole.toLowerCase()}`)}
             >
-              <Image
-                src="/icpc_foundation.png"
-                alt="ICPC Foundation"
-                width={60}
-                height={60}
-                className="h-15 sm:h-15 w-auto"
-                priority
-              />
-              <span className="text-lg sm:text-xl font-bold  hidden sm:block">
-                COCOBYTE
+              {/* <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                <span className="text-primary-foreground font-bold text-lg sm:text-xl">CIR</span>
+              </div> */}
+              <span className="text-lg sm:text-xl font-bold hidden sm:block">
+                Work Manager
               </span>
             </div>
 
@@ -539,7 +583,7 @@ export default function DashboardHeader() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive focus:text-destructive cursor-pointer"
-                  onClick={() => signOut({ callbackUrl: "/login" })}
+                  onClick={() => logout()}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
                   Sign out
@@ -584,7 +628,7 @@ export default function DashboardHeader() {
             </CommandItem>
             <CommandItem
               onSelect={() => {
-                signOut({ callbackUrl: "/login" })
+                logout()
                 setOpen(false)
               }}
               className="cursor-pointer"

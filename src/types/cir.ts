@@ -39,6 +39,8 @@ export interface Employee {
   email: string
   name: string
   role: Role
+  departmentId?: string
+  department?: Department
   subDepartment?: SubDepartment
   subDepartmentId?: string
   createdAt: string
@@ -50,6 +52,7 @@ export interface CreateEmployeeDto {
   password: string
   name: string
   role: Role
+  departmentId?: string
   subDepartmentId?: string
 }
 
@@ -57,6 +60,7 @@ export interface UpdateEmployeeDto {
   email?: string
   name?: string
   role?: Role
+  departmentId?: string
   subDepartmentId?: string
 }
 

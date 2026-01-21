@@ -17,6 +17,7 @@ import {
     ArrowLeft,
     ChevronRight
 } from "lucide-react"
+import DashboardHeader from "@/components/dashboard-header"
 
 interface DayGroup {
     date: string
@@ -142,6 +143,8 @@ export default function StaffWorkSubmissionsPage() {
 
     return (
         <div className="p-6 space-y-6">
+            <DashboardHeader/>
+            
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" onClick={() => router.push('/staff')}>
                     <ArrowLeft className="h-4 w-4" />

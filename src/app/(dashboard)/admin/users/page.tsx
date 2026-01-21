@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { api } from "@/lib/api"
-import { Employee, SubDepartment, Role } from "@/types/cir"
+import { Employee, SubDepartment, Department, Role } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -37,6 +37,7 @@ import { toast } from "sonner"
 
 export default function AdminUsersPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [departments, setDepartments] = useState<Department[]>([])
   const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -58,13 +59,27 @@ export default function AdminUsersPage() {
   const [formEmail, setFormEmail] = useState("")
   const [formPassword, setFormPassword] = useState("")
   const [formRole, setFormRole] = useState<Role>("STAFF")
+  const [formDepartmentId, setFormDepartmentId] = useState("")
   const [formSubDepartmentId, setFormSubDepartmentId] = useState("")
 
   // Edit form state
   const [editName, setEditName] = useState("")
   const [editEmail, setEditEmail] = useState("")
   const [editRole, setEditRole] = useState<Role>("STAFF")
+  const [editDepartmentId, setEditDepartmentId] = useState("")
   const [editSubDepartmentId, setEditSubDepartmentId] = useState("")
+
+  // Filter sub-departments based on selected department for create form
+  const filteredSubDepartmentsForCreate = useMemo(() => {
+    if (!formDepartmentId) return []
+    return subDepartments.filter(sd => sd.departmentId === formDepartmentId)
+  }, [formDepartmentId, subDepartments])
+
+  // Filter sub-departments based on selected department for edit form
+  const filteredSubDepartmentsForEdit = useMemo(() => {
+    if (!editDepartmentId) return []
+    return subDepartments.filter(sd => sd.departmentId === editDepartmentId)
+  }, [editDepartmentId, subDepartments])
 
   useEffect(() => {
     fetchData()
@@ -72,12 +87,26 @@ export default function AdminUsersPage() {
 
   async function fetchData() {
     try {
-      const [employeesData, subDeptsData] = await Promise.all([
+      const [employeesData, deptsData, subDeptsData] = await Promise.all([
         api.employees.getAll(),
+        api.departments.getAll(),
         api.subDepartments.getAll(),
       ])
-      setEmployees(employeesData)
-      setFilteredEmployees(employeesData)
+      
+      // Enrich employees with department and subDepartment objects
+      const enrichedEmployees = employeesData.map(emp => {
+        const department = deptsData.find(d => d.id === emp.departmentId)
+        const subDepartment = subDeptsData.find(sd => sd.id === emp.subDepartmentId)
+        return {
+          ...emp,
+          department: department || emp.department,
+          subDepartment: subDepartment || emp.subDepartment,
+        }
+      })
+      
+      setEmployees(enrichedEmployees)
+      setFilteredEmployees(enrichedEmployees)
+      setDepartments(deptsData)
       setSubDepartments(subDeptsData)
     } catch (error) {
       console.error("Failed to fetch data:", error)
@@ -104,6 +133,7 @@ export default function AdminUsersPage() {
     setFormEmail("")
     setFormPassword("")
     setFormRole("STAFF")
+    setFormDepartmentId("")
     setFormSubDepartmentId("")
   }
 
@@ -118,6 +148,11 @@ export default function AdminUsersPage() {
       return
     }
 
+    if (!formDepartmentId) {
+      toast.error("Please select a department")
+      return
+    }
+
     setIsCreating(true)
     try {
       await api.employees.create({
@@ -125,6 +160,7 @@ export default function AdminUsersPage() {
         email: formEmail,
         password: formPassword,
         role: formRole,
+        departmentId: formDepartmentId,
         subDepartmentId: formSubDepartmentId || undefined,
       })
       toast.success("User created successfully")
@@ -158,6 +194,7 @@ export default function AdminUsersPage() {
     setEditName(employee.name)
     setEditEmail(employee.email)
     setEditRole(employee.role)
+    setEditDepartmentId(employee.departmentId || "")
     setEditSubDepartmentId(employee.subDepartmentId || "")
     setEditDialogOpen(true)
   }
@@ -175,6 +212,7 @@ export default function AdminUsersPage() {
         name: editName,
         email: editEmail,
         role: editRole,
+        departmentId: editDepartmentId || undefined,
         subDepartmentId: editSubDepartmentId || undefined,
       })
       toast.success("User updated successfully")
@@ -259,30 +297,52 @@ export default function AdminUsersPage() {
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
                     <SelectItem value="MANAGER">Manager</SelectItem>
                     <SelectItem value="STAFF">Staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              {(formRole === 'MANAGER' || formRole === 'STAFF') && (
-                <div className="space-y-2">
-                  <Label>Sub-Department</Label>
-                  <Select value={formSubDepartmentId} onValueChange={setFormSubDepartmentId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select sub-department (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No sub-department</SelectItem>
-                      {subDepartments.map((sd) => (
-                        <SelectItem key={sd.id} value={sd.id}>
-                          {sd.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label>Department <span className="text-red-500">*</span></Label>
+                <Select 
+                  value={formDepartmentId} 
+                  onValueChange={(v) => {
+                    setFormDepartmentId(v)
+                    setFormSubDepartmentId("") // Reset sub-department when department changes
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Sub-Department</Label>
+                <Select 
+                  value={formSubDepartmentId || "none"} 
+                  onValueChange={(v) => setFormSubDepartmentId(v === "none" ? "" : v)}
+                  disabled={!formDepartmentId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={formDepartmentId ? "Select sub-department (optional)" : "Select a department first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No sub-department</SelectItem>
+                    {filteredSubDepartmentsForCreate.map((sd) => (
+                      <SelectItem key={sd.id} value={sd.id}>
+                        {sd.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
@@ -331,6 +391,7 @@ export default function AdminUsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Department</TableHead>
                   <TableHead>Sub-Department</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -342,6 +403,9 @@ export default function AdminUsersPage() {
                     <TableCell>{employee.email}</TableCell>
                     <TableCell>
                       <RoleBadge role={employee.role} />
+                    </TableCell>
+                    <TableCell>
+                      {employee.department?.name || 'N/A'}
                     </TableCell>
                     <TableCell>
                       {employee.subDepartment?.name || 'N/A'}
@@ -423,24 +487,48 @@ export default function AdminUsersPage() {
                 </SelectContent>
               </Select>
             </div>
-            {(editRole === 'MANAGER' || editRole === 'STAFF') && (
-              <div className="space-y-2">
-                <Label>Sub-Department</Label>
-                <Select value={editSubDepartmentId} onValueChange={setEditSubDepartmentId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sub-department (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">No sub-department</SelectItem>
-                    {subDepartments.map((sd) => (
-                      <SelectItem key={sd.id} value={sd.id}>
-                        {sd.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label>Department</Label>
+              <Select 
+                value={editDepartmentId || "none"} 
+                onValueChange={(v) => {
+                  setEditDepartmentId(v === "none" ? "" : v)
+                  setEditSubDepartmentId("") // Reset sub-department when department changes
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No department</SelectItem>
+                  {departments.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Sub-Department</Label>
+              <Select 
+                value={editSubDepartmentId || "none"} 
+                onValueChange={(v) => setEditSubDepartmentId(v === "none" ? "" : v)}
+                disabled={!editDepartmentId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={editDepartmentId ? "Select sub-department (optional)" : "Select a department first"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No sub-department</SelectItem>
+                  {filteredSubDepartmentsForEdit.map((sd) => (
+                    <SelectItem key={sd.id} value={sd.id}>
+                      {sd.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
@@ -480,6 +568,10 @@ export default function AdminUsersPage() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Role</span>
                   <RoleBadge role={viewingEmployee.role} />
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Department</span>
+                  <span className="font-medium">{viewingEmployee.department?.name || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Sub-Department</span>

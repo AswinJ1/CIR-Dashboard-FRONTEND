@@ -97,11 +97,21 @@ export default function ManagerSubmissionsPage() {
         }
     }
 
+    // Helper to get the effective status of a submission
+    const getSubmissionStatus = (s: WorkSubmission): string => {
+        // Check submission status first, then assignment status
+        const status = s.status || (s.assignment?.status as string) || 'PENDING'
+        return status.toUpperCase()
+    }
+
     // Group submissions by status
     const groupedSubmissions = useMemo(() => {
-        const pending = submissions.filter(s => s.status === 'SUBMITTED' || s.status === 'PENDING')
-        const approved = submissions.filter(s => s.status === 'VERIFIED')
-        const rejected = submissions.filter(s => s.status === 'REJECTED')
+        const pending = submissions.filter(s => {
+            const status = getSubmissionStatus(s)
+            return status === 'SUBMITTED' || status === 'PENDING'
+        })
+        const approved = submissions.filter(s => getSubmissionStatus(s) === 'VERIFIED')
+        const rejected = submissions.filter(s => getSubmissionStatus(s) === 'REJECTED')
         return { pending, approved, rejected }
     }, [submissions])
 
@@ -184,7 +194,7 @@ export default function ManagerSubmissionsPage() {
                                 {format(new Date(submission.submittedAt), "h:mm a")}
                             </TableCell>
                             <TableCell>
-                                <SubmissionStatusBadge status={submission.status} />
+                                <SubmissionStatusBadge status={getSubmissionStatus(submission) as any} />
                             </TableCell>
                             <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
@@ -195,7 +205,7 @@ export default function ManagerSubmissionsPage() {
                                     >
                                         <Eye className="h-4 w-4 mr-1" /> Review
                                     </Button>
-                                    {showActions && (submission.status === 'SUBMITTED' || submission.status === 'PENDING') && (
+                                    {showActions && (getSubmissionStatus(submission) === 'SUBMITTED' || getSubmissionStatus(submission) === 'PENDING') && (
                                         <>
                                             <Button
                                                 variant="ghost"
@@ -444,7 +454,7 @@ export default function ManagerSubmissionsPage() {
                             )}
 
                             {/* Rejection Reason (for rejected submissions) */}
-                            {selectedSubmission.status === 'REJECTED' && selectedSubmission.rejectionReason && (
+                            {getSubmissionStatus(selectedSubmission) === 'REJECTED' && selectedSubmission.rejectionReason && (
                                 <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
                                     <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
                                         Rejection Reason:
@@ -456,7 +466,7 @@ export default function ManagerSubmissionsPage() {
                             )}
 
                             {/* Rejection Reason Input (for pending submissions) */}
-                            {(selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && (
+                            {(getSubmissionStatus(selectedSubmission) === 'SUBMITTED' || getSubmissionStatus(selectedSubmission) === 'PENDING') && (
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">
                                         Rejection Reason <span className="text-red-500">*</span>
@@ -477,7 +487,7 @@ export default function ManagerSubmissionsPage() {
                         <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
                             Cancel
                         </Button>
-                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && (
+                        {selectedSubmission && (getSubmissionStatus(selectedSubmission) === 'SUBMITTED' || getSubmissionStatus(selectedSubmission) === 'PENDING') && (
                             <>
                                 <Button
                                     variant="destructive"
