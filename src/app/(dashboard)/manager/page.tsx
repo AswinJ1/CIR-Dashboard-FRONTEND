@@ -121,7 +121,7 @@ export default function ManagerDashboardPage() {
                         Welcome back, {user?.name || 'Manager'}. Manage your team's work here.
                     </p>
                 </div>
-                <CreateResponsibilityDialog onSuccess={() => window.location.reload()} />
+                {/* <CreateResponsibilityDialog onSuccess={() => window.location.reload()} /> */}
             </div>
 
             {/* Stats Cards */}

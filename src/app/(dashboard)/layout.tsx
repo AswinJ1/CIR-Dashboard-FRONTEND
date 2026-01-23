@@ -20,6 +20,8 @@ import {
   FileCheck,
   Briefcase,
   CalendarCheck,
+  Save,
+  CalendarRange,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
@@ -130,15 +132,15 @@ const navigation: NavigationItem[] = [
     roles: ["STAFF"]
   },
   {
-    name: "Work Calendar",
+    name: "Submit Work",
     href: "/staff/work-calendar",
-    icon: <CalendarCheck className="w-5 h-5" />,
+    icon: <Save className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   {
-    name: "My Responsibilities",
+    name: "Work Calendar",
     href: "/staff/responsibilities",
-    icon: <FileText className="w-5 h-5" />,
+    icon: <CalendarRange className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   {

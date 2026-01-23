@@ -28,6 +28,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import DashboardHeader from "@/components/dashboard-header"
 
 // Color palette for responsibilities
 const COLORS = [
@@ -148,6 +149,7 @@ export default function ManagerResponsibilitiesPage() {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
+            <DashboardHeader/>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>

@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { SubmissionStatusBadge } from "@/components/ui/status-badge"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
     Popover,
     PopoverContent,
@@ -46,11 +49,21 @@ import {
     Link2,
     MessageSquare,
     RefreshCw,
-    Search
+    Search,
+    User,
+    ClipboardList
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+
+interface StaffSubmissionSummary {
+    staff: Employee
+    pending: WorkSubmission[]
+    approved: WorkSubmission[]
+    rejected: WorkSubmission[]
+    total: number
+}
 
 export default function ManagerSubmissionsPage() {
     const [submissions, setSubmissions] = useState<WorkSubmission[]>([])
@@ -58,6 +71,10 @@ export default function ManagerSubmissionsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
     const [searchQuery, setSearchQuery] = useState("")
+
+    // Staff submissions modal state
+    const [selectedStaff, setSelectedStaff] = useState<StaffSubmissionSummary | null>(null)
+    const [staffModalOpen, setStaffModalOpen] = useState(false)
 
     // Review dialog state
     const [selectedSubmission, setSelectedSubmission] = useState<WorkSubmission | null>(null)
@@ -100,31 +117,76 @@ export default function ManagerSubmissionsPage() {
 
     // Helper to get the effective status of a submission
     const getSubmissionStatus = (s: WorkSubmission): string => {
-        // Check submission status first, then assignment status
         const status = s.status || (s.assignment?.status as string) || 'PENDING'
         return status.toUpperCase()
     }
 
-    // Group submissions by status
-    const groupedSubmissions = useMemo(() => {
-        const pending = submissions.filter(s => {
-            const status = getSubmissionStatus(s)
-            return status === 'SUBMITTED' || status === 'PENDING'
-        })
-        const approved = submissions.filter(s => getSubmissionStatus(s) === 'VERIFIED')
-        const rejected = submissions.filter(s => getSubmissionStatus(s) === 'REJECTED')
-        return { pending, approved, rejected }
-    }, [submissions])
+    // Group submissions by staff
+    const staffSubmissionSummaries = useMemo((): StaffSubmissionSummary[] => {
+        const summaryMap = new Map<string, StaffSubmissionSummary>()
 
-    // Filter submissions by search
-    const filterSubmissions = (subs: WorkSubmission[]) => {
-        if (!searchQuery) return subs
+        // Initialize with all staff (even those with no submissions)
+        staff.forEach(s => {
+            summaryMap.set(s.id, {
+                staff: s,
+                pending: [],
+                approved: [],
+                rejected: [],
+                total: 0
+            })
+        })
+
+        // Populate submissions
+        submissions.forEach(sub => {
+            const staffId = sub.staffId || sub.staff?.id
+            if (!staffId) return
+
+            let summary = summaryMap.get(staffId)
+            if (!summary && sub.staff) {
+                summary = {
+                    staff: sub.staff,
+                    pending: [],
+                    approved: [],
+                    rejected: [],
+                    total: 0
+                }
+                summaryMap.set(staffId, summary)
+            }
+
+            if (summary) {
+                const status = getSubmissionStatus(sub)
+                if (status === 'SUBMITTED' || status === 'PENDING') {
+                    summary.pending.push(sub)
+                } else if (status === 'VERIFIED') {
+                    summary.approved.push(sub)
+                } else if (status === 'REJECTED') {
+                    summary.rejected.push(sub)
+                }
+                summary.total++
+            }
+        })
+
+        return Array.from(summaryMap.values())
+    }, [submissions, staff])
+
+    // Filter staff by search
+    const filteredStaffSummaries = useMemo(() => {
+        if (!searchQuery) return staffSubmissionSummaries
         const query = searchQuery.toLowerCase()
-        return subs.filter(s =>
-            s.staff?.name?.toLowerCase().includes(query) ||
-            s.assignment?.responsibility?.title?.toLowerCase().includes(query)
+        return staffSubmissionSummaries.filter(s =>
+            s.staff.name?.toLowerCase().includes(query) ||
+            s.staff.email?.toLowerCase().includes(query)
         )
-    }
+    }, [staffSubmissionSummaries, searchQuery])
+
+    // Total counts for summary cards
+    const totalCounts = useMemo(() => {
+        return staffSubmissionSummaries.reduce((acc, s) => ({
+            pending: acc.pending + s.pending.length,
+            approved: acc.approved + s.approved.length,
+            rejected: acc.rejected + s.rejected.length
+        }), { pending: 0, approved: 0, rejected: 0 })
+    }, [staffSubmissionSummaries])
 
     async function handleVerify(status: 'VERIFIED' | 'REJECTED', submissionOverride?: WorkSubmission) {
         const submission = submissionOverride || selectedSubmission
@@ -147,6 +209,14 @@ export default function ManagerSubmissionsPage() {
             setSelectedSubmission(null)
             setRejectionReason("")
             fetchData()
+
+            // Update the selected staff modal data
+            if (selectedStaff) {
+                const updatedSummary = staffSubmissionSummaries.find(s => s.staff.id === selectedStaff.staff.id)
+                if (updatedSummary) {
+                    setSelectedStaff(updatedSummary)
+                }
+            }
         } catch (error: any) {
             console.error("Failed to verify submission:", error)
             toast.error(error.message || "Failed to verify submission")
@@ -162,12 +232,25 @@ export default function ManagerSubmissionsPage() {
         setReviewDialogOpen(true)
     }
 
+    function openStaffModal(summary: StaffSubmissionSummary) {
+        setSelectedStaff(summary)
+        setStaffModalOpen(true)
+    }
+
+    function getInitials(name: string): string {
+        return name
+            .split(' ')
+            .map(n => n[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2)
+    }
+
     const SubmissionTable = ({ data, showActions = true }: { data: WorkSubmission[], showActions?: boolean }) => (
         <Table>
             <TableHeader>
                 <TableRow>
                     <TableHead>Responsibility</TableHead>
-                    <TableHead>Staff</TableHead>
                     <TableHead>Hours</TableHead>
                     <TableHead>Submitted</TableHead>
                     <TableHead>Status</TableHead>
@@ -177,17 +260,16 @@ export default function ManagerSubmissionsPage() {
             <TableBody>
                 {data.length === 0 ? (
                     <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             No submissions found
                         </TableCell>
                     </TableRow>
                 ) : (
                     data.map((submission) => (
                         <TableRow key={submission.id}>
-                            <TableCell className="font-medium">
+                            <TableCell className="font-medium max-w-[200px] truncate">
                                 {submission.assignment?.responsibility?.title || 'N/A'}
                             </TableCell>
-                            <TableCell>{submission.staff?.name || 'Unknown'}</TableCell>
                             <TableCell>
                                 <span className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />
@@ -201,13 +283,13 @@ export default function ManagerSubmissionsPage() {
                                 <SubmissionStatusBadge status={getSubmissionStatus(submission) as any} />
                             </TableCell>
                             <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
+                                <div className="flex justify-end gap-1">
                                     <Button
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => openReviewDialog(submission)}
                                     >
-                                        <Eye className="h-4 w-4 mr-1" /> Review
+                                        <Eye className="h-4 w-4" />
                                     </Button>
                                     {showActions && (getSubmissionStatus(submission) === 'SUBMITTED' || getSubmissionStatus(submission) === 'PENDING') && (
                                         <>
@@ -299,7 +381,7 @@ export default function ManagerSubmissionsPage() {
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
-                                placeholder="Search by staff name or responsibility..."
+                                placeholder="Search staff by name or email..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="pl-9"
@@ -316,7 +398,7 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">Pending</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{groupedSubmissions.pending.length}</div>
+                        <div className="text-2xl font-bold">{totalCounts.pending}</div>
                         <p className="text-xs text-muted-foreground">Awaiting review</p>
                     </CardContent>
                 </Card>
@@ -325,7 +407,7 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">Approved</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{groupedSubmissions.approved.length}</div>
+                        <div className="text-2xl font-bold">{totalCounts.approved}</div>
                         <p className="text-xs text-muted-foreground">Verified submissions</p>
                     </CardContent>
                 </Card>
@@ -334,63 +416,157 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">Rejected</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{groupedSubmissions.rejected.length}</div>
+                        <div className="text-2xl font-bold">{totalCounts.rejected}</div>
                         <p className="text-xs text-muted-foreground">Need revision</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {/* Tabbed Submissions */}
+            {/* Staff List */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Submissions for {format(selectedDate, "MMMM d, yyyy")}</CardTitle>
+                    <CardTitle>Staff Submissions - {format(selectedDate, "MMMM d, yyyy")}</CardTitle>
                     <CardDescription>
-                        {submissions.length} total submission{submissions.length !== 1 ? 's' : ''}
+                        Click on a staff member to review their submissions
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue="pending">
-                        <TabsList className="mb-4">
-                            <TabsTrigger value="pending" className="gap-2">
-                                Pending
-                                {groupedSubmissions.pending.length > 0 && (
-                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.pending.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                            <TabsTrigger value="approved" className="gap-2">
-                                Approved
-                                {groupedSubmissions.approved.length > 0 && (
-                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.approved.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                            <TabsTrigger value="rejected" className="gap-2">
-                                Rejected
-                                {groupedSubmissions.rejected.length > 0 && (
-                                    <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.rejected.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="pending">
-                            <SubmissionTable data={filterSubmissions(groupedSubmissions.pending)} />
-                        </TabsContent>
-
-                        <TabsContent value="approved">
-                            <SubmissionTable data={filterSubmissions(groupedSubmissions.approved)} showActions={false} />
-                        </TabsContent>
-
-                        <TabsContent value="rejected">
-                            <SubmissionTable data={filterSubmissions(groupedSubmissions.rejected)} showActions={false} />
-                        </TabsContent>
-                    </Tabs>
+                    {filteredStaffSummaries.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground">
+                            <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No staff members found</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {filteredStaffSummaries.map((summary) => (
+                                <Card
+                                    key={summary.staff.id}
+                                    className={cn(
+                                        "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
+                                        summary.pending.length > 0 && "border-l-4 border-l-amber-500"
+                                    )}
+                                    onClick={() => openStaffModal(summary)}
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex items-start gap-3">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback className="bg-primary/10 text-primary">
+                                                    {getInitials(summary.staff.name || 'U')}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-medium truncate">{summary.staff.name}</p>
+                                                <p className="text-sm text-muted-foreground truncate">
+                                                    {summary.staff.email}
+                                                </p>
+                                                <div className="flex gap-2 mt-2">
+                                                    {summary.pending.length > 0 && (
+                                                        <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                                                            {summary.pending.length} pending
+                                                        </Badge>
+                                                    )}
+                                                    {summary.approved.length > 0 && (
+                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                            {summary.approved.length} approved
+                                                        </Badge>
+                                                    )}
+                                                    {summary.rejected.length > 0 && (
+                                                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                                            {summary.rejected.length} rejected
+                                                        </Badge>
+                                                    )}
+                                                    {summary.total === 0 && (
+                                                        <Badge variant="outline" className="text-muted-foreground">
+                                                            No submissions
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="shrink-0">
+                                                <ClipboardList className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
+
+            {/* Staff Submissions Modal */}
+            <Dialog open={staffModalOpen} onOpenChange={setStaffModalOpen}>
+                <DialogContent className="max-w-4xl max-h-[85vh]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-3">
+                            {selectedStaff && (
+                                <>
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                                            {getInitials(selectedStaff.staff.name || 'U')}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <span>{selectedStaff.staff.name}&apos;s Submissions</span>
+                                </>
+                            )}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {format(selectedDate, "MMMM d, yyyy")} • {selectedStaff?.total || 0} total submissions
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedStaff && (
+                        <ScrollArea className="max-h-[60vh]">
+                            <Tabs defaultValue="pending" className="w-full">
+                                <TabsList className="mb-4">
+                                    <TabsTrigger value="pending" className="gap-2">
+                                        Pending
+                                        {selectedStaff.pending.length > 0 && (
+                                            <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
+                                                {selectedStaff.pending.length}
+                                            </span>
+                                        )}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="approved" className="gap-2">
+                                        Approved
+                                        {selectedStaff.approved.length > 0 && (
+                                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                                {selectedStaff.approved.length}
+                                            </span>
+                                        )}
+                                    </TabsTrigger>
+                                    <TabsTrigger value="rejected" className="gap-2">
+                                        Rejected
+                                        {selectedStaff.rejected.length > 0 && (
+                                            <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
+                                                {selectedStaff.rejected.length}
+                                            </span>
+                                        )}
+                                    </TabsTrigger>
+                                </TabsList>
+
+                                <TabsContent value="pending">
+                                    <SubmissionTable data={selectedStaff.pending} />
+                                </TabsContent>
+
+                                <TabsContent value="approved">
+                                    <SubmissionTable data={selectedStaff.approved} showActions={false} />
+                                </TabsContent>
+
+                                <TabsContent value="rejected">
+                                    <SubmissionTable data={selectedStaff.rejected} showActions={false} />
+                                </TabsContent>
+                            </Tabs>
+                        </ScrollArea>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setStaffModalOpen(false)}>
+                            Close
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Review Dialog */}
             <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>

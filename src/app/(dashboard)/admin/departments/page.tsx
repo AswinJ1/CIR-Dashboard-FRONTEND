@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
 import { Department, SubDepartment } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,12 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from "@/components/ui/accordion"
 import {
     Dialog,
     DialogContent,
@@ -23,16 +18,18 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Search, Plus, Pencil, Trash2, Building2, Users } from "lucide-react"
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import { Search, Plus, Pencil, Trash2, Building2, ChevronRight } from "lucide-react"
 import { toast } from "sonner"
 
 export default function AdminDepartmentsPage() {
+    const router = useRouter()
     const [departments, setDepartments] = useState<Department[]>([])
     const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -45,15 +42,6 @@ export default function AdminDepartmentsPage() {
     const [deptName, setDeptName] = useState("")
     const [deptDescription, setDeptDescription] = useState("")
     const [isSavingDept, setIsSavingDept] = useState(false)
-
-    // Sub-department dialog state
-    const [subDeptDialogOpen, setSubDeptDialogOpen] = useState(false)
-    const [isEditingSubDept, setIsEditingSubDept] = useState(false)
-    const [editingSubDeptId, setEditingSubDeptId] = useState<string | null>(null)
-    const [subDeptName, setSubDeptName] = useState("")
-    const [subDeptDescription, setSubDeptDescription] = useState("")
-    const [subDeptParentId, setSubDeptParentId] = useState("")
-    const [isSavingSubDept, setIsSavingSubDept] = useState(false)
 
     useEffect(() => {
         fetchData()
@@ -75,11 +63,14 @@ export default function AdminDepartmentsPage() {
         }
     }
 
+    function getSubDeptCount(deptId: string): number {
+        return subDepartments.filter(sd => sd.departmentId === deptId).length
+    }
+
     const filteredDepartments = departments.filter(d =>
         d.name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    // Department CRUD
     function openCreateDeptDialog() {
         setIsEditingDept(false)
         setEditingDeptId(null)
@@ -140,72 +131,8 @@ export default function AdminDepartmentsPage() {
         }
     }
 
-    // Sub-department CRUD
-    function openCreateSubDeptDialog(parentDeptId?: string) {
-        setIsEditingSubDept(false)
-        setEditingSubDeptId(null)
-        setSubDeptName("")
-        setSubDeptDescription("")
-        setSubDeptParentId(parentDeptId || "")
-        setSubDeptDialogOpen(true)
-    }
-
-    function openEditSubDeptDialog(subDept: SubDepartment) {
-        setIsEditingSubDept(true)
-        setEditingSubDeptId(subDept.id)
-        setSubDeptName(subDept.name)
-        setSubDeptDescription(subDept.description || "")
-        setSubDeptParentId(subDept.departmentId)
-        setSubDeptDialogOpen(true)
-    }
-
-    async function handleSaveSubDept() {
-        if (!subDeptName.trim()) {
-            toast.error("Sub-department name is required")
-            return
-        }
-        if (!subDeptParentId) {
-            toast.error("Please select a parent department")
-            return
-        }
-
-        setIsSavingSubDept(true)
-        try {
-            if (isEditingSubDept && editingSubDeptId) {
-                await api.subDepartments.update(editingSubDeptId, {
-                    name: subDeptName,
-                    description: subDeptDescription || undefined,
-                })
-                toast.success("Sub-department updated successfully")
-            } else {
-                await api.subDepartments.create({
-                    name: subDeptName,
-                    description: subDeptDescription || undefined,
-                    departmentId: subDeptParentId,
-                })
-                toast.success("Sub-department created successfully")
-            }
-            setSubDeptDialogOpen(false)
-            fetchData()
-        } catch (error: any) {
-            console.error("Failed to save sub-department:", error)
-            toast.error(error.message || "Failed to save sub-department")
-        } finally {
-            setIsSavingSubDept(false)
-        }
-    }
-
-    async function handleDeleteSubDept(id: string) {
-        if (!confirm("Are you sure you want to delete this sub-department?")) return
-
-        try {
-            await api.subDepartments.delete(id)
-            toast.success("Sub-department deleted successfully")
-            fetchData()
-        } catch (error) {
-            console.error("Failed to delete sub-department:", error)
-            toast.error("Failed to delete sub-department")
-        }
+    function navigateToSubDepartments(deptId: string) {
+        router.push(`/admin/departments/subdepartments?departmentId=${deptId}`)
     }
 
     if (isLoading) {
@@ -222,17 +149,12 @@ export default function AdminDepartmentsPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
                     <p className="text-muted-foreground">
-                        Manage departments and sub-departments
+                        Manage organization departments
                     </p>
                 </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => openCreateSubDeptDialog()}>
-                        <Plus className="h-4 w-4 mr-2" /> Add Sub-Department
-                    </Button>
-                    <Button onClick={openCreateDeptDialog}>
-                        <Plus className="h-4 w-4 mr-2" /> Add Department
-                    </Button>
-                </div>
+                <Button onClick={openCreateDeptDialog}>
+                    <Plus className="h-4 w-4 mr-2" /> Add Department
+                </Button>
             </div>
 
             {/* Search */}
@@ -255,114 +177,73 @@ export default function AdminDepartmentsPage() {
                 <CardHeader>
                     <CardTitle>All Departments</CardTitle>
                     <CardDescription>
-                        {departments.length} department{departments.length !== 1 ? 's' : ''}, {' '}
-                        {subDepartments.length} sub-department{subDepartments.length !== 1 ? 's' : ''}
+                        {departments.length} department{departments.length !== 1 ? 's' : ''}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {filteredDepartments.length === 0 ? (
-                        <p className="text-muted-foreground text-center py-8">
-                            No departments found
-                        </p>
+                        <div className="text-center py-12 text-muted-foreground">
+                            <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                            <p>No departments found</p>
+                        </div>
                     ) : (
-                        <Accordion type="multiple" className="w-full">
-                            {filteredDepartments.map((dept) => {
-                                const deptSubDepts = subDepartments.filter(sd => sd.departmentId === dept.id)
-                                return (
-                                    <AccordionItem key={dept.id} value={dept.id}>
-                                        <AccordionTrigger className="hover:no-underline">
-                                            <div className="flex items-center justify-between w-full pr-4">
-                                                <div className="flex items-center gap-3">
-                                                    <Building2 className="h-5 w-5 text-muted-foreground" />
-                                                    <div className="text-left">
-                                                        <p className="font-medium">{dept.name}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {deptSubDepts.length} sub-department{deptSubDepts.length !== 1 ? 's' : ''}
-                                                        </p>
-                                                    </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Department</TableHead>
+                                    <TableHead>Description</TableHead>
+                                    <TableHead>Sub-departments</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredDepartments.map((dept) => (
+                                    <TableRow key={dept.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-primary/10 rounded-lg">
+                                                    <Building2 className="h-4 w-4 text-primary" />
                                                 </div>
-                                                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            openEditDeptDialog(dept)
-                                                        }}
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="text-destructive"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleDeleteDept(dept.id)
-                                                        }}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
+                                                <span className="font-medium">{dept.name}</span>
                                             </div>
-                                        </AccordionTrigger>
-                                        <AccordionContent>
-                                            <div className="pl-8 space-y-3">
-                                                {dept.description && (
-                                                    <p className="text-sm text-muted-foreground">{dept.description}</p>
-                                                )}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground max-w-[300px] truncate">
+                                            {dept.description || '—'}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => navigateToSubDepartments(dept.id)}
+                                                className="gap-1"
+                                            >
+                                                {getSubDeptCount(dept.id)} sub-departments
+                                                <ChevronRight className="h-4 w-4" />
+                                            </Button>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
                                                 <Button
-                                                    variant="outline"
+                                                    variant="ghost"
                                                     size="sm"
-                                                    onClick={() => openCreateSubDeptDialog(dept.id)}
+                                                    onClick={() => openEditDeptDialog(dept)}
                                                 >
-                                                    <Plus className="h-4 w-4 mr-2" /> Add Sub-Department
+                                                    <Pencil className="h-4 w-4" />
                                                 </Button>
-                                                {deptSubDepts.length === 0 ? (
-                                                    <p className="text-sm text-muted-foreground mt-2">No sub-departments yet</p>
-                                                ) : (
-                                                    <div className="space-y-2 mt-3">
-                                                        {deptSubDepts.map((subDept) => (
-                                                            <div
-                                                                key={subDept.id}
-                                                                className="flex items-center justify-between p-3 border rounded-lg"
-                                                            >
-                                                                <div className="flex items-center gap-3">
-                                                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                                                    <div>
-                                                                        <p className="font-medium">{subDept.name}</p>
-                                                                        {subDept.description && (
-                                                                            <p className="text-sm text-muted-foreground">{subDept.description}</p>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex gap-2">
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        onClick={() => openEditSubDeptDialog(subDept)}
-                                                                    >
-                                                                        <Pencil className="h-4 w-4" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="sm"
-                                                                        className="text-destructive"
-                                                                        onClick={() => handleDeleteSubDept(subDept.id)}
-                                                                    >
-                                                                        <Trash2 className="h-4 w-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-destructive hover:text-destructive"
+                                                    onClick={() => handleDeleteDept(dept.id)}
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
                                             </div>
-                                        </AccordionContent>
-                                    </AccordionItem>
-                                )
-                            })}
-                        </Accordion>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
                     )}
                 </CardContent>
             </Card>
@@ -402,65 +283,6 @@ export default function AdminDepartmentsPage() {
                         </Button>
                         <Button onClick={handleSaveDept} disabled={isSavingDept}>
                             {isSavingDept ? "Saving..." : isEditingDept ? "Save Changes" : "Create Department"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            {/* Sub-Department Dialog */}
-            <Dialog open={subDeptDialogOpen} onOpenChange={setSubDeptDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>
-                            {isEditingSubDept ? 'Edit Sub-Department' : 'Create Sub-Department'}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {isEditingSubDept ? 'Update sub-department details' : 'Add a new sub-department'}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label>Parent Department <span className="text-red-500">*</span></Label>
-                            <Select
-                                value={subDeptParentId}
-                                onValueChange={setSubDeptParentId}
-                                disabled={isEditingSubDept}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select parent department" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {departments.map((dept) => (
-                                        <SelectItem key={dept.id} value={dept.id}>
-                                            {dept.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Name <span className="text-red-500">*</span></Label>
-                            <Input
-                                placeholder="Enter sub-department name"
-                                value={subDeptName}
-                                onChange={(e) => setSubDeptName(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Description</Label>
-                            <Textarea
-                                placeholder="Enter sub-department description (optional)"
-                                value={subDeptDescription}
-                                onChange={(e) => setSubDeptDescription(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setSubDeptDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handleSaveSubDept} disabled={isSavingSubDept}>
-                            {isSavingSubDept ? "Saving..." : isEditingSubDept ? "Save Changes" : "Create Sub-Department"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

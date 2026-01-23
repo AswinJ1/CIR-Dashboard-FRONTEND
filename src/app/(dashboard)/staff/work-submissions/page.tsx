@@ -254,8 +254,8 @@ export default function StaffWorkSubmissionsPage() {
                                                 <div className="text-left">
                                                     <p className="font-medium">{day.displayDate}</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {day.submissions.length} submission{day.submissions.length !== 1 ? 's' : ''} • {day.totalHours} total hours
-                                                        {day.verifiedHours > 0 && ` • ${day.verifiedHours} verified`}
+                                                        {day.submissions.length} submission{day.submissions.length !== 1 ? 's' : ''} • total {day.totalHours}  hours  work staff submitted
+                                                        {day.verifiedHours > 0 && ` • Final: ${day.verifiedHours} hrs verified`}
                                                     </p>
                                                 </div>
                                             </div>
