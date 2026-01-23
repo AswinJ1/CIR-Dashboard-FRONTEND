@@ -1,19 +1,57 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { api } from "@/lib/api"
 import { Responsibility } from "@/types/cir"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
-import { Search, Briefcase, Calendar } from "lucide-react"
-import { format } from "date-fns"
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import {
+    format,
+    startOfMonth,
+    endOfMonth,
+    eachDayOfInterval,
+    isSameMonth,
+    isSameDay,
+    startOfWeek,
+    endOfWeek,
+    isWithinInterval,
+    parseISO
+} from "date-fns"
+import { cn } from "@/lib/utils"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
+
+// Color palette for responsibilities
+const COLORS = [
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-purple-500",
+    "bg-orange-500",
+    "bg-pink-500",
+    "bg-cyan-500",
+    "bg-indigo-500",
+    "bg-teal-500",
+]
 
 export default function ManagerResponsibilitiesPage() {
     const [responsibilities, setResponsibilities] = useState<Responsibility[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [searchQuery, setSearchQuery] = useState("")
+    const [currentMonth, setCurrentMonth] = useState(new Date())
+    const [selectedResponsibility, setSelectedResponsibility] = useState<Responsibility | null>(null)
+    const [detailsOpen, setDetailsOpen] = useState(false)
+
+    // Day modal state - shows all responsibilities for a specific day
+    const [selectedDayResponsibilities, setSelectedDayResponsibilities] = useState<{ resp: Responsibility; color: string }[]>([])
+    const [selectedDayDate, setSelectedDayDate] = useState<Date | null>(null)
+    const [dayModalOpen, setDayModalOpen] = useState(false)
 
     async function fetchResponsibilities() {
         try {
@@ -30,9 +68,74 @@ export default function ManagerResponsibilitiesPage() {
         fetchResponsibilities()
     }, [])
 
-    const filteredResponsibilities = responsibilities.filter(r =>
-        r.title?.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    // Generate calendar days for current month (including padding days)
+    const calendarDays = useMemo(() => {
+        const monthStart = startOfMonth(currentMonth)
+        const monthEnd = endOfMonth(currentMonth)
+        const calendarStart = startOfWeek(monthStart)
+        const calendarEnd = endOfWeek(monthEnd)
+
+        return eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+    }, [currentMonth])
+
+    // Get weeks (array of 7-day arrays)
+    const weeks = useMemo(() => {
+        const result: Date[][] = []
+        for (let i = 0; i < calendarDays.length; i += 7) {
+            result.push(calendarDays.slice(i, i + 7))
+        }
+        return result
+    }, [calendarDays])
+
+    // Map responsibilities to days with colors
+    const responsibilityMap = useMemo(() => {
+        const map = new Map<string, { resp: Responsibility; color: string; isStart: boolean; isEnd: boolean }[]>()
+
+        responsibilities.forEach((resp, index) => {
+            if (!resp.startDate || !resp.endDate) return
+
+            const color = COLORS[index % COLORS.length]
+            const start = parseISO(resp.startDate)
+            const end = parseISO(resp.endDate)
+
+            calendarDays.forEach(day => {
+                if (isWithinInterval(day, { start, end })) {
+                    const dateStr = format(day, 'yyyy-MM-dd')
+                    const existing = map.get(dateStr) || []
+                    existing.push({
+                        resp,
+                        color,
+                        isStart: isSameDay(day, start),
+                        isEnd: isSameDay(day, end)
+                    })
+                    map.set(dateStr, existing)
+                }
+            })
+        })
+
+        return map
+    }, [responsibilities, calendarDays])
+
+    function navigateMonth(direction: 'prev' | 'next') {
+        const newMonth = new Date(currentMonth)
+        if (direction === 'prev') {
+            newMonth.setMonth(newMonth.getMonth() - 1)
+        } else {
+            newMonth.setMonth(newMonth.getMonth() + 1)
+        }
+        setCurrentMonth(newMonth)
+    }
+
+    function openDetails(resp: Responsibility) {
+        setSelectedResponsibility(resp)
+        setDetailsOpen(true)
+    }
+
+    function openDayModal(date: Date, dayResps: { resp: Responsibility; color: string }[]) {
+        setSelectedDayDate(date)
+        setSelectedDayResponsibilities(dayResps)
+        setDayModalOpen(true)
+    }
 
     if (isLoading) {
         return (
@@ -44,85 +147,188 @@ export default function ManagerResponsibilitiesPage() {
 
     return (
         <div className="p-6 space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Responsibilities</h1>
-                    <p className="text-muted-foreground">Manage work responsibilities for your sub-department</p>
+                    <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
+                    <p className="text-muted-foreground">
+                        View and manage responsibilities on a calendar
+                    </p>
                 </div>
-                <CreateResponsibilityDialog onSuccess={fetchResponsibilities} />
+                <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">Dashboard / Calendar</span>
+                </div>
             </div>
 
+            {/* Calendar Card */}
             <Card>
-                <CardContent className="pt-6">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                            placeholder="Search responsibilities..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9"
-                        />
+                <CardContent className="p-0">
+                    {/* Calendar Header */}
+                    <div className="flex items-center justify-between p-4 border-b">
+                        <div className="flex items-center gap-4">
+                            <Button variant="ghost" size="icon" onClick={() => navigateMonth('prev')}>
+                                <ChevronLeft className="h-5 w-5" />
+                            </Button>
+                            <h2 className="text-xl font-semibold min-w-[180px] text-center">
+                                {format(currentMonth, 'MMMM yyyy')}
+                            </h2>
+                            <Button variant="ghost" size="icon" onClick={() => navigateMonth('next')}>
+                                <ChevronRight className="h-5 w-5" />
+                            </Button>
+                        </div>
+                        <CreateResponsibilityDialog onSuccess={fetchResponsibilities} />
+                    </div>
+
+                    {/* Days of Week Header */}
+                    <div className="grid grid-cols-7 bg-primary text-primary-foreground">
+                        {['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].map(day => (
+                            <div key={day} className="p-3 text-center font-medium text-sm">
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Calendar Grid */}
+                    <div className="divide-y">
+                        {weeks.map((week, weekIndex) => (
+                            <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[120px]">
+                                {week.map(day => {
+                                    const dateStr = format(day, 'yyyy-MM-dd')
+                                    const dayResponsibilities = responsibilityMap.get(dateStr) || []
+                                    const isCurrentMonth = isSameMonth(day, currentMonth)
+
+                                    return (
+                                        <div
+                                            key={dateStr}
+                                            className={cn(
+                                                "p-2 relative",
+                                                !isCurrentMonth && "bg-muted/50"
+                                            )}
+                                        >
+                                            {/* Day Number */}
+                                            <span className={cn(
+                                                "text-sm font-medium",
+                                                !isCurrentMonth && "text-muted-foreground"
+                                            )}>
+                                                {day.getDate()}
+                                            </span>
+
+                                            {/* Responsibilities */}
+                                            <div className="mt-1 space-y-1">
+                                                {dayResponsibilities.slice(0, 3).map(({ resp, color, isStart, isEnd }, idx) => (
+                                                    <button
+                                                        key={`${resp.id}-${idx}`}
+                                                        onClick={() => openDetails(resp)}
+                                                        className={cn(
+                                                            "w-full text-left text-xs text-white px-2 py-1 truncate hover:opacity-80 transition-opacity",
+                                                            color,
+                                                            isStart && "rounded-l-md",
+                                                            isEnd && "rounded-r-md",
+                                                            !isStart && !isEnd && "rounded-none",
+                                                            isStart && isEnd && "rounded-md"
+                                                        )}
+                                                        title={resp.title}
+                                                    >
+                                                        {resp.title}
+                                                    </button>
+                                                ))}
+                                                {dayResponsibilities.length > 3 && (
+                                                    <button
+                                                        className="text-xs text-primary hover:underline font-medium"
+                                                        onClick={() => openDayModal(day, dayResponsibilities.map(d => ({ resp: d.resp, color: d.color })))}
+                                                    >
+                                                        +{dayResponsibilities.length - 3} more
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Available Responsibilities</CardTitle>
-                    <CardDescription>
-                        {filteredResponsibilities.length} responsibilit{filteredResponsibilities.length !== 1 ? 'ies' : 'y'}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {filteredResponsibilities.length === 0 ? (
-                        <div className="text-center py-8">
-                            <p className="text-muted-foreground mb-4">No responsibilities found</p>
-                            <CreateResponsibilityDialog 
-                                onSuccess={fetchResponsibilities}
-                                triggerButton={
-                                    <span className="text-primary underline cursor-pointer">
-                                        Create your first responsibility
-                                    </span>
-                                }
-                            />
-                        </div>
-                    ) : (
+            {/* Responsibility Details Dialog */}
+            <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{selectedResponsibility?.title}</DialogTitle>
+                        <DialogDescription>
+                            Responsibility Details
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {selectedResponsibility && (
                         <div className="space-y-4">
-                            {filteredResponsibilities.map((resp) => (
-                                <div key={resp.id} className="flex items-start gap-4 p-4 border rounded-lg">
-                                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                                        <Briefcase className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <p className="font-medium">{resp.title}</p>
-                                            {resp.cycle && (
-                                                <Badge variant="outline">{resp.cycle}</Badge>
-                                            )}
-                                        </div>
-                                        {resp.description && (
-                                            <p className="text-sm text-muted-foreground">{resp.description}</p>
-                                        )}
-                                        <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                                            {resp.cycle && (
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="h-3 w-3" />
-                                                    Cycle: {resp.cycle}
-                                                </span>
-                                            )}
-                                            {resp.startDate && resp.endDate && (
-                                                <span>
-                                                    {format(new Date(resp.startDate), "MMM d")} - {format(new Date(resp.endDate), "MMM d, yyyy")}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                            {selectedResponsibility.description && (
+                                <div>
+                                    <p className="text-sm font-medium mb-1">Description</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {selectedResponsibility.description}
+                                    </p>
                                 </div>
-                            ))}
+                            )}
+
+                            <div className="flex gap-4">
+                                {selectedResponsibility.cycle && (
+                                    <div>
+                                        <p className="text-sm font-medium mb-1">Cycle</p>
+                                        <Badge variant="outline">{selectedResponsibility.cycle}</Badge>
+                                    </div>
+                                )}
+
+                                {selectedResponsibility.startDate && selectedResponsibility.endDate && (
+                                    <div>
+                                        <p className="text-sm font-medium mb-1">Date Range</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {format(parseISO(selectedResponsibility.startDate), "MMM d")} - {format(parseISO(selectedResponsibility.endDate), "MMM d, yyyy")}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </DialogContent>
+            </Dialog>
+
+            {/* Day Responsibilities Modal - Shows all for a specific day */}
+            <Dialog open={dayModalOpen} onOpenChange={setDayModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {selectedDayDate && format(selectedDayDate, "MMMM d, yyyy")}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedDayResponsibilities.length} responsibilities on this day
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {selectedDayResponsibilities.map(({ resp, color }, idx) => (
+                            <button
+                                key={`${resp.id}-${idx}`}
+                                onClick={() => {
+                                    setDayModalOpen(false)
+                                    openDetails(resp)
+                                }}
+                                className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors text-left"
+                            >
+                                <div className={cn("w-3 h-3 rounded-full flex-shrink-0", color)} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{resp.title}</p>
+                                    {resp.startDate && resp.endDate && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {format(parseISO(resp.startDate), "MMM d")} - {format(parseISO(resp.endDate), "MMM d")}
+                                        </p>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

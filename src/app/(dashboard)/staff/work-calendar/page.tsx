@@ -572,7 +572,7 @@ export default function StaffWorkCalendarPage() {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-semibold text-lg">
-                                                        {todayUnsubmittedAssignments.length} Pending Responsibility{todayUnsubmittedAssignments.length !== 1 ? 'ies' : 'y'}
+                                                        {todayUnsubmittedAssignments.length} Pending Responsibilit{todayUnsubmittedAssignments.length !== 1 ? 'ies' : 'y'}
                                                     </h3>
                                                     <p className="text-muted-foreground text-sm">
                                                         Ready for submission

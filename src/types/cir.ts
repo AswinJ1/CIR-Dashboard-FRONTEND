@@ -289,9 +289,11 @@ export interface Comment {
   updatedAt: string
 }
 
+// Matches Prisma.CommentCreateInput structure
 export interface CreateCommentDto {
-  workSubmissionId: string
   content: string
+  submission: { connect: { id: number } }
+  author: { connect: { id: number } }
 }
 
 export interface UpdateCommentDto {

@@ -346,6 +346,9 @@ export const workSubmissionsApi = {
 
 // ==================== Comments API ====================
 export const commentsApi = {
+    getBySubmissionId: (submissionId: string): Promise<Comment[]> =>
+        fetchApi(`/comments?submissionId=${submissionId}`),
+
     create: (data: CreateCommentDto): Promise<Comment> =>
         fetchApi('/comments', {
             method: 'POST',

@@ -64,6 +64,7 @@ export default function ManagerSubmissionsPage() {
     const [reviewDialogOpen, setReviewDialogOpen] = useState(false)
     const [rejectionReason, setRejectionReason] = useState("")
     const [isVerifying, setIsVerifying] = useState(false)
+    const [verifyingSubmissionId, setVerifyingSubmissionId] = useState<string | null>(null)
 
     useEffect(() => {
         fetchData()
@@ -125,8 +126,9 @@ export default function ManagerSubmissionsPage() {
         )
     }
 
-    async function handleVerify(status: 'VERIFIED' | 'REJECTED') {
-        if (!selectedSubmission) return
+    async function handleVerify(status: 'VERIFIED' | 'REJECTED', submissionOverride?: WorkSubmission) {
+        const submission = submissionOverride || selectedSubmission
+        if (!submission) return
 
         if (status === 'REJECTED' && !rejectionReason.trim()) {
             toast.error("Rejection reason is required")
@@ -134,8 +136,9 @@ export default function ManagerSubmissionsPage() {
         }
 
         setIsVerifying(true)
+        setVerifyingSubmissionId(submission.id)
         try {
-            await api.workSubmissions.verify(selectedSubmission.id, {
+            await api.workSubmissions.verify(submission.id, {
                 approved: status === 'VERIFIED',
                 managerComment: status === 'REJECTED' ? rejectionReason.trim() : undefined,
             })
@@ -149,6 +152,7 @@ export default function ManagerSubmissionsPage() {
             toast.error(error.message || "Failed to verify submission")
         } finally {
             setIsVerifying(false)
+            setVerifyingSubmissionId(null)
         }
     }
 
@@ -211,17 +215,20 @@ export default function ManagerSubmissionsPage() {
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                onClick={() => {
-                                                    setSelectedSubmission(submission)
-                                                    handleVerify('VERIFIED')
-                                                }}
+                                                disabled={verifyingSubmissionId !== null}
+                                                onClick={() => handleVerify('VERIFIED', submission)}
                                             >
-                                                <CheckCircle className="h-4 w-4" />
+                                                {verifyingSubmissionId === submission.id ? (
+                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                                                ) : (
+                                                    <CheckCircle className="h-4 w-4" />
+                                                )}
                                             </Button>
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                disabled={verifyingSubmissionId !== null}
                                                 onClick={() => openReviewDialog(submission)}
                                             >
                                                 <XCircle className="h-4 w-4" />
