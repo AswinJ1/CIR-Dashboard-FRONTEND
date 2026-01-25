@@ -72,9 +72,24 @@ export default function ManagerResponsibilitiesPage() {
 
     async function fetchData() {
         try {
+            // Helper to handle 404 gracefully for groups API
+            const fetchGroupsSafe = async () => {
+                try {
+                    return await api.responsibilityGroups.getAll()
+                } catch (error: any) {
+                    // Only return empty array for 404 (endpoint not found)
+                    if (error?.status === 404 || error?.response?.status === 404) {
+                        return []
+                    }
+                    // Log and rethrow other errors (auth, network, etc.)
+                    console.error("Failed to fetch responsibility groups:", error)
+                    throw error
+                }
+            }
+
             const [respData, groupsData] = await Promise.all([
                 api.responsibilities.getAll(),
-                api.responsibilityGroups.getAll().catch(() => []),
+                fetchGroupsSafe(),
             ])
             setResponsibilities(respData)
             setResponsibilityGroups(groupsData)

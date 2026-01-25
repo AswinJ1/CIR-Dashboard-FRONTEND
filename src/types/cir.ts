@@ -413,7 +413,7 @@ export interface AssignGroupToStaffDto {
 }
 
 export interface GroupAssignmentResult {
-  groupId: number
+  groupId: string
   assignedTo: {
     staffId: number
     staffName: string
