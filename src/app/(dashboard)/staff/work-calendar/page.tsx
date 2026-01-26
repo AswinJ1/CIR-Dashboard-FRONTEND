@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
-import { Assignment, WorkSubmission } from "@/types/cir"
+import { Assignment, WorkSubmission, ResponsibilityGroup } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { toast } from "sonner"
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday as isDateToday, startOfToday } from "date-fns"
 import {
@@ -40,6 +45,8 @@ import {
     Lock,
     Plus,
     Trash2,
+    FolderOpen,
+    ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import DashboardHeader from "@/components/dashboard-header"
@@ -73,6 +80,14 @@ interface AssignmentFormData {
     workProofUrl: string
 }
 
+// Group assignments by their responsibility group
+interface GroupedAssignment {
+    groupId: string | null
+    groupName: string
+    assignments: Assignment[]
+    isExpanded?: boolean
+}
+
 export default function StaffWorkCalendarPage() {
     const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(true)
@@ -80,6 +95,7 @@ export default function StaffWorkCalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
+    const [responsibilityGroups, setResponsibilityGroups] = useState<ResponsibilityGroup[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
     
     // Modal state
@@ -93,6 +109,20 @@ export default function StaffWorkCalendarPage() {
     
     // Track if today's work was submitted successfully
     const [todaySubmitted, setTodaySubmitted] = useState(false)
+    
+    // Track expanded groups in the modal
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+
+    // Resubmit modal state
+    const [isResubmitModalOpen, setIsResubmitModalOpen] = useState(false)
+    const [resubmitSubmission, setResubmitSubmission] = useState<WorkSubmission | null>(null)
+    const [resubmitForm, setResubmitForm] = useState({
+        hoursWorked: '',
+        staffComment: '',
+        workProofType: 'TEXT' as 'TEXT' | 'PDF' | 'IMAGE',
+        workProofText: '',
+        workProofUrl: '',
+    })
 
     const today = useMemo(() => startOfToday(), [])
 
@@ -103,12 +133,14 @@ export default function StaffWorkCalendarPage() {
     async function fetchData() {
         setIsLoading(true)
         try {
-            const [assignmentsData, submissionsData] = await Promise.all([
+            const [assignmentsData, submissionsData, groupsData] = await Promise.all([
                 api.assignments.getAll(),
                 api.workSubmissions.getAll(),
+                api.responsibilityGroups.getAll().catch(() => []), // Handle if groups API not available
             ])
             setAssignments(assignmentsData)
             setAllSubmissions(submissionsData)
+            setResponsibilityGroups(groupsData)
             
             // Check if today's work was already submitted
             const todaySubmissions = getSubmissionsForDate(submissionsData, new Date())
@@ -164,6 +196,65 @@ export default function StaffWorkCalendarPage() {
     const todaySubmittedAssignments = useMemo(() => {
         return getSubmittedAssignmentsForDate(assignments, today, allSubmissions)
     }, [assignments, today, allSubmissions])
+
+    // Group unsubmitted assignments by responsibility groups
+    const groupedUnsubmittedAssignments = useMemo(() => {
+        const grouped: GroupedAssignment[] = []
+        const assignedToGroup = new Set<string>()
+
+        // First, find assignments that belong to groups
+        for (const group of responsibilityGroups) {
+            if (!group.items) continue
+            
+            const groupAssignments: Assignment[] = []
+            for (const item of group.items) {
+                const assignment = todayUnsubmittedAssignments.find(
+                    a => a.responsibilityId === item.responsibilityId || 
+                         a.responsibility?.id === item.responsibilityId
+                )
+                if (assignment) {
+                    groupAssignments.push(assignment)
+                    assignedToGroup.add(String(assignment.id))
+                }
+            }
+            
+            if (groupAssignments.length > 0) {
+                grouped.push({
+                    groupId: group.id,
+                    groupName: group.name,
+                    assignments: groupAssignments,
+                })
+            }
+        }
+
+        // Then, collect ungrouped assignments
+        const ungroupedAssignments = todayUnsubmittedAssignments.filter(
+            a => !assignedToGroup.has(String(a.id))
+        )
+        
+        if (ungroupedAssignments.length > 0) {
+            grouped.push({
+                groupId: null,
+                groupName: "Individual Responsibilities",
+                assignments: ungroupedAssignments,
+            })
+        }
+
+        return grouped
+    }, [todayUnsubmittedAssignments, responsibilityGroups])
+
+    // Toggle group expansion
+    const toggleGroupExpansion = useCallback((groupId: string) => {
+        setExpandedGroups(prev => {
+            const newSet = new Set(prev)
+            if (newSet.has(groupId)) {
+                newSet.delete(groupId)
+            } else {
+                newSet.add(groupId)
+            }
+            return newSet
+        })
+    }, [])
 
     // Get previous day's submitted assignments (for view only)
     const previousDaySubmissions = useMemo(() => {
@@ -370,6 +461,51 @@ export default function StaffWorkCalendarPage() {
         return "bg-neutral-100 dark:bg-neutral-800"
     }
 
+    // Open resubmit modal for a rejected submission
+    function openResubmitModal(submission: WorkSubmission) {
+        setResubmitSubmission(submission)
+        setResubmitForm({
+            hoursWorked: String((submission as any).hoursWorked || 0),
+            staffComment: '',
+            workProofType: (submission as any).workProofType || 'TEXT',
+            workProofText: (submission as any).workProofText || '',
+            workProofUrl: (submission as any).workProofUrl || '',
+        })
+        setIsResubmitModalOpen(true)
+    }
+
+    // Handle resubmit form submission
+    async function handleResubmit() {
+        if (!resubmitSubmission) return
+
+        setIsSubmitting(true)
+        try {
+            const hours = parseFloat(resubmitForm.hoursWorked)
+            if (isNaN(hours) || hours <= 0) {
+                toast.error("Please enter valid hours worked")
+                return
+            }
+
+            await api.workSubmissions.resubmit(String(resubmitSubmission.id), {
+                hoursWorked: hours,
+                staffComment: resubmitForm.staffComment || undefined,
+                workProofType: resubmitForm.workProofType as 'PDF' | 'IMAGE' | 'TEXT',
+                workProofText: resubmitForm.workProofType === 'TEXT' ? resubmitForm.workProofText : undefined,
+                workProofUrl: resubmitForm.workProofType !== 'TEXT' ? resubmitForm.workProofUrl : undefined,
+            })
+
+            toast.success("Work resubmitted successfully!")
+            setIsResubmitModalOpen(false)
+            setResubmitSubmission(null)
+            await fetchData()
+        } catch (error: any) {
+            console.error("Failed to resubmit work:", error)
+            toast.error(error.message || "Failed to resubmit work")
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
     function navigateMonth(direction: 'prev' | 'next') {
         const newMonth = new Date(currentMonth)
         if (direction === 'prev') {
@@ -561,11 +697,11 @@ export default function StaffWorkCalendarPage() {
                                 </Card>
                             )}
 
-                            {/* Pending Assignments Count */}
+                            {/* Pending Assignments Count - Show as groups */}
                             {todayUnsubmittedAssignments.length > 0 && (
                                 <Card className="border-foreground/10">
                                     <CardContent className="py-6">
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-4">
                                                 <div className="h-12 w-12 rounded-full bg-foreground/5 flex items-center justify-center">
                                                     <FileText className="h-6 w-6 text-muted-foreground" />
@@ -575,10 +711,35 @@ export default function StaffWorkCalendarPage() {
                                                         {todayUnsubmittedAssignments.length} Pending Responsibilit{todayUnsubmittedAssignments.length !== 1 ? 'ies' : 'y'}
                                                     </h3>
                                                     <p className="text-muted-foreground text-sm">
-                                                        Ready for submission
+                                                        {groupedUnsubmittedAssignments.filter(g => g.groupId).length > 0 
+                                                            ? `In ${groupedUnsubmittedAssignments.filter(g => g.groupId).length} group${groupedUnsubmittedAssignments.filter(g => g.groupId).length !== 1 ? 's' : ''}`
+                                                            : 'Ready for submission'
+                                                        }
                                                     </p>
                                                 </div>
                                             </div>
+                                        </div>
+                                        
+                                        {/* Show groups preview */}
+                                        <div className="space-y-2">
+                                            {groupedUnsubmittedAssignments.map(group => (
+                                                <div 
+                                                    key={group.groupId || 'ungrouped'} 
+                                                    className="flex items-center gap-3 p-3 bg-foreground/5 rounded-lg"
+                                                >
+                                                    {group.groupId ? (
+                                                        <FolderOpen className="h-5 w-5 text-muted-foreground" />
+                                                    ) : (
+                                                        <FileText className="h-5 w-5 text-muted-foreground" />
+                                                    )}
+                                                    <div className="flex-1">
+                                                        <p className="font-medium text-sm">{group.groupName}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {group.assignments.length} responsibilit{group.assignments.length !== 1 ? 'ies' : 'y'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -649,10 +810,75 @@ export default function StaffWorkCalendarPage() {
                                     </CardContent>
                                 </Card>
                             )} */}
+
+                            {/* Rejected Submissions - Show with Resubmit option */}
+                            {(() => {
+                                const todaySubmissions = getSubmissionsForDate(allSubmissions, today)
+                                const rejectedSubmissions = todaySubmissions.filter(s => s.status === 'REJECTED')
+                                
+                                if (rejectedSubmissions.length === 0) return null
+                                
+                                return (
+                                    <Card className="border-red-500/30 bg-red-50/30 dark:bg-red-900/10">
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-base flex items-center gap-2 text-red-600 dark:text-red-400">
+                                                <AlertCircle className="h-4 w-4" />
+                                                Rejected Submissions ({rejectedSubmissions.length})
+                                            </CardTitle>
+                                            <CardDescription className="text-red-600/70 dark:text-red-400/70">
+                                                These submissions were rejected and need your attention
+                                            </CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-3">
+                                            {rejectedSubmissions.map(submission => {
+                                                const rejectionReason = (submission as any).rejectionReason || 
+                                                                        (submission as any).managerComment
+                                                return (
+                                                    <div 
+                                                        key={submission.id} 
+                                                        className="p-3 border border-red-500/30 rounded-lg bg-background"
+                                                    >
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-medium text-sm">
+                                                                    {submission.assignment?.responsibility?.title || 'Work Submission'}
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {(submission as any).hoursWorked || 0}h worked
+                                                                </p>
+                                                            </div>
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="outline"
+                                                                onClick={() => openResubmitModal(submission)}
+                                                                className="text-xs border-red-500/50 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                            >
+                                                                <RefreshCw className="h-3 w-3 mr-1" />
+                                                                Resubmit
+                                                            </Button>
+                                                        </div>
+                                                        
+                                                        {rejectionReason && (
+                                                            <div className="mt-2 pt-2 border-t border-red-500/20">
+                                                                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                                                    Rejection Reason:
+                                                                </p>
+                                                                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                                                    {rejectionReason}
+                                                                </p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            })}
+                                        </CardContent>
+                                    </Card>
+                                )
+                            })()}
                         </>
                     )}
 
-                    {/* PAST DATE VIEW - Read Only */}
+                    {/* PAST DATE VIEW - Read Only (but allows resubmit for rejected) */}
                     {isSelectedDateLocked && (
                         <Card className="border-foreground/10">
                             <CardHeader className="pb-3">
@@ -670,31 +896,66 @@ export default function StaffWorkCalendarPage() {
                                         </p>
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
+                                    <div className="space-y-3">
                                         {previousDaySubmissions.map(submission => {
                                             const status = submission.status || 
                                                            submission.assignment?.status || 
                                                            'SUBMITTED'
+                                            const isRejected = status === 'REJECTED'
+                                            const rejectionReason = (submission as any).rejectionReason || 
+                                                                    (submission as any).managerComment
                                             return (
                                                 <div 
                                                     key={submission.id} 
-                                                    className="flex items-center justify-between p-3 border border-foreground/10 rounded-lg"
+                                                    className={cn(
+                                                        "p-3 border rounded-lg",
+                                                        isRejected 
+                                                            ? "border-red-500/30 bg-red-50/50 dark:bg-red-900/10" 
+                                                            : "border-foreground/10"
+                                                    )}
                                                 >
-                                                    <div>
-                                                        <p className="font-medium text-sm">
-                                                            {submission.assignment?.responsibility?.title || 'Work Submission'}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {(submission as any).hoursWorked || 0}h
-                                                        </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="font-medium text-sm">
+                                                                {submission.assignment?.responsibility?.title || 'Work Submission'}
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {(submission as any).hoursWorked || 0}h worked
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge variant="outline" className={cn(
+                                                                "border-foreground/20",
+                                                                status === 'VERIFIED' && "border-green-500/50 text-green-600 dark:text-green-400",
+                                                                isRejected && "border-red-500/50 text-red-600 dark:text-red-400"
+                                                            )}>
+                                                                {status}
+                                                            </Badge>
+                                                            {isRejected && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    onClick={() => openResubmitModal(submission)}
+                                                                    className="text-xs"
+                                                                >
+                                                                    <RefreshCw className="h-3 w-3 mr-1" />
+                                                                    Resubmit
+                                                                </Button>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <Badge variant="outline" className={cn(
-                                                        "border-foreground/20",
-                                                        status === 'VERIFIED' && "border-green-500/50 text-green-600 dark:text-green-400",
-                                                        status === 'REJECTED' && "border-red-500/50 text-red-600 dark:text-red-400"
-                                                    )}>
-                                                        {status}
-                                                    </Badge>
+                                                    
+                                                    {/* Show rejection reason */}
+                                                    {isRejected && rejectionReason && (
+                                                        <div className="mt-2 pt-2 border-t border-red-500/20">
+                                                            <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                                                Rejection Reason:
+                                                            </p>
+                                                            <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                                                {rejectionReason}
+                                                            </p>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )
                                         })}
@@ -729,96 +990,129 @@ export default function StaffWorkCalendarPage() {
                     </DialogHeader>
 
                     <div className="space-y-6 py-4">
-                        {/* Existing Assignments */}
-                        {todayUnsubmittedAssignments.length > 0 && (
+                        {/* Grouped Assignments */}
+                        {groupedUnsubmittedAssignments.length > 0 && (
                             <div className="space-y-4">
-                                <h3 className="font-medium text-sm text-foreground border-b border-foreground/10 pb-2">
-                                    Assigned Responsibilities ({todayUnsubmittedAssignments.length})
-                                </h3>
-                                {todayUnsubmittedAssignments.map(assignment => {
-                                    const formData = getFormData(assignment.id)
+                                {groupedUnsubmittedAssignments.map(group => {
+                                    const groupKey = group.groupId || 'ungrouped'
+                                    const isExpanded = expandedGroups.has(groupKey)
+                                    
                                     return (
-                                        <div key={assignment.id} className="border border-foreground/20 rounded-lg p-4 space-y-3">
-                                            <div>
-                                                <h4 className="font-medium text-foreground">
-                                                    {assignment.responsibility?.title || 'Untitled Responsibility'}
-                                                </h4>
-                                                {assignment.responsibility?.description && (
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {assignment.responsibility.description}
-                                                    </p>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="grid gap-3 sm:grid-cols-2">
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Hours Worked *</Label>
-                                                    <Input
-                                                        type="number"
-                                                        min="0.5"
-                                                        max="24"
-                                                        step="0.5"
-                                                        placeholder="e.g., 2.5"
-                                                        value={formData.hoursWorked}
-                                                        onChange={(e) => updateFormData(assignment.id, { hoursWorked: e.target.value })}
-                                                        className="h-9 border-foreground/20 bg-background"
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Proof Type</Label>
-                                                    <Select 
-                                                        value={formData.workProofType} 
-                                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") => 
-                                                            updateFormData(assignment.id, { workProofType: v })
-                                                        }
-                                                    >
-                                                        <SelectTrigger className="h-9 border-foreground/20 bg-background">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="bg-background border-foreground/20">
-                                                            <SelectItem value="TEXT">Text</SelectItem>
-                                                            <SelectItem value="PDF">PDF URL</SelectItem>
-                                                            <SelectItem value="IMAGE">Image URL</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Work Description</Label>
-                                                <Textarea
-                                                    placeholder="What did you accomplish?"
-                                                    value={formData.workDescription}
-                                                    onChange={(e) => updateFormData(assignment.id, { workDescription: e.target.value })}
-                                                    rows={2}
-                                                    className="resize-none border-foreground/20 bg-background"
-                                                />
-                                            </div>
-                                            
-                                            {formData.workProofType === 'TEXT' ? (
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Proof Details</Label>
-                                                    <Textarea
-                                                        placeholder="Provide proof of your work..."
-                                                        value={formData.workProofText}
-                                                        onChange={(e) => updateFormData(assignment.id, { workProofText: e.target.value })}
-                                                        rows={2}
-                                                        className="resize-none border-foreground/20 bg-background"
-                                                    />
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">{formData.workProofType} URL</Label>
-                                                    <Input
-                                                        type="url"
-                                                        placeholder="https://..."
-                                                        value={formData.workProofUrl}
-                                                        onChange={(e) => updateFormData(assignment.id, { workProofUrl: e.target.value })}
-                                                        className="h-9 border-foreground/20 bg-background"
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
+                                        <Collapsible 
+                                            key={groupKey} 
+                                            open={isExpanded} 
+                                            onOpenChange={() => toggleGroupExpansion(groupKey)}
+                                        >
+                                            <CollapsibleTrigger asChild>
+                                                <button className="w-full flex items-center gap-3 p-3 bg-foreground/5 hover:bg-foreground/10 rounded-lg transition-colors">
+                                                    <div className="h-10 w-10 rounded-full bg-foreground/10 flex items-center justify-center">
+                                                        {group.groupId ? (
+                                                            <FolderOpen className="h-5 w-5 text-foreground" />
+                                                        ) : (
+                                                            <FileText className="h-5 w-5 text-foreground" />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 text-left">
+                                                        <p className="font-semibold text-foreground">{group.groupName}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {group.assignments.length} responsibilit{group.assignments.length !== 1 ? 'ies' : 'y'}
+                                                        </p>
+                                                    </div>
+                                                    <ChevronDown className={cn(
+                                                        "h-5 w-5 text-muted-foreground transition-transform",
+                                                        isExpanded && "transform rotate-180"
+                                                    )} />
+                                                </button>
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent className="mt-2 space-y-3 pl-2 border-l-2 border-foreground/10 ml-5">
+                                                {group.assignments.map(assignment => {
+                                                    const formData = getFormData(assignment.id)
+                                                    return (
+                                                        <div key={assignment.id} className="border border-foreground/20 rounded-lg p-4 space-y-3">
+                                                            <div>
+                                                                <h4 className="font-medium text-foreground">
+                                                                    {assignment.responsibility?.title || 'Untitled Responsibility'}
+                                                                </h4>
+                                                                {assignment.responsibility?.description && (
+                                                                    <p className="text-sm text-muted-foreground">
+                                                                        {assignment.responsibility.description}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                            
+                                                            <div className="grid gap-3 sm:grid-cols-2">
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                                                    <Input
+                                                                        type="number"
+                                                                        min="0.5"
+                                                                        max="24"
+                                                                        step="0.5"
+                                                                        placeholder="e.g., 2.5"
+                                                                        value={formData.hoursWorked}
+                                                                        onChange={(e) => updateFormData(assignment.id, { hoursWorked: e.target.value })}
+                                                                        className="h-9 border-foreground/20 bg-background"
+                                                                    />
+                                                                </div>
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-xs text-foreground">Proof Type</Label>
+                                                                    <Select 
+                                                                        value={formData.workProofType} 
+                                                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") => 
+                                                                            updateFormData(assignment.id, { workProofType: v })
+                                                                        }
+                                                                    >
+                                                                        <SelectTrigger className="h-9 border-foreground/20 bg-background">
+                                                                            <SelectValue />
+                                                                        </SelectTrigger>
+                                                                        <SelectContent className="bg-background border-foreground/20">
+                                                                            <SelectItem value="TEXT">Text</SelectItem>
+                                                                            <SelectItem value="PDF">PDF URL</SelectItem>
+                                                                            <SelectItem value="IMAGE">Image URL</SelectItem>
+                                                                        </SelectContent>
+                                                                    </Select>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div className="space-y-1">
+                                                                <Label className="text-xs text-foreground">Work Description</Label>
+                                                                <Textarea
+                                                                    placeholder="What did you accomplish?"
+                                                                    value={formData.workDescription}
+                                                                    onChange={(e) => updateFormData(assignment.id, { workDescription: e.target.value })}
+                                                                    rows={2}
+                                                                    className="resize-none border-foreground/20 bg-background"
+                                                                />
+                                                            </div>
+                                                            
+                                                            {formData.workProofType === 'TEXT' ? (
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-xs text-foreground">Proof Details</Label>
+                                                                    <Textarea
+                                                                        placeholder="Provide proof of your work..."
+                                                                        value={formData.workProofText}
+                                                                        onChange={(e) => updateFormData(assignment.id, { workProofText: e.target.value })}
+                                                                        rows={2}
+                                                                        className="resize-none border-foreground/20 bg-background"
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-1">
+                                                                    <Label className="text-xs text-foreground">{formData.workProofType} URL</Label>
+                                                                    <Input
+                                                                        type="url"
+                                                                        placeholder="https://..."
+                                                                        value={formData.workProofUrl}
+                                                                        onChange={(e) => updateFormData(assignment.id, { workProofUrl: e.target.value })}
+                                                                        className="h-9 border-foreground/20 bg-background"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+                                            </CollapsibleContent>
+                                        </Collapsible>
                                     )
                                 })}
                             </div>
@@ -937,7 +1231,7 @@ export default function StaffWorkCalendarPage() {
                         )}
 
                         {/* Empty State */}
-                        {todayUnsubmittedAssignments.length === 0 && newResponsibilities.length === 0 && (
+                        {groupedUnsubmittedAssignments.length === 0 && newResponsibilities.length === 0 && (
                             <div className="py-8 text-center border border-dashed border-foreground/20 rounded-lg">
                                 <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                                 <p className="text-muted-foreground mb-4">
@@ -979,6 +1273,143 @@ export default function StaffWorkCalendarPage() {
                                 <>
                                     <Send className="h-4 w-4 mr-2" />
                                     Submit
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Resubmit Work Modal */}
+            <Dialog open={isResubmitModalOpen} onOpenChange={setIsResubmitModalOpen}>
+                <DialogContent className="max-w-lg bg-background border-foreground/20">
+                    <DialogHeader>
+                        <DialogTitle className="text-foreground">Resubmit Rejected Work</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            Update your submission with corrected details and resubmit for review.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {resubmitSubmission && (
+                        <div className="space-y-4 py-4">
+                            {/* Responsibility Title */}
+                            <div className="p-3 bg-foreground/5 rounded-lg">
+                                <p className="font-medium text-sm">
+                                    {resubmitSubmission.assignment?.responsibility?.title || 'Work Submission'}
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    Originally submitted: {(resubmitSubmission as any).hoursWorked || 0}h
+                                </p>
+                            </div>
+
+                            {/* Show Rejection Reason */}
+                            {((resubmitSubmission as any).rejectionReason || (resubmitSubmission as any).managerComment) && (
+                                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-500/30 rounded-lg">
+                                    <p className="text-xs font-medium text-red-600 dark:text-red-400">
+                                        Rejection Reason:
+                                    </p>
+                                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                                        {(resubmitSubmission as any).rejectionReason || (resubmitSubmission as any).managerComment}
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Hours Worked */}
+                            <div className="space-y-1">
+                                <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                <Input
+                                    type="number"
+                                    min="0.25"
+                                    step="0.25"
+                                    value={resubmitForm.hoursWorked}
+                                    onChange={(e) => setResubmitForm(prev => ({ ...prev, hoursWorked: e.target.value }))}
+                                    className="border-foreground/20 bg-background"
+                                    placeholder="e.g., 2.5"
+                                />
+                            </div>
+
+                            {/* Staff Comment / Reply */}
+                            <div className="space-y-1">
+                                <Label className="text-xs text-foreground">Your Reply / Explanation</Label>
+                                <Textarea
+                                    value={resubmitForm.staffComment}
+                                    onChange={(e) => setResubmitForm(prev => ({ ...prev, staffComment: e.target.value }))}
+                                    className="min-h-[80px] border-foreground/20 bg-background"
+                                    placeholder="Explain the corrections or provide additional context..."
+                                />
+                            </div>
+
+                            {/* Proof Type */}
+                            <div className="space-y-1">
+                                <Label className="text-xs text-foreground">Proof Type</Label>
+                                <Select
+                                    value={resubmitForm.workProofType}
+                                    onValueChange={(value: 'TEXT' | 'PDF' | 'IMAGE') => 
+                                        setResubmitForm(prev => ({ ...prev, workProofType: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="border-foreground/20 bg-background">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="TEXT">Text Description</SelectItem>
+                                        <SelectItem value="PDF">PDF Document</SelectItem>
+                                        <SelectItem value="IMAGE">Image</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            {/* Proof Content */}
+                            {resubmitForm.workProofType === 'TEXT' ? (
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-foreground">Work Details</Label>
+                                    <Textarea
+                                        value={resubmitForm.workProofText}
+                                        onChange={(e) => setResubmitForm(prev => ({ ...prev, workProofText: e.target.value }))}
+                                        className="min-h-[80px] border-foreground/20 bg-background"
+                                        placeholder="Describe the work completed..."
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-1">
+                                    <Label className="text-xs text-foreground">{resubmitForm.workProofType} URL</Label>
+                                    <Input
+                                        type="url"
+                                        value={resubmitForm.workProofUrl}
+                                        onChange={(e) => setResubmitForm(prev => ({ ...prev, workProofUrl: e.target.value }))}
+                                        className="border-foreground/20 bg-background"
+                                        placeholder="https://..."
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <DialogFooter className="border-t border-foreground/10 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => {
+                                setIsResubmitModalOpen(false)
+                                setResubmitSubmission(null)
+                            }}
+                            className="border-foreground/20"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleResubmit}
+                            disabled={isSubmitting || !resubmitForm.hoursWorked}
+                            className="bg-foreground text-background hover:bg-foreground/90"
+                        >
+                            {isSubmitting ? (
+                                <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Resubmitting...
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="h-4 w-4 mr-2" />
+                                    Resubmit
                                 </>
                             )}
                         </Button>

@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { api } from "@/lib/api"
-import { Responsibility } from "@/types/cir"
+import { Responsibility, ResponsibilityGroup } from "@/types/cir"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { ChevronLeft, ChevronRight, FolderOpen } from "lucide-react"
 import {
     format,
     startOfMonth,
@@ -30,7 +30,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import DashboardHeader from "@/components/dashboard-header"
 
-// Color palette for responsibilities
+// Color palette for groups and ungrouped responsibilities
 const COLORS = [
     "bg-blue-500",
     "bg-green-500",
@@ -42,31 +42,66 @@ const COLORS = [
     "bg-teal-500",
 ]
 
+// A calendar display item - can be a group or an ungrouped responsibility
+interface CalendarDisplayItem {
+    id: string
+    name: string
+    color: string
+    isGroup: boolean
+    responsibilities: Responsibility[]
+    isStart: boolean
+    isEnd: boolean
+}
+
 export default function ManagerResponsibilitiesPage() {
     const [responsibilities, setResponsibilities] = useState<Responsibility[]>([])
+    const [responsibilityGroups, setResponsibilityGroups] = useState<ResponsibilityGroup[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [currentMonth, setCurrentMonth] = useState(new Date())
     const [selectedResponsibility, setSelectedResponsibility] = useState<Responsibility | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
 
-    // Day modal state - shows all responsibilities for a specific day
-    const [selectedDayResponsibilities, setSelectedDayResponsibilities] = useState<{ resp: Responsibility; color: string }[]>([])
+    // Group/item modal state - shows all responsibilities for a group or day
+    const [selectedGroup, setSelectedGroup] = useState<CalendarDisplayItem | null>(null)
+    const [groupModalOpen, setGroupModalOpen] = useState(false)
+
+    // Day modal state - shows all groups/items for a specific day
+    const [selectedDayItems, setSelectedDayItems] = useState<CalendarDisplayItem[]>([])
     const [selectedDayDate, setSelectedDayDate] = useState<Date | null>(null)
     const [dayModalOpen, setDayModalOpen] = useState(false)
 
-    async function fetchResponsibilities() {
+    async function fetchData() {
         try {
-            const data = await api.responsibilities.getAll()
-            setResponsibilities(data)
+            // Helper to handle 404 gracefully for groups API
+            const fetchGroupsSafe = async () => {
+                try {
+                    return await api.responsibilityGroups.getAll()
+                } catch (error: any) {
+                    // Only return empty array for 404 (endpoint not found)
+                    if (error?.status === 404 || error?.response?.status === 404) {
+                        return []
+                    }
+                    // Log and rethrow other errors (auth, network, etc.)
+                    console.error("Failed to fetch responsibility groups:", error)
+                    throw error
+                }
+            }
+
+            const [respData, groupsData] = await Promise.all([
+                api.responsibilities.getAll(),
+                fetchGroupsSafe(),
+            ])
+            setResponsibilities(respData)
+            setResponsibilityGroups(groupsData)
         } catch (error) {
-            console.error("Failed to fetch responsibilities:", error)
+            console.error("Failed to fetch data:", error)
         } finally {
             setIsLoading(false)
         }
     }
 
     useEffect(() => {
-        fetchResponsibilities()
+        fetchData()
     }, [])
 
     // Generate calendar days for current month (including padding days)
@@ -88,14 +123,91 @@ export default function ManagerResponsibilitiesPage() {
         return result
     }, [calendarDays])
 
-    // Map responsibilities to days with colors
-    const responsibilityMap = useMemo(() => {
-        const map = new Map<string, { resp: Responsibility; color: string; isStart: boolean; isEnd: boolean }[]>()
+    // Build a map of responsibility ID to group info
+    const responsibilityToGroup = useMemo(() => {
+        const map = new Map<string, { groupId: string; groupName: string }>()
+        for (const group of responsibilityGroups) {
+            if (!group.items) continue
+            for (const item of group.items) {
+                map.set(String(item.responsibilityId), {
+                    groupId: group.id,
+                    groupName: group.name,
+                })
+            }
+        }
+        return map
+    }, [responsibilityGroups])
 
-        responsibilities.forEach((resp, index) => {
+    // Map calendar display items (groups and ungrouped responsibilities) to days
+    const calendarDisplayMap = useMemo(() => {
+        const map = new Map<string, CalendarDisplayItem[]>()
+        const processedGroups = new Set<string>()
+        let colorIndex = 0
+
+        // First pass: Process groups
+        for (const group of responsibilityGroups) {
+            if (!group.items || group.items.length === 0) continue
+
+            const groupResps = group.items
+                .map(item => responsibilities.find(r => String(r.id) === String(item.responsibilityId)))
+                .filter((r): r is Responsibility => r !== undefined)
+
+            if (groupResps.length === 0) continue
+
+            // Find earliest start and latest end date among group responsibilities
+            let groupStart: Date | null = null
+            let groupEnd: Date | null = null
+
+            for (const resp of groupResps) {
+                if (resp.startDate) {
+                    const start = parseISO(resp.startDate)
+                    if (!groupStart || start < groupStart) groupStart = start
+                }
+                if (resp.endDate) {
+                    const end = parseISO(resp.endDate)
+                    if (!groupEnd || end > groupEnd) groupEnd = end
+                }
+            }
+
+            if (!groupStart || !groupEnd) continue
+
+            const color = COLORS[colorIndex % COLORS.length]
+            colorIndex++
+
+            calendarDays.forEach(day => {
+                if (isWithinInterval(day, { start: groupStart!, end: groupEnd! })) {
+                    const dateStr = format(day, 'yyyy-MM-dd')
+                    const existing = map.get(dateStr) || []
+                    
+                    // Only add group once per day
+                    if (!existing.some(item => item.id === group.id)) {
+                        existing.push({
+                            id: group.id,
+                            name: group.name,
+                            color,
+                            isGroup: true,
+                            responsibilities: groupResps,
+                            isStart: isSameDay(day, groupStart!),
+                            isEnd: isSameDay(day, groupEnd!),
+                        })
+                        map.set(dateStr, existing)
+                    }
+                }
+            })
+
+            // Mark these responsibilities as processed
+            for (const resp of groupResps) {
+                processedGroups.add(String(resp.id))
+            }
+        }
+
+        // Second pass: Add ungrouped responsibilities
+        responsibilities.forEach(resp => {
+            if (processedGroups.has(String(resp.id))) return
             if (!resp.startDate || !resp.endDate) return
 
-            const color = COLORS[index % COLORS.length]
+            const color = COLORS[colorIndex % COLORS.length]
+            colorIndex++
             const start = parseISO(resp.startDate)
             const end = parseISO(resp.endDate)
 
@@ -104,10 +216,13 @@ export default function ManagerResponsibilitiesPage() {
                     const dateStr = format(day, 'yyyy-MM-dd')
                     const existing = map.get(dateStr) || []
                     existing.push({
-                        resp,
+                        id: `resp-${resp.id}`,
+                        name: resp.title,
                         color,
+                        isGroup: false,
+                        responsibilities: [resp],
                         isStart: isSameDay(day, start),
-                        isEnd: isSameDay(day, end)
+                        isEnd: isSameDay(day, end),
                     })
                     map.set(dateStr, existing)
                 }
@@ -115,7 +230,7 @@ export default function ManagerResponsibilitiesPage() {
         })
 
         return map
-    }, [responsibilities, calendarDays])
+    }, [responsibilities, responsibilityGroups, calendarDays])
 
     function navigateMonth(direction: 'prev' | 'next') {
         const newMonth = new Date(currentMonth)
@@ -127,14 +242,19 @@ export default function ManagerResponsibilitiesPage() {
         setCurrentMonth(newMonth)
     }
 
+    function openGroupDetails(item: CalendarDisplayItem) {
+        setSelectedGroup(item)
+        setGroupModalOpen(true)
+    }
+
     function openDetails(resp: Responsibility) {
         setSelectedResponsibility(resp)
         setDetailsOpen(true)
     }
 
-    function openDayModal(date: Date, dayResps: { resp: Responsibility; color: string }[]) {
+    function openDayModal(date: Date, items: CalendarDisplayItem[]) {
         setSelectedDayDate(date)
-        setSelectedDayResponsibilities(dayResps)
+        setSelectedDayItems(items)
         setDayModalOpen(true)
     }
 
@@ -178,7 +298,7 @@ export default function ManagerResponsibilitiesPage() {
                                 <ChevronRight className="h-5 w-5" />
                             </Button>
                         </div>
-                        <CreateResponsibilityDialog onSuccess={fetchResponsibilities} />
+                        <CreateResponsibilityDialog onSuccess={fetchData} />
                     </div>
 
                     {/* Days of Week Header */}
@@ -196,7 +316,7 @@ export default function ManagerResponsibilitiesPage() {
                             <div key={weekIndex} className="grid grid-cols-7 divide-x min-h-[120px]">
                                 {week.map(day => {
                                     const dateStr = format(day, 'yyyy-MM-dd')
-                                    const dayResponsibilities = responsibilityMap.get(dateStr) || []
+                                    const dayItems = calendarDisplayMap.get(dateStr) || []
                                     const isCurrentMonth = isSameMonth(day, currentMonth)
 
                                     return (
@@ -215,31 +335,32 @@ export default function ManagerResponsibilitiesPage() {
                                                 {day.getDate()}
                                             </span>
 
-                                            {/* Responsibilities */}
+                                            {/* Groups and Responsibilities */}
                                             <div className="mt-1 space-y-1">
-                                                {dayResponsibilities.slice(0, 3).map(({ resp, color, isStart, isEnd }, idx) => (
+                                                {dayItems.slice(0, 3).map((item, idx) => (
                                                     <button
-                                                        key={`${resp.id}-${idx}`}
-                                                        onClick={() => openDetails(resp)}
+                                                        key={`${item.id}-${idx}`}
+                                                        onClick={() => openGroupDetails(item)}
                                                         className={cn(
-                                                            "w-full text-left text-xs text-white px-2 py-1 truncate hover:opacity-80 transition-opacity",
-                                                            color,
-                                                            isStart && "rounded-l-md",
-                                                            isEnd && "rounded-r-md",
-                                                            !isStart && !isEnd && "rounded-none",
-                                                            isStart && isEnd && "rounded-md"
+                                                            "w-full text-left text-xs text-white px-2 py-1 truncate hover:opacity-80 transition-opacity flex items-center gap-1",
+                                                            item.color,
+                                                            item.isStart && "rounded-l-md",
+                                                            item.isEnd && "rounded-r-md",
+                                                            !item.isStart && !item.isEnd && "rounded-none",
+                                                            item.isStart && item.isEnd && "rounded-md"
                                                         )}
-                                                        title={resp.title}
+                                                        title={item.isGroup ? `${item.name} (${item.responsibilities.length} items)` : item.name}
                                                     >
-                                                        {resp.title}
+                                                        {item.isGroup && <FolderOpen className="h-3 w-3 flex-shrink-0" />}
+                                                        <span className="truncate">{item.name}</span>
                                                     </button>
                                                 ))}
-                                                {dayResponsibilities.length > 3 && (
+                                                {dayItems.length > 3 && (
                                                     <button
                                                         className="text-xs text-primary hover:underline font-medium"
-                                                        onClick={() => openDayModal(day, dayResponsibilities.map(d => ({ resp: d.resp, color: d.color })))}
+                                                        onClick={() => openDayModal(day, dayItems)}
                                                     >
-                                                        +{dayResponsibilities.length - 3} more
+                                                        +{dayItems.length - 3} more
                                                     </button>
                                                 )}
                                             </div>
@@ -251,6 +372,52 @@ export default function ManagerResponsibilitiesPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Group/Item Details Modal - Shows responsibilities in a group */}
+            <Dialog open={groupModalOpen} onOpenChange={setGroupModalOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            {selectedGroup?.isGroup && <FolderOpen className="h-5 w-5" />}
+                            {selectedGroup?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedGroup?.isGroup 
+                                ? `${selectedGroup.responsibilities.length} responsibilities in this group`
+                                : "Responsibility Details"
+                            }
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                        {selectedGroup?.responsibilities.map((resp, idx) => (
+                            <button
+                                key={`${resp.id}-${idx}`}
+                                onClick={() => {
+                                    setGroupModalOpen(false)
+                                    openDetails(resp)
+                                }}
+                                className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors text-left"
+                            >
+                                <div className={cn("w-3 h-3 rounded-full flex-shrink-0", selectedGroup.color)} />
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-sm truncate">{resp.title}</p>
+                                    {resp.startDate && resp.endDate && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {format(parseISO(resp.startDate), "MMM d")} - {format(parseISO(resp.endDate), "MMM d")}
+                                        </p>
+                                    )}
+                                    {resp.description && (
+                                        <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                                            {resp.description}
+                                        </p>
+                                    )}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* Responsibility Details Dialog */}
             <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
@@ -295,7 +462,7 @@ export default function ManagerResponsibilitiesPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Day Responsibilities Modal - Shows all for a specific day */}
+            {/* Day Modal - Shows all groups/items for a specific day */}
             <Dialog open={dayModalOpen} onOpenChange={setDayModalOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
@@ -303,28 +470,34 @@ export default function ManagerResponsibilitiesPage() {
                             {selectedDayDate && format(selectedDayDate, "MMMM d, yyyy")}
                         </DialogTitle>
                         <DialogDescription>
-                            {selectedDayResponsibilities.length} responsibilities on this day
+                            {selectedDayItems.length} item{selectedDayItems.length !== 1 ? 's' : ''} on this day
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                        {selectedDayResponsibilities.map(({ resp, color }, idx) => (
+                        {selectedDayItems.map((item, idx) => (
                             <button
-                                key={`${resp.id}-${idx}`}
+                                key={`${item.id}-${idx}`}
                                 onClick={() => {
                                     setDayModalOpen(false)
-                                    openDetails(resp)
+                                    openGroupDetails(item)
                                 }}
                                 className="w-full flex items-center gap-3 p-3 border rounded-lg hover:bg-muted/50 transition-colors text-left"
                             >
-                                <div className={cn("w-3 h-3 rounded-full flex-shrink-0", color)} />
+                                <div className={cn("w-3 h-3 rounded-full flex-shrink-0", item.color)} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-sm truncate">{resp.title}</p>
-                                    {resp.startDate && resp.endDate && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {format(parseISO(resp.startDate), "MMM d")} - {format(parseISO(resp.endDate), "MMM d")}
-                                        </p>
-                                    )}
+                                    <p className="font-medium text-sm truncate flex items-center gap-1">
+                                        {item.isGroup && <FolderOpen className="h-3 w-3" />}
+                                        {item.name}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {item.isGroup 
+                                            ? `${item.responsibilities.length} responsibilities`
+                                            : item.responsibilities[0]?.startDate && item.responsibilities[0]?.endDate
+                                                ? `${format(parseISO(item.responsibilities[0].startDate), "MMM d")} - ${format(parseISO(item.responsibilities[0].endDate), "MMM d")}`
+                                                : ''
+                                        }
+                                    </p>
                                 </div>
                             </button>
                         ))}

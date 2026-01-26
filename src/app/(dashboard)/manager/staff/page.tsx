@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { RoleBadge, SubmissionStatusBadge } from "@/components/ui/status-badge"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     Dialog,
     DialogContent,
@@ -43,9 +45,20 @@ import {
     FileText,
     Link2,
     MessageSquare,
+    CalendarIcon,
+    TrendingUp,
+    BarChart3,
+    Activity,
 } from "lucide-react"
 import { toast } from "sonner"
-import { format } from "date-fns"
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
+import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend as ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
+import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2'
+
+// Register ChartJS components
+ChartJS.register(ArcElement, ChartTooltip, ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
+
+type DateRange = { from: Date; to: Date }
 
 export default function ManagerStaffPage() {
     const [staff, setStaff] = useState<Employee[]>([])
@@ -56,6 +69,12 @@ export default function ManagerStaffPage() {
     const [selectedStaff, setSelectedStaff] = useState<Employee | null>(null)
     const [staffSubmissions, setStaffSubmissions] = useState<WorkSubmission[]>([])
     const [loadingSubmissions, setLoadingSubmissions] = useState(false)
+
+    // Analytics date range
+    const [dateRange, setDateRange] = useState<DateRange>({
+        from: subDays(new Date(), 30),
+        to: new Date(),
+    })
 
     // Review dialog
     const [selectedSubmission, setSelectedSubmission] = useState<WorkSubmission | null>(null)
@@ -111,6 +130,158 @@ export default function ManagerStaffPage() {
         const rejected = staffSubmissions.filter(s => s.status === 'REJECTED')
         return { pending, approved, rejected }
     }, [staffSubmissions])
+
+    // Filter submissions by date range for analytics
+    const filteredSubmissions = useMemo(() => {
+        return staffSubmissions.filter(s => {
+            const date = new Date(s.submittedAt)
+            return date >= dateRange.from && date <= dateRange.to
+        })
+    }, [staffSubmissions, dateRange])
+
+    // Analytics stats
+    const analyticsStats = useMemo(() => {
+        const total = filteredSubmissions.length
+        const verified = filteredSubmissions.filter(s => s.status === 'VERIFIED').length
+        const pending = filteredSubmissions.filter(s => s.status === 'SUBMITTED' || s.status === 'PENDING').length
+        const rejected = filteredSubmissions.filter(s => s.status === 'REJECTED').length
+        const totalHours = filteredSubmissions.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0)
+        const verifiedHours = filteredSubmissions
+            .filter(s => s.status === 'VERIFIED')
+            .reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0)
+        const approvalRate = total > 0 ? Math.round((verified / total) * 100) : 0
+        
+        return { total, verified, pending, rejected, totalHours, verifiedHours, approvalRate }
+    }, [filteredSubmissions])
+
+    // Daily data for charts
+    const dailyChartData = useMemo(() => {
+        const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to })
+        
+        return days.map(day => {
+            const daySubmissions = filteredSubmissions.filter(s => 
+                isSameDay(new Date(s.submittedAt), day)
+            )
+            const verified = daySubmissions.filter(s => s.status === 'VERIFIED').length
+            const pending = daySubmissions.filter(s => s.status === 'SUBMITTED' || s.status === 'PENDING').length
+            const rejected = daySubmissions.filter(s => s.status === 'REJECTED').length
+            const hours = daySubmissions.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0)
+            
+            return {
+                date: format(day, 'MMM d'),
+                submissions: daySubmissions.length,
+                verified,
+                pending,
+                rejected,
+                hours: Math.round(hours * 10) / 10,
+            }
+        })
+    }, [filteredSubmissions, dateRange])
+
+    // Status distribution for pie chart
+    const statusDistribution = useMemo(() => {
+        return [
+            { name: 'Verified', value: analyticsStats.verified, color: '#22c55e' },
+            { name: 'Pending', value: analyticsStats.pending, color: '#f59e0b' },
+            { name: 'Rejected', value: analyticsStats.rejected, color: '#ef4444' },
+        ].filter(item => item.value > 0)
+    }, [analyticsStats])
+
+    // Chart.js Data - Status Distribution (Pie)
+    const statusPieData = useMemo(() => ({
+        labels: ['Verified', 'Pending', 'Rejected'],
+        datasets: [
+            {
+                label: 'Submissions',
+                data: [analyticsStats.verified, analyticsStats.pending, analyticsStats.rejected],
+                backgroundColor: [
+                    'rgba(34, 197, 94, 0.8)',
+                    'rgba(251, 191, 36, 0.8)',
+                    'rgba(239, 68, 68, 0.8)',
+                ],
+                borderColor: [
+                    'rgba(34, 197, 94, 1)',
+                    'rgba(251, 191, 36, 1)',
+                    'rgba(239, 68, 68, 1)',
+                ],
+                borderWidth: 2,
+            },
+        ],
+    }), [analyticsStats])
+
+    // Daily Submissions (Line Chart)
+    const dailySubmissionsChartData = useMemo(() => ({
+        labels: dailyChartData.map(d => d.date),
+        datasets: [
+            {
+                label: 'Submissions',
+                data: dailyChartData.map(d => d.submissions),
+                borderColor: 'rgba(59, 130, 246, 1)',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            },
+        ],
+    }), [dailyChartData])
+
+    // Hours Trend (Line Chart)
+    const hoursTrendChartData = useMemo(() => ({
+        labels: dailyChartData.map(d => d.date),
+        datasets: [
+            {
+                label: 'Hours Worked',
+                data: dailyChartData.map(d => d.hours),
+                borderColor: 'rgba(139, 92, 246, 1)',
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+            },
+        ],
+    }), [dailyChartData])
+
+    // Chart Options
+    const pieChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: {
+                position: 'bottom' as const,
+                labels: { padding: 15, font: { size: 12 }, boxWidth: 12, boxHeight: 12 },
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                callbacks: {
+                    label: function(context: any) {
+                        const label = context.label || '';
+                        const value = context.parsed || 0;
+                        const total = context.dataset.data.reduce((acc: number, val: number) => acc + val, 0);
+                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            },
+        },
+    }
+
+    const lineChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { position: 'bottom' as const, labels: { padding: 15, font: { size: 12 } } },
+            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, titleFont: { size: 14 }, bodyFont: { size: 13 } },
+        },
+        scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } },
+        },
+        interaction: { intersect: false, mode: 'index' as const },
+    }
 
     async function handleVerify(status: 'VERIFIED' | 'REJECTED') {
         if (!selectedSubmission) return
@@ -272,6 +443,160 @@ export default function ManagerStaffPage() {
                                 <RoleBadge role={selectedStaff.role} />
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                {/* Analytics Section */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div>
+                                <CardTitle>Performance Analytics</CardTitle>
+                                <CardDescription>Detailed metrics for {selectedStaff.name}</CardDescription>
+                            </div>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateRange?.from ? (
+                                            dateRange.to ? (
+                                                <>
+                                                    {format(dateRange.from, "LLL dd, y")} - {format(dateRange.to, "LLL dd, y")}
+                                                </>
+                                            ) : (
+                                                format(dateRange.from, "LLL dd, y")
+                                            )
+                                        ) : (
+                                            <span>Pick a date range</span>
+                                        )}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <div className="flex gap-2 p-3 border-b">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
+                                        >
+                                            Last 7 days
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
+                                        >
+                                            Last 30 days
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}
+                                        >
+                                            This Month
+                                        </Button>
+                                    </div>
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={dateRange?.from}
+                                        selected={dateRange}
+                                        onSelect={setDateRange}
+                                        numberOfMonths={2}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                        {/* Stats Cards */}
+                        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-blue-100 rounded-lg">
+                                        <FileText className="h-4 w-4 text-blue-600" />
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">Total Submissions</span>
+                                </div>
+                                <p className="text-2xl font-bold mt-2">{analyticsStats.total}</p>
+                            </div>
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-green-100 rounded-lg">
+                                        <TrendingUp className="h-4 w-4 text-green-600" />
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">Approval Rate</span>
+                                </div>
+                                <p className="text-2xl font-bold mt-2">{analyticsStats.approvalRate}%</p>
+                            </div>
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-amber-100 rounded-lg">
+                                        <Clock className="h-4 w-4 text-amber-600" />
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">Pending Review</span>
+                                </div>
+                                <p className="text-2xl font-bold mt-2">{analyticsStats.pending}</p>
+                            </div>
+                            <div className="rounded-lg border bg-card p-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-purple-100 rounded-lg">
+                                        <Clock className="h-4 w-4 text-purple-600" />
+                                    </div>
+                                    <span className="text-sm text-muted-foreground">Verified Hours</span>
+                                </div>
+                                <p className="text-2xl font-bold mt-2">{analyticsStats.verifiedHours.toFixed(1)}h</p>
+                            </div>
+                        </div>
+
+                        {/* Charts */}
+                        <div className="grid gap-6 lg:grid-cols-3">
+                            {/* Status Distribution Pie Chart */}
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <Activity className="h-5 w-5 text-blue-600" />
+                                        Status Distribution
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="flex justify-center">
+                                    <div className="w-full max-w-[250px]">
+                                        {analyticsStats.total > 0 ? (
+                                            <Doughnut data={statusPieData} options={pieChartOptions} />
+                                        ) : (
+                                            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                                                No submissions in selected period
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Daily Submissions Line Chart */}
+                            <Card className="lg:col-span-2">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-base">
+                                        <TrendingUp className="h-5 w-5 text-indigo-600" />
+                                        Daily Submissions
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <Line data={dailySubmissionsChartData} options={lineChartOptions} />
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Hours Trend */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Clock className="h-5 w-5 text-purple-600" />
+                                    Hours Trend
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <Line data={hoursTrendChartData} options={lineChartOptions} />
+                            </CardContent>
+                        </Card>
                     </CardContent>
                 </Card>
 

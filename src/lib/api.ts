@@ -23,11 +23,19 @@ import {
     WorkSubmission,
     CreateWorkSubmissionDto,
     UpdateWorkSubmissionDto,
+    ResubmitWorkSubmissionDto,
     VerifySubmissionDto,
     Comment,
     CreateCommentDto,
     UpdateCommentDto,
     ApiError,
+    ResponsibilityGroup,
+    CreateResponsibilityGroupDto,
+    UpdateResponsibilityGroupDto,
+    AddResponsibilitiesToGroupDto,
+    AssignGroupToStaffDto,
+    GroupAssignmentResult,
+    ResponsibilityGroupAssignment,
 } from '@/types/cir'
 
 // API Base URL - configurable via environment variable
@@ -324,6 +332,12 @@ export const workSubmissionsApi = {
             body: JSON.stringify(data),
         }),
 
+    resubmit: (id: string, data: ResubmitWorkSubmissionDto): Promise<WorkSubmission> =>
+        fetchApi(`/work-submission/${id}/resubmit`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
     // Daily workflow endpoints
     getToday: (): Promise<WorkSubmission[]> =>
         fetchApi('/work-submission/today'),
@@ -373,6 +387,66 @@ export const commentsApi = {
         }),
 }
 
+// ==================== Responsibility Groups API ====================
+export const responsibilityGroupsApi = {
+    create: (data: CreateResponsibilityGroupDto): Promise<ResponsibilityGroup> =>
+        fetchApi('/responsibility-groups', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    getAll: (): Promise<ResponsibilityGroup[]> =>
+        fetchApi('/responsibility-groups'),
+
+    getById: (id: string): Promise<ResponsibilityGroup> =>
+        fetchApi(`/responsibility-groups/${id}`),
+
+    update: (id: string, data: UpdateResponsibilityGroupDto): Promise<ResponsibilityGroup> =>
+        fetchApi(`/responsibility-groups/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
+    delete: (id: string): Promise<void> =>
+        fetchApi(`/responsibility-groups/${id}`, {
+            method: 'DELETE',
+        }),
+
+    // Add responsibilities to a group
+    addResponsibilities: (groupId: string, data: AddResponsibilitiesToGroupDto): Promise<{
+        groupId: number
+        addedItems: any[]
+        totalAdded: number
+    }> =>
+        fetchApi(`/responsibility-groups/${groupId}/responsibilities`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    // Remove a responsibility from a group
+    removeResponsibility: (groupId: string, responsibilityId: string): Promise<void> =>
+        fetchApi(`/responsibility-groups/${groupId}/responsibilities/${responsibilityId}`, {
+            method: 'DELETE',
+        }),
+
+    // Assign a group to staff members (creates individual ResponsibilityAssignments)
+    assignToStaff: (groupId: string, data: AssignGroupToStaffDto): Promise<GroupAssignmentResult> =>
+        fetchApi(`/responsibility-groups/${groupId}/assign`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    // Get staff assigned to a group
+    getAssignedStaff: (groupId: string): Promise<ResponsibilityGroupAssignment[]> =>
+        fetchApi(`/responsibility-groups/${groupId}/staff`),
+
+    // Unassign a group from a staff member
+    unassignFromStaff: (groupId: string, staffId: string): Promise<void> =>
+        fetchApi(`/responsibility-groups/${groupId}/staff/${staffId}`, {
+            method: 'DELETE',
+        }),
+}
+
 // ==================== Unified API Export ====================
 export const api = {
     auth: authApi,
@@ -383,6 +457,7 @@ export const api = {
     assignments: assignmentsApi,
     workSubmissions: workSubmissionsApi,
     comments: commentsApi,
+    responsibilityGroups: responsibilityGroupsApi,
 }
 
 export default api
