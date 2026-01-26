@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { useAuth, getDashboardUrl } from "@/components/providers/auth-context"
 import { RoleBadge } from "@/components/ui/status-badge"
 import { Role } from "@/types/cir"
+import DashboardHeader from "@/components/dashboard-header"
 
 interface NavigationItem {
   name: string
@@ -389,35 +390,34 @@ export default function DashboardLayout({
 
       {/* Main Content */}
       <div className={cn(
-        "transition-all duration-300",
+        "transition-all duration-300 flex flex-col min-h-screen",
         isCollapsed ? "lg:pl-20" : "lg:pl-72"
       )}>
-        {/* Mobile Header */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 lg:hidden">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle menu</span>
-          </Button>
+        {/* Desktop Dashboard Header */}
+        <div className="hidden lg:block sticky top-0 z-30">
+          <DashboardHeader />
+        </div>
 
-          <div className="flex flex-1 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Image
-                src="/logo.png"
-                alt="CIR Management"
-                width={100}
-                height={25}
-              />
+        {/* Mobile Header - Full DashboardHeader on mobile */}
+        <div className="lg:hidden sticky top-0 z-30">
+          <div className="flex items-center gap-2 bg-background border-b px-3 py-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0"
+              onClick={() => setMobileOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+            <div className="flex-1">
+              <DashboardHeader />
             </div>
-            <RoleBadge role={role} />
           </div>
-        </header>
+        </div>
 
         {/* Page Content */}
-        <main className="min-h-[calc(100vh-4rem)] lg:min-h-screen">
+        <main className="flex-1">
           {children}
         </main>
       </div>
