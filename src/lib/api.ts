@@ -185,6 +185,12 @@ export const employeesApi = {
             method: 'POST',
             body: JSON.stringify(data),
         }),
+
+    resetPassword: (id: string, newPassword: string): Promise<{ message: string }> =>
+        fetchApi(`/employees/${id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ newPassword }),
+        }),
 }
 
 // ==================== Departments API ====================

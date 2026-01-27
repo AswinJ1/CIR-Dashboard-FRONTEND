@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, Suspense, useMemo } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
-import { Department, SubDepartment, Employee, Assignment, WorkSubmission } from "@/types/cir"
+import { Department, SubDepartment, Employee, Assignment, WorkSubmission, Responsibility } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -11,6 +11,13 @@ import { Badge } from "@/components/ui/badge"
 import { SubmissionStatusBadge } from "@/components/ui/status-badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
 import {
     Breadcrumb,
     BreadcrumbItem,
@@ -48,6 +55,8 @@ import {
     FileText,
     Activity,
     BarChart3,
+    Eye,
+    Target,
 } from "lucide-react"
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
@@ -76,6 +85,17 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
         from: subDays(new Date(), 30),
         to: new Date()
     })
+    
+    // View responsibility dialog state
+    const [viewResponsibilityDialogOpen, setViewResponsibilityDialogOpen] = useState(false)
+    const [selectedResponsibility, setSelectedResponsibility] = useState<Responsibility | null>(null)
+    const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null)
+
+    function openViewResponsibilityDialog(assignment: Assignment) {
+        setSelectedAssignment(assignment)
+        setSelectedResponsibility(assignment.responsibility || null)
+        setViewResponsibilityDialogOpen(true)
+    }
 
     const fetchData = useCallback(async () => {
         if (hasFetched) return
@@ -577,7 +597,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                     mode="range"
                                     defaultMonth={dateRange?.from}
                                     selected={dateRange}
-                                    onSelect={setDateRange}
+                                    onSelect={(range) => setDateRange(range as DateRange | undefined)}
                                     numberOfMonths={2}
                                 />
                             </PopoverContent>
@@ -710,23 +730,48 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>Responsibility</TableHead>
+                                            <TableHead>Cycle</TableHead>
                                             <TableHead>Status</TableHead>
                                             <TableHead>Assigned</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
                                         {assignments.map((assignment) => (
                                             <TableRow key={assignment.id}>
                                                 <TableCell className="font-medium">
-                                                    {assignment.responsibility?.title || 'N/A'}
+                                                    <div className="flex items-center gap-2">
+                                                        <Target className="h-4 w-4 text-indigo-500" />
+                                                        {assignment.responsibility?.title || 'N/A'}
+                                                    </div>
+                                                    {assignment.responsibility?.description && (
+                                                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                                                            {assignment.responsibility.description}
+                                                        </p>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    <Badge variant="outline">
+                                                    <Badge variant="secondary">
+                                                        {assignment.responsibility?.cycle || 'N/A'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={assignment.status === 'PENDING' ? 'secondary' : assignment.status === 'VERIFIED' ? 'default' : 'outline'}>
                                                         {assignment.status}
                                                     </Badge>
                                                 </TableCell>
                                                 <TableCell className="text-muted-foreground">
                                                     {format(new Date(assignment.assignedAt), "MMM d, yyyy")}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button 
+                                                        variant="ghost" 
+                                                        size="sm"
+                                                        onClick={() => openViewResponsibilityDialog(assignment)}
+                                                    >
+                                                        <Eye className="h-4 w-4 mr-1" />
+                                                        View
+                                                    </Button>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -783,6 +828,78 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                     </Tabs>
                 </CardContent>
             </Card>
+
+            {/* View Responsibility Dialog */}
+            <Dialog open={viewResponsibilityDialogOpen} onOpenChange={setViewResponsibilityDialogOpen}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Target className="h-5 w-5 text-indigo-500" />
+                            Responsibility Details
+                        </DialogTitle>
+                        <DialogDescription>
+                            View assigned responsibility information
+                        </DialogDescription>
+                    </DialogHeader>
+                    {selectedResponsibility && (
+                        <div className="space-y-4 py-4">
+                            <div>
+                                <h3 className="font-semibold text-lg">{selectedResponsibility.title}</h3>
+                                {selectedResponsibility.description && (
+                                    <p className="text-muted-foreground mt-1">{selectedResponsibility.description}</p>
+                                )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs text-muted-foreground">Cycle</p>
+                                    <p className="font-medium">{selectedResponsibility.cycle}</p>
+                                </div>
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <Badge variant={selectedResponsibility.isActive ? "default" : "secondary"}>
+                                        {selectedResponsibility.isActive ? 'Active' : 'Inactive'}
+                                    </Badge>
+                                </div>
+                                {selectedResponsibility.startDate && (
+                                    <div className="rounded-lg border p-3">
+                                        <p className="text-xs text-muted-foreground">Start Date</p>
+                                        <p className="font-medium">{format(new Date(selectedResponsibility.startDate), "MMM d, yyyy")}</p>
+                                    </div>
+                                )}
+                                {selectedResponsibility.endDate && (
+                                    <div className="rounded-lg border p-3">
+                                        <p className="text-xs text-muted-foreground">End Date</p>
+                                        <p className="font-medium">{format(new Date(selectedResponsibility.endDate), "MMM d, yyyy")}</p>
+                                    </div>
+                                )}
+                            </div>
+                            {selectedAssignment && (
+                                <div className="rounded-lg border bg-muted/30 p-4">
+                                    <h4 className="font-medium text-sm mb-2">Assignment Info</h4>
+                                    <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                            <span className="text-muted-foreground">Status:</span>{' '}
+                                            <Badge variant={selectedAssignment.status === 'VERIFIED' ? 'default' : selectedAssignment.status === 'PENDING' ? 'secondary' : 'outline'} className="ml-1">
+                                                {selectedAssignment.status}
+                                            </Badge>
+                                        </div>
+                                        <div>
+                                            <span className="text-muted-foreground">Assigned:</span>{' '}
+                                            {selectedAssignment.assignedAt ? format(new Date(selectedAssignment.assignedAt), "MMM d, yyyy") : 'N/A'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {selectedResponsibility.createdAt && (
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs text-muted-foreground">Created At</p>
+                                    <p className="font-medium">{format(new Date(selectedResponsibility.createdAt), "MMM d, yyyy HH:mm")}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

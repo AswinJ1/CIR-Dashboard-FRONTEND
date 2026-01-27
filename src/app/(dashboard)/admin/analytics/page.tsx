@@ -223,21 +223,34 @@ export default function AdminAnalyticsPage() {
         
         return resps.map(resp => {
             const respAssignments = assignments.filter(a => String(a.responsibilityId) === String(resp.id))
-            const assignedStaff = new Set(respAssignments.map(a => String(a.staffId))).size
+            // Get unique staff IDs and their details
+            const assignedStaffIds = [...new Set(respAssignments.map(a => String(a.staffId)))]
+            const assignedStaffList = assignedStaffIds.map(staffId => {
+                const staff = employees.find(e => String(e.id) === staffId)
+                return staff ? { id: staff.id, name: staff.name } : null
+            }).filter(Boolean) as { id: string, name: string }[]
+            
             const respSubmissions = filteredSubmissions.filter(s => 
                 respAssignments.some(a => String(a.id) === String(s.assignmentId))
             )
             const verified = respSubmissions.filter(s => s.status === 'VERIFIED').length
             
+            // Get sub-department and department info for this responsibility
+            const subDept = subDepartments.find(sd => String(sd.id) === String(resp.subDepartmentId))
+            const dept = subDept ? departments.find(d => String(d.id) === String(subDept.departmentId)) : null
+            
             return {
                 ...resp,
-                assignedStaff,
+                assignedStaff: assignedStaffList.length,
+                assignedStaffList,
+                subDepartmentName: subDept?.name || 'Unknown',
+                departmentName: dept?.name || 'Unknown',
                 totalSubmissions: respSubmissions.length,
                 verified,
                 completionRate: respSubmissions.length > 0 ? Math.round((verified / respSubmissions.length) * 100) : 0,
             }
         }).sort((a, b) => b.totalSubmissions - a.totalSubmissions)
-    }, [responsibilities, assignments, filteredSubmissions, selectedDepartmentId, selectedSubDepartmentId, subDepartments])
+    }, [responsibilities, assignments, filteredSubmissions, selectedDepartmentId, selectedSubDepartmentId, subDepartments, employees, departments])
 
     // Daily data for charts
     const dailyData = useMemo(() => {
@@ -852,8 +865,38 @@ export default function AdminAnalyticsPage() {
                                                     {resp.isActive ? 'Active' : 'Inactive'}
                                                 </Badge>
                                             </div>
+                                            {/* Department and Sub-department info */}
+                                            <div className="flex flex-wrap gap-2 mb-2">
+                                                <Badge variant="outline" className="text-xs">
+                                                    <Building2 className="h-3 w-3 mr-1" />
+                                                    {resp.departmentName}
+                                                </Badge>
+                                                <Badge variant="outline" className="text-xs bg-blue-50">
+                                                    <Layers className="h-3 w-3 mr-1" />
+                                                    {resp.subDepartmentName}
+                                                </Badge>
+                                            </div>
                                             {resp.description && (
                                                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{resp.description}</p>
+                                            )}
+                                            {/* Assigned Staff List */}
+                                            {resp.assignedStaffList.length > 0 && (
+                                                <div className="mb-3">
+                                                    <p className="text-xs font-medium text-muted-foreground mb-1">Assigned Staff:</p>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {resp.assignedStaffList.slice(0, 5).map((staff) => (
+                                                            <Badge key={staff.id} variant="secondary" className="text-xs">
+                                                                <Users className="h-3 w-3 mr-1" />
+                                                                {staff.name}
+                                                            </Badge>
+                                                        ))}
+                                                        {resp.assignedStaffList.length > 5 && (
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                +{resp.assignedStaffList.length - 5} more
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             )}
                                             <div className="grid grid-cols-4 gap-4 text-center">
                                                 <div className="p-2 rounded bg-muted">
