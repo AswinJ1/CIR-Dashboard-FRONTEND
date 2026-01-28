@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
-import { Assignment, WorkSubmission } from "@/types/cir"
+import { Assignment, WorkSubmission, ResubmitWorkSubmissionDto } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,6 +40,8 @@ import {
     Lock,
     Plus,
     Trash2,
+    AlertTriangle,
+    RotateCcw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import DashboardHeader from "@/components/dashboard-header"
@@ -81,6 +83,18 @@ export default function StaffWorkCalendarPage() {
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [resubmitDialogOpen, setResubmitDialogOpen] = useState(false)
+    const [resubmitSubmission, setResubmitSubmission] = useState<WorkSubmission | null>(null)
+    const [isResubmitting, setIsResubmitting] = useState(false)
+    const [resubmitData, setResubmitData] = useState({
+        hoursWorked: '',
+        staffComment: '',
+        workProofType: 'TEXT' as 'TEXT' | 'PDF' | 'IMAGE',
+        workProofText: '',
+        workProofUrl: ''
+    })
+
+
     
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -122,6 +136,13 @@ export default function StaffWorkCalendarPage() {
             setIsLoading(false)
         }
     }
+     const rejectedSubmissions = useMemo(() => {
+        if (!user?.id) return []
+        return allSubmissions.filter(s => 
+            s.staffId === user.id && 
+            s.status === 'REJECTED'
+        )
+    }, [allSubmissions, user?.id])
 
     // Generate calendar days for current month
     const calendarDays = useMemo(() => {
@@ -164,6 +185,7 @@ export default function StaffWorkCalendarPage() {
     const todaySubmittedAssignments = useMemo(() => {
         return getSubmittedAssignmentsForDate(assignments, today, allSubmissions)
     }, [assignments, today, allSubmissions])
+     
 
     // Get previous day's submitted assignments (for view only)
     const previousDaySubmissions = useMemo(() => {
@@ -225,6 +247,62 @@ export default function StaffWorkCalendarPage() {
             prev.map(r => r.id === id ? { ...r, ...updates } : r)
         )
     }, [])
+
+function openResubmitDialog(submission: WorkSubmission) {
+    setResubmitSubmission(submission)
+    setResubmitData({
+        hoursWorked: String(submission.hoursWorked || ''),
+        staffComment: submission.staffComment || '',
+        workProofType: (submission.workProofType || 'TEXT') as 'TEXT' | 'PDF' | 'IMAGE',
+        workProofText: submission.workProofText || '',
+        workProofUrl: submission.workProofUrl || ''
+    })
+    setResubmitDialogOpen(true)
+}
+
+
+    // Handle resubmission of rejected work
+    async function handleResubmit() {
+        if (!resubmitSubmission) return
+
+        const hours = parseFloat(resubmitData.hoursWorked)
+        if (isNaN(hours) || hours <= 0) {
+            toast.error("Please enter valid hours")
+            return
+        }
+
+        if (hours > 24) {
+            toast.error("Hours cannot exceed 24")
+            return
+        }
+
+        setIsResubmitting(true)
+        try {
+            const submitData: ResubmitWorkSubmissionDto = {
+                hoursWorked: hours,
+                staffComment: resubmitData.staffComment || undefined,
+                workProofType: resubmitData.workProofType,
+            }
+
+            if (resubmitData.workProofType === 'TEXT') {
+                submitData.workProofText = resubmitData.workProofText || undefined
+            } else {
+                submitData.workProofUrl = resubmitData.workProofUrl || undefined
+            }
+
+            await api.workSubmissions.resubmit(resubmitSubmission.id, submitData)
+            
+            toast.success("Work resubmitted successfully!")
+            setResubmitDialogOpen(false)
+            setResubmitSubmission(null)
+            await fetchData()
+        } catch (error: any) {
+            console.error("Failed to resubmit:", error)
+            toast.error(error.message || "Failed to resubmit work")
+        } finally {
+            setIsResubmitting(false)
+        }
+    }
 
     // Submit all work for today
     async function handleSubmitTodaysWork() {
@@ -413,7 +491,7 @@ export default function StaffWorkCalendarPage() {
 
     return (
         <div className="p-6 space-y-6">
-            <DashboardHeader/>
+            {/* <DashboardHeader/> */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Work Calendar</h1>
@@ -426,79 +504,125 @@ export default function StaffWorkCalendarPage() {
                     Refresh
                 </Button>
             </div>
+                        {rejectedSubmissions.length > 0 && (
+                             <Card className="border-2 border-black bg-background dark:border-white">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="flex items-center gap-2 text-black dark:text-white">
+                        
+                            Rejected Submissions - Action Required ({rejectedSubmissions.length})
+                        </CardTitle>
+                        <CardDescription className="text-black dark:text-white">
+                            The following submissions were rejected by your manager. Please review the feedback and resubmit.
+                        </CardDescription>
+                    </CardHeader>
+                   
+                </Card>
+                        )}
 
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Calendar - Left Side */}
-                <Card className="lg:col-span-1 border-foreground/10">
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">{format(currentMonth, 'MMMM yyyy')}</CardTitle>
-                            <div className="flex gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => navigateMonth('prev')}>
-                                    <ChevronLeft className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => navigateMonth('next')}>
-                                    <ChevronRight className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-7 gap-1 text-center text-sm">
-                            {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
-                                <div key={day} className="p-2 font-medium text-muted-foreground">
-                                    {day}
-                                </div>
-                            ))}
-                            {Array.from({ length: calendarDays[0]?.getDay() || 0 }).map((_, i) => (
-                                <div key={`empty-${i}`} className="p-2" />
-                            ))}
-                            {calendarDays.map(date => {
-                                const dateStr = format(date, 'yyyy-MM-dd')
-                                const isSelected = isSameDay(date, selectedDate)
-                                const isTodayDate = isDateToday(date)
-                                const statusColor = getDayStatusColor(dateStr)
-                                const dayData = dayDataMap.get(dateStr)
+           <Card className="border border-foreground/10 overflow-hidden">
+  {/* Header */}
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-3">
+    <div className="flex items-center gap-2">
+      <Button variant="ghost" size="icon" onClick={() => navigateMonth("prev")}>
+        <ChevronLeft className="h-4 w-4" />
+      </Button>
+      <h2 className="text-lg font-semibold">
+        {format(currentMonth, "MMMM yyyy")}
+      </h2>
+      <Button variant="ghost" size="icon" onClick={() => navigateMonth("next")}>
+        <ChevronRight className="h-4 w-4" />
+      </Button>
+    </div>
 
-                                return (
-                                    <button
-                                        key={dateStr}
-                                        onClick={() => setSelectedDate(date)}
-                                        className={cn(
-                                            "p-2 rounded-lg transition-all hover:bg-foreground/10 relative",
-                                            isSelected && "ring-2 ring-foreground ring-offset-2 ring-offset-background",
-                                            isTodayDate && "font-bold",
-                                            statusColor
-                                        )}
-                                    >
-                                        {date.getDate()}
-                                        {dayData && dayData.totalHours > 0 && (
-                                            <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 text-[10px]">
-                                                {dayData.totalHours}h
-                                            </span>
-                                        )}
-                                    </button>
-                                )
-                            })}
-                        </div>
+    <span className="text-sm text-muted-foreground hidden sm:block">
+      {assignments.length} responsibilities
+    </span>
+  </div>
 
-                        {/* Legend */}
-                        <div className="mt-4 pt-4 border-t border-foreground/10 space-y-2 text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-green-500" />
-                                <span>Verified</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-neutral-400" />
-                                <span>Submitted</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 rounded bg-red-500" />
-                                <span>Rejected</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+  {/* Day Headers – hidden on mobile */}
+  <div className="hidden sm:grid grid-cols-7 bg-black text-white text-sm font-medium">
+    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
+      <div key={day} className="py-2 text-center">
+        {day}
+      </div>
+    ))}
+  </div>
+
+  {/* Calendar Grid */}
+  <div className="grid grid-cols-2 sm:grid-cols-7 border-t border-foreground/10">
+    {/* Empty cells (desktop only) */}
+    <div className="hidden sm:block col-span-full">
+      <div className="grid grid-cols-7">
+        {Array.from({ length: calendarDays[0]?.getDay() || 0 }).map((_, i) => (
+          <div
+            key={`empty-${i}`}
+            className="min-h-[110px] border border-foreground/10"
+          />
+        ))}
+      </div>
+    </div>
+
+    {calendarDays.map(date => {
+      const dateStr = format(date, "yyyy-MM-dd")
+      const isSelected = isSameDay(date, selectedDate)
+      const isTodayDate = isDateToday(date)
+      const dayData = dayDataMap.get(dateStr)
+
+      return (
+        <div
+          key={dateStr}
+          onClick={() => setSelectedDate(date)}
+          className={cn(
+            "border border-foreground/10 p-2 cursor-pointer transition",
+            "min-h-[90px] sm:min-h-[120px]",
+            isSelected && "bg-blue-50 dark:bg-blue-950/30",
+            isTodayDate && "ring-2 ring-blue-500 ring-inset"
+          )}
+        >
+          {/* Date */}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm font-medium">
+              {format(date, "d")}
+            </span>
+            {(dayData?.totalHours ?? 0) > 0 && (
+              <span className="text-[10px] text-muted-foreground">
+                {(dayData?.totalHours ?? 0)}h
+              </span>
+            )}
+          </div>
+
+          {/* Events */}
+          <div className="space-y-1">
+            {dayData?.submissions.slice(0, 3).map(submission => (
+              <div
+                key={submission.id}
+                className={cn(
+                  "text-[10px] px-2 py-0.5 rounded truncate text-white",
+                  submission.status === "VERIFIED" && "bg-green-600",
+                  submission.status === "SUBMITTED" && "bg-blue-600",
+                  submission.status === "REJECTED" && "bg-red-600"
+                )}
+                title={submission.assignment?.responsibility?.title}
+              >
+                {submission.assignment?.responsibility?.title || "Work"}
+              </div>
+            ))}
+
+            {dayData && dayData.submissions.length > 3 && (
+              <div className="text-[10px] text-muted-foreground">
+                +{dayData.submissions.length - 3} more
+              </div>
+            )}
+          </div>
+        </div>
+      )
+    })}
+  </div>
+</Card>
+
+
 
                 {/* Right Side - Date Info & Action */}
                 <div className="lg:col-span-2 space-y-4">
@@ -541,7 +665,7 @@ export default function StaffWorkCalendarPage() {
                     {isSelectedDateToday && (
                         <>
                             {/* Success Message if submitted */}
-                            {(hasTodaySubmissions || todaySubmitted) && (
+                            {/* {(hasTodaySubmissions || todaySubmitted) && (
                                 <Card className="border-foreground/20 bg-foreground/5">
                                     <CardContent className="py-6">
                                         <div className="flex items-center gap-4">
@@ -559,7 +683,7 @@ export default function StaffWorkCalendarPage() {
                                         </div>
                                     </CardContent>
                                 </Card>
-                            )}
+                            )} */}
 
                             {/* Pending Assignments Count */}
                             {todayUnsubmittedAssignments.length > 0 && (
@@ -572,7 +696,7 @@ export default function StaffWorkCalendarPage() {
                                                 </div>
                                                 <div>
                                                     <h3 className="font-semibold text-lg">
-                                                        {todayUnsubmittedAssignments.length} Pending Responsibilit{todayUnsubmittedAssignments.length !== 1 ? 'ies' : 'y'}
+                                                        {todayUnsubmittedAssignments.length} Pending Responsibility{todayUnsubmittedAssignments.length !== 1 ? 'ies' : 'y'}
                                                     </h3>
                                                     <p className="text-muted-foreground text-sm">
                                                         Ready for submission
@@ -608,6 +732,78 @@ export default function StaffWorkCalendarPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+
+
+                            {rejectedSubmissions.length > 0 && (
+  <Card className="border border-black bg-background dark:border-white">
+    <CardHeader className="pb-3">
+      <CardTitle className="flex items-center gap-2 text-black dark:text-white">
+        <RotateCcw className="h-5 w-5" />
+        Rejected Work – Resubmission Required
+      </CardTitle>
+      <CardDescription className="text-black dark:text-white">
+        Fix the issues mentioned by your manager and resubmit.
+      </CardDescription>
+    </CardHeader>
+
+    <CardContent className="space-y-3">
+      {todaySubmittedAssignments
+        .filter(assignment => {
+          const status =
+            assignment.submissionForDate?.status ||
+            assignment.submissionForDate?.assignment?.status ||
+            'SUBMITTED'
+          return status === 'REJECTED'
+        })
+        .map(assignment => {
+          const submission = assignment.submissionForDate
+
+          return (
+            <div
+              key={assignment.id}
+              className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3
+                         rounded-lg border border-black dark:border-white bg-background p-4"
+            >
+              {/* Left: Info */}
+              <div className="space-y-1">
+                <p className="font-medium text-sm">
+                  {assignment.responsibility?.title || 'Untitled Responsibility'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {submission?.hoursWorked || 0} hours submitted
+                </p>
+                 <p className="text-sm text-muted-foreground">
+                                    Originally submitted: {format(new Date(submission?.submittedAt), "PPP")}
+                 </p>
+              </div>
+
+              {/* Right: Status + Action */}
+              <div className="flex items-center gap-3">
+                <div
+                  className="border-black/50 text-black dark:border-white dark:text-white "
+                >
+                  Rejected |
+                </div>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => submission && openResubmitDialog(submission)}
+                  className="border-black/40 text-black dark:border-white dark:text-white
+                              "
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Resubmit
+                </Button>
+              </div>
+            </div>
+          )
+        })}
+    </CardContent>
+  </Card>
+)}
+
+
 
                             {/* Already Submitted Today - Summary */}
                             {/* {todaySubmittedAssignments.length > 0 && (
@@ -651,6 +847,7 @@ export default function StaffWorkCalendarPage() {
                             )} */}
                         </>
                     )}
+                   
 
                     {/* PAST DATE VIEW - Read Only */}
                     {isSelectedDateLocked && (
@@ -985,6 +1182,147 @@ export default function StaffWorkCalendarPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            {/* ✅ NEW: Resubmit Dialog */}
+            <Dialog open={resubmitDialogOpen} onOpenChange={setResubmitDialogOpen}>
+                <DialogContent className="max-w-2xl bg-background border-foreground/20">
+                    <DialogHeader>
+                        <DialogTitle className="text-foreground">Resubmit Work</DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                            Update your submission based on manager's feedback
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {resubmitSubmission && (
+                        <div className="space-y-4 py-4">
+                            {/* Responsibility Title */}
+                            <div>
+                                <h4 className="font-semibold text-lg text-foreground">
+                                    {resubmitSubmission.assignment?.responsibility?.title || 'Work Submission'}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                    Originally submitted: {format(new Date(resubmitSubmission.submittedAt), "PPP")}
+                                </p>
+                            </div>
+
+                            {/* Manager's Feedback */}
+                            {resubmitSubmission.managerComment && (
+                                <div className="p-4 bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 rounded-lg">
+                                    <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        Manager's Feedback:
+                                    </p>
+                                    <p className="text-red-600 dark:text-red-300">
+                                        {resubmitSubmission.managerComment}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="border-t border-foreground/10 pt-4 space-y-4">
+                                {/* Hours Worked */}
+                                <div className="space-y-2">
+                                    <Label className="text-foreground">Hours Worked *</Label>
+                                    <Input
+                                        type="number"
+                                        min="0.5"
+                                        max="24"
+                                        step="0.5"
+                                        placeholder="e.g., 2.5"
+                                        value={resubmitData.hoursWorked}
+                                        onChange={(e) => setResubmitData({ ...resubmitData, hoursWorked: e.target.value })}
+                                        className="border-foreground/20 bg-background"
+                                    />
+                                </div>
+
+                                {/* Proof Type */}
+                                <div className="space-y-2">
+                                    <Label className="text-foreground">Proof Type</Label>
+                                    <Select 
+                                        value={resubmitData.workProofType} 
+                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") => 
+                                            setResubmitData({ ...resubmitData, workProofType: v })
+                                        }
+                                    >
+                                        <SelectTrigger className="border-foreground/20 bg-background">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-background border-foreground/20">
+                                            <SelectItem value="TEXT">Text</SelectItem>
+                                            <SelectItem value="PDF">PDF URL</SelectItem>
+                                            <SelectItem value="IMAGE">Image URL</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Work Description */}
+                                <div className="space-y-2">
+                                    <Label className="text-foreground">Updated Work Description</Label>
+                                    <Textarea
+                                        placeholder="Explain what you've updated or changed..."
+                                        value={resubmitData.staffComment}
+                                        onChange={(e) => setResubmitData({ ...resubmitData, staffComment: e.target.value })}
+                                        rows={4}
+                                        className="resize-none border-foreground/20 bg-background"
+                                    />
+                                </div>
+
+                                {/* Work Proof */}
+                                {resubmitData.workProofType === 'TEXT' ? (
+                                    <div className="space-y-2">
+                                        <Label className="text-foreground">Work Proof Details</Label>
+                                        <Textarea
+                                            placeholder="Provide updated proof of your work..."
+                                            value={resubmitData.workProofText}
+                                            onChange={(e) => setResubmitData({ ...resubmitData, workProofText: e.target.value })}
+                                            rows={4}
+                                            className="resize-none border-foreground/20 bg-background"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label className="text-foreground">{resubmitData.workProofType} URL</Label>
+                                        <Input
+                                            type="url"
+                                            placeholder="https://..."
+                                            value={resubmitData.workProofUrl}
+                                            onChange={(e) => setResubmitData({ ...resubmitData, workProofUrl: e.target.value })}
+                                            className="border-foreground/20 bg-background"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    <DialogFooter className="border-t border-foreground/10 pt-4">
+                        <Button
+                            variant="outline"
+                            onClick={() => setResubmitDialogOpen(false)}
+                            disabled={isResubmitting}
+                            className="border-foreground/20"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleResubmit}
+                            disabled={isResubmitting}
+                            className="bg-foreground text-background hover:bg-foreground/90"
+                        >
+                            {isResubmitting ? (
+                                <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Resubmitting...
+                                </>
+                            ) : (
+                                <>
+                                    <RotateCcw className="h-4 w-4 mr-2" />
+                                    Resubmit Work
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            
         </div>
     )
 }

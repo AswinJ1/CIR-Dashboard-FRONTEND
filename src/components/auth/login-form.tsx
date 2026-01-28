@@ -44,8 +44,7 @@ import {
 // Login form validation schema
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(1, "Password is required"),
-  role: z.enum(["ADMIN", "MANAGER", "STAFF"] as const),
+  password: z.string().min(1, "Password is required")
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -60,13 +59,12 @@ export function LoginForm() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      role: "STAFF",
       email: "",
       password: "",
     },
   })
 
-  const watchRole = form.watch("role")
+  // const watchRole = form.watch("role")
 
   const getRoleDescription = (role: Role) => {
     const descriptions: Record<Role, string> = {
@@ -77,14 +75,14 @@ export function LoginForm() {
     return descriptions[role]
   }
 
-  const getRoleVariant = (role: Role): "default" | "secondary" | "destructive" => {
-    const variants: Record<Role, "default" | "secondary" | "destructive"> = {
-      STAFF: "default",
-      MANAGER: "secondary",
-      ADMIN: "destructive",
-    }
-    return variants[role]
-  }
+  // const getRoleVariant = (role: Role): "default" | "secondary" | "destructive" => {
+  //   const variants: Record<Role, "default" | "secondary" | "destructive"> = {
+  //     STAFF: "default",
+  //     MANAGER: "secondary",
+  //     ADMIN: "destructive",
+  //   }
+  //   return variants[role]
+  // }
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
@@ -111,7 +109,7 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -145,7 +143,7 @@ export function LoginForm() {
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-6">
                 {/* Role Selection */}
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="role"
                   render={({ field }) => (
@@ -172,7 +170,7 @@ export function LoginForm() {
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
 
                 {/* Email Field */}
                 <FormField

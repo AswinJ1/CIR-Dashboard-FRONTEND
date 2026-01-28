@@ -193,7 +193,7 @@ export default function StaffDashboardPage() {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <DashboardHeader/>
+            {/* <DashboardHeader/> */}
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">My Dashboard</h1>
@@ -222,10 +222,10 @@ export default function StaffDashboardPage() {
                                 <h3 className="font-semibold text-lg">Submit Today's Work</h3>
                                 <p className="text-muted-foreground">
                                     {pendingCount > 0
-                                        ? `You have ${pendingCount} assignment${pendingCount > 1 ? 's' : ''} pending submission`
+                                        ? `You have ${pendingCount} responsibilit${pendingCount > 1 ? 'ies' : 'y'} pending submission`
                                         : submittedCount > 0
-                                            ? `All ${submittedCount} assignment${submittedCount > 1 ? 's' : ''} submitted for today`
-                                            : "No assignments for today"
+                                            ? `All ${submittedCount} responsibilit${submittedCount > 1 ? 'ies' : 'y'} submitted for today`
+                                            : "No responsibilities for today"
                                     }
                                 </p>
                             </div>
@@ -261,7 +261,7 @@ export default function StaffDashboardPage() {
                     <div>
                         <CardTitle className="flex items-center gap-2">
                             <Calendar className="h-5 w-5" />
-                            Today's Assignments
+                            Today's Responsibilities
                         </CardTitle>
                         <CardDescription>
                             {new Date().toLocaleDateString('en-US', {

@@ -7,7 +7,7 @@ import { Employee, Assignment, WorkSubmission } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { SubmissionStatusBadge } from "@/components/ui/status-badge"
-import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
+// import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
 import Link from "next/link"
 import { format } from "date-fns"
 import {
@@ -22,7 +22,6 @@ import {
     Briefcase,
 } from "lucide-react"
 import { getSubmissionsForDate, getToday } from "@/lib/responsibility-status"
-import DashboardHeader from "@/components/dashboard-header"
 
 interface DashboardStats {
     teamSize: number
@@ -113,7 +112,6 @@ export default function ManagerDashboardPage() {
     return (
         <div className="p-6 space-y-6">
             {/* Header */}
-            <DashboardHeader/>
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Manager Dashboard</h1>
@@ -154,7 +152,7 @@ export default function ManagerDashboardPage() {
 
                 <Card className="border-l-4 border-l-blue-500">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                        <CardTitle className="text-sm font-medium">Todays Verifications</CardTitle>
                         <Clock className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
@@ -194,17 +192,17 @@ export default function ManagerDashboardPage() {
                         </Button>
                     )}
                 </CardHeader>
-                {/* <CardContent>
+                <CardContent>
                     {pendingSubmissions.length === 0 ? (
                         <div className="text-center py-8">
-                            <CheckCircle className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+                            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-3" />
                             <p className="text-muted-foreground">
                                 All caught up! No pending verifications.
                             </p>
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {pendingSubmissions.map((submission) => (
+                            {/* {pendingSubmissions.map((submission) => (
                                 <div
                                     key={submission.id}
                                     className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -227,10 +225,11 @@ export default function ManagerDashboardPage() {
                                         </Button>
                                     </div>
                                 </div>
-                            ))}
+                            ))} */}
+                            Review {pendingSubmissions.length} pending submissions in the Submissions section.
                         </div>
                     )}
-                </CardContent> */}
+                </CardContent>
             </Card>
 
             {/* Quick Actions */}

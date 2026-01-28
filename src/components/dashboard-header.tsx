@@ -2,10 +2,11 @@
 
 import { 
   Search, LogOut, Home, Users, FileText, User, Settings, BarChart, 
-  Building2, ClipboardList, Calendar, CheckSquare, FolderKanban 
+  Building2, ClipboardList, Calendar, CheckSquare, FolderKanban, FolderOpen 
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { useAuth } from "@/components/providers/auth-context"
 import { Sun, Moon, Bell, Globe, ChevronDown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -117,6 +118,12 @@ const searchOptions: SearchOption[] = [
     label: "Assignments",
     href: "/manager/assignments",
     icon: <FolderKanban className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Groups",
+    href: "/manager/responsibility-groups",
+    icon: <FolderOpen className="h-4 w-4" />,
     roles: ["MANAGER"]
   },
   {
@@ -388,40 +395,40 @@ export default function DashboardHeader() {
 
   return (
     <>
-      <header className="w-full border-b bg-background">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4 flex items-center justify-between gap-4">
+      <header className="w-full bg-background lg:border-b">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-2 sm:py-3 lg:py-4 flex items-center justify-between gap-2 sm:gap-4">
           
           {/* LEFT: Logo + Name + Search Bar */}
-          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-            {/* Logo + Brand Name */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+            {/* Logo + Brand Name - hidden on mobile since it's in sidebar */}
             <div 
-              className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity hidden lg:flex"
               onClick={() => router.push(`/${userRole.toLowerCase()}`)}
             >
-              {/* <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                <span className="text-primary-foreground font-bold text-lg sm:text-xl">CIR</span>
-              </div> */}
-              <span className="text-lg sm:text-xl font-bold hidden sm:block">
-                Work Manager
+                <span className="text-lg sm:text-xl font-bold">
+                <Image src="/logo.png" alt="CIR Logo" width={100} height={100} />
+              </span>
+              <span className="text-lg sm:text-xl font-bold">
+                CIR DASHBOARD
               </span>
             </div>
 
-            {/* Search Bar */}
-             <div 
-            className="relative w-72 cursor-pointer hidden sm:block"
-            onClick={() => setOpen(true)}
-          >
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search... ⌘K"
-              className="pl-10 rounded-full bg-muted/40 cursor-pointer"
-              readOnly
-            />
-          </div>
+            {/* Search Bar - hidden on mobile, shown on larger screens */}
+            <div 
+              className="relative w-72 cursor-pointer hidden md:block"
+              onClick={() => setOpen(true)}
+            >
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search... ⌘K"
+                className="pl-10 rounded-full bg-muted/40 cursor-pointer"
+                readOnly
+              />
+            </div>
           </div>
 
           {/* RIGHT: Actions */}
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 lg:gap-4">
             
             {/* Mobile Search Icon */}
             <Button 

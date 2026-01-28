@@ -229,6 +229,14 @@ export interface UpdateWorkSubmissionDto {
   attachments?: string[]
 }
 
+export interface ResubmitWorkSubmissionDto {
+  hoursWorked?: number
+  staffComment?: string
+  workProofType?: 'PDF' | 'IMAGE' | 'TEXT'
+  workProofUrl?: string
+  workProofText?: string
+}
+
 export interface VerifySubmissionDto {
   approved: boolean
   managerComment?: string
@@ -322,4 +330,96 @@ export interface PaginatedResponse<T> {
   total: number
   page: number
   limit: number
+}
+
+// ==================== Responsibility Groups ====================
+export interface ResponsibilityGroup {
+  id: string
+  name: string
+  description?: string
+  cycle?: string
+  isActive: boolean
+  subDepartmentId: string
+  subDepartment?: SubDepartment
+  createdById: string
+  createdBy?: Employee
+  items?: ResponsibilityGroupItem[]
+  groupAssignments?: ResponsibilityGroupAssignment[]
+  _count?: {
+    items: number
+    groupAssignments: number
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ResponsibilityGroupItem {
+  id: string
+  groupId: string
+  group?: ResponsibilityGroup
+  responsibilityId: string
+  responsibility?: Responsibility
+  displayOrder: number
+  addedAt: string
+}
+
+export interface ResponsibilityGroupAssignment {
+  id: string
+  groupId: string
+  group?: ResponsibilityGroup
+  staffId: string
+  staff?: Employee
+  assignedById: string
+  assignedBy?: Employee
+  assignedAt: string
+}
+
+export interface CreateResponsibilityGroupDto {
+  name: string
+  description?: string
+  cycle?: string
+  responsibilityIds?: number[]
+  newResponsibilities?: {
+    title: string
+    description?: string
+    cycle: string
+    startDate?: string
+    endDate?: string
+  }[]
+}
+
+export interface UpdateResponsibilityGroupDto {
+  name?: string
+  description?: string
+  cycle?: string
+  isActive?: boolean
+}
+
+export interface AddResponsibilitiesToGroupDto {
+  responsibilityIds?: number[]
+  newResponsibilities?: {
+    title: string
+    description?: string
+    cycle: string
+    startDate?: string
+    endDate?: string
+  }[]
+  displayOrderStart?: number
+}
+
+export interface AssignGroupToStaffDto {
+  staffIds: number[]
+  dueDate?: string
+}
+
+export interface GroupAssignmentResult {
+  groupId: string
+  assignedTo: {
+    staffId: number
+    staffName: string
+    assignmentsCreated: number[]
+    skipped: number[]
+  }[]
+  totalAssignmentsCreated: number
+  skippedDuplicates: number
 }

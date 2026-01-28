@@ -6,6 +6,7 @@ import { WorkSubmission, Employee } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useRouter } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { SubmissionStatusBadge } from "@/components/ui/status-badge"
@@ -71,6 +72,7 @@ export default function ManagerSubmissionsPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
     const [searchQuery, setSearchQuery] = useState("")
+    const router = useRouter()
 
     // Staff submissions modal state
     const [selectedStaff, setSelectedStaff] = useState<StaffSubmissionSummary | null>(null)
@@ -287,36 +289,10 @@ export default function ManagerSubmissionsPage() {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => openReviewDialog(submission)}
+                                        onClick={() => router.push(`/manager/submissions/${submission.id}`)}
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
-                                    {showActions && (getSubmissionStatus(submission) === 'SUBMITTED' || getSubmissionStatus(submission) === 'PENDING') && (
-                                        <>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                disabled={verifyingSubmissionId !== null}
-                                                onClick={() => handleVerify('VERIFIED', submission)}
-                                            >
-                                                {verifyingSubmissionId === submission.id ? (
-                                                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-                                                ) : (
-                                                    <CheckCircle className="h-4 w-4" />
-                                                )}
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                disabled={verifyingSubmissionId !== null}
-                                                onClick={() => openReviewDialog(submission)}
-                                            >
-                                                <XCircle className="h-4 w-4" />
-                                            </Button>
-                                        </>
-                                    )}
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -354,6 +330,7 @@ export default function ManagerSubmissionsPage() {
             <Card>
                 <CardContent className="pt-6">
                     <div className="flex flex-col sm:flex-row gap-4">
+                        <p>Filter by date:</p>
                         {/* Date Picker */}
                         <Popover>
                             <PopoverTrigger asChild>
@@ -376,26 +353,15 @@ export default function ManagerSubmissionsPage() {
                                 />
                             </PopoverContent>
                         </Popover>
-
-                        {/* Search */}
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Search staff by name or email..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
-                            />
-                        </div>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Status Summary */}
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* <div className="grid gap-4 md:grid-cols-3">
                 <Card className="border-l-4 border-l-amber-500">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                        <CardTitle className="text-sm font-medium">VERIFICATION PENDING</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalCounts.pending}</div>
@@ -404,7 +370,7 @@ export default function ManagerSubmissionsPage() {
                 </Card>
                 <Card className="border-l-4 border-l-green-500">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Approved</CardTitle>
+                        <CardTitle className="text-sm font-medium">VERIFIED TODAY</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalCounts.approved}</div>
@@ -413,14 +379,14 @@ export default function ManagerSubmissionsPage() {
                 </Card>
                 <Card className="border-l-4 border-l-red-500">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-sm font-medium">Rejected</CardTitle>
+                        <CardTitle className="text-sm font-medium">REJECTED RESPONSIBILITIES</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalCounts.rejected}</div>
                         <p className="text-xs text-muted-foreground">Need revision</p>
                     </CardContent>
                 </Card>
-            </div>
+            </div> */}
 
             {/* Staff List */}
             <Card>
@@ -569,128 +535,7 @@ export default function ManagerSubmissionsPage() {
             </Dialog>
 
             {/* Review Dialog */}
-            <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Review Submission</DialogTitle>
-                        <DialogDescription>
-                            {selectedSubmission?.assignment?.responsibility?.title}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {selectedSubmission && (
-                        <div className="space-y-4">
-                            {/* Staff Info */}
-                            <div className="flex items-center justify-between text-sm border-b pb-3">
-                                <span className="font-medium">{selectedSubmission.staff?.name || 'Unknown Staff'}</span>
-                                <span className="text-muted-foreground">
-                                    Submitted: {format(new Date(selectedSubmission.submittedAt), "PPP 'at' h:mm a")}
-                                </span>
-                            </div>
-
-                            {/* Hours Worked */}
-                            {selectedSubmission.hoursWorked && (
-                                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">Hours Worked:</span>
-                                    <span>{selectedSubmission.hoursWorked} hours</span>
-                                </div>
-                            )}
-
-                            {/* Work Description / Staff Comment */}
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm font-medium">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Staff Comments:
-                                </div>
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <p className="whitespace-pre-wrap">
-                                        {selectedSubmission.staffComment || 'No comments provided'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Work Proof */}
-                            {(selectedSubmission.workProofUrl || selectedSubmission.workProofText) && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm font-medium">
-                                        <FileText className="h-4 w-4" />
-                                        Work Proof:
-                                    </div>
-                                    <div className="p-4 bg-muted rounded-lg">
-                                        {selectedSubmission.workProofText && (
-                                            <p className="whitespace-pre-wrap">{selectedSubmission.workProofText}</p>
-                                        )}
-                                        {selectedSubmission.workProofUrl && (
-                                            <a
-                                                href={selectedSubmission.workProofUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-primary hover:underline"
-                                            >
-                                                <Link2 className="h-4 w-4" />
-                                                View attachment
-                                            </a>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Rejection Reason (for rejected submissions) */}
-                            {getSubmissionStatus(selectedSubmission) === 'REJECTED' && selectedSubmission.rejectionReason && (
-                                <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                                    <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
-                                        Rejection Reason:
-                                    </p>
-                                    <p className="text-red-600 dark:text-red-300">
-                                        {selectedSubmission.rejectionReason}
-                                    </p>
-                                </div>
-                            )}
-
-                            {/* Rejection Reason Input (for pending submissions) */}
-                            {(getSubmissionStatus(selectedSubmission) === 'SUBMITTED' || getSubmissionStatus(selectedSubmission) === 'PENDING') && (
-                                <div className="space-y-2">
-                                    <label className="text-sm font-medium">
-                                        Rejection Reason <span className="text-red-500">*</span>
-                                        <span className="text-muted-foreground font-normal"> (required if rejecting)</span>
-                                    </label>
-                                    <Textarea
-                                        placeholder="Provide feedback on why this submission is being rejected..."
-                                        value={rejectionReason}
-                                        onChange={(e) => setRejectionReason(e.target.value)}
-                                        rows={3}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        {selectedSubmission && (getSubmissionStatus(selectedSubmission) === 'SUBMITTED' || getSubmissionStatus(selectedSubmission) === 'PENDING') && (
-                            <>
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => handleVerify('REJECTED')}
-                                    disabled={isVerifying || !rejectionReason.trim()}
-                                >
-                                    <XCircle className="h-4 w-4 mr-2" /> Reject
-                                </Button>
-                                <Button
-                                    onClick={() => handleVerify('VERIFIED')}
-                                    disabled={isVerifying}
-                                    className="bg-green-600 hover:bg-green-700"
-                                >
-                                    <CheckCircle className="h-4 w-4 mr-2" /> Approve
-                                </Button>
-                            </>
-                        )}
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+           
         </div>
     )
 }
