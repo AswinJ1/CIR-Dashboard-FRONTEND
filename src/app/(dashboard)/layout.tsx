@@ -76,6 +76,12 @@ const navigation: NavigationItem[] = [
     icon: <FileCheck className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
+  {
+    name: "Sem Reports",
+    href: "/admin/sem-reports",
+    icon: <FileText className="w-5 h-5" />,
+    roles: ["ADMIN"]
+  },
   // {
   //   name: "Analytics",
   //   href: "/admin/analytics",
@@ -126,6 +132,12 @@ const navigation: NavigationItem[] = [
     icon: <UserCheck className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "Sem Reports",
+    href: "/manager/sem-reports",
+    icon: <FileText className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
   // {
   //   name: "Profile",
   //   href: "/manager/profile",
@@ -156,6 +168,12 @@ const navigation: NavigationItem[] = [
     name: "Work Submissions",
     href: "/staff/work-submissions",
     icon: <FileCheck className="w-5 h-5" />,
+    roles: ["STAFF"]
+  },
+  {
+    name: "Semester Reports",
+    href: "/staff/sem-reports",
+    icon: <FileText className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   // {

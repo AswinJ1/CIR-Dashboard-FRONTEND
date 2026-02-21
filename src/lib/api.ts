@@ -36,6 +36,10 @@ import {
     AssignGroupToStaffDto,
     GroupAssignmentResult,
     ResponsibilityGroupAssignment,
+    SemReport,
+    CreateSemReportDto,
+    UpdateSemReportDto,
+    ReviewSemReportDto,
 } from '@/types/cir'
 
 // API Base URL - configurable via environment variable
@@ -471,6 +475,53 @@ export const responsibilityGroupsApi = {
         }),
 }
 
+// ==================== Semester Reports API ====================
+export const semReportsApi = {
+    create: (data: CreateSemReportDto): Promise<SemReport> =>
+        fetchApi('/semreports', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+
+    getMyReports: (): Promise<SemReport[]> =>
+        fetchApi('/semreports/my-reports'),
+
+    getById: (id: number): Promise<SemReport> =>
+        fetchApi(`/semreports/${id}`),
+
+    update: (id: number, data: UpdateSemReportDto): Promise<SemReport> =>
+        fetchApi(`/semreports/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
+    delete: (id: number): Promise<void> =>
+        fetchApi(`/semreports/${id}`, {
+            method: 'DELETE',
+        }),
+
+    getManagerReports: (): Promise<SemReport[]> =>
+        fetchApi('/semreports/manager/review'),
+
+    getAdminReports: (departmentId?: number): Promise<SemReport[]> =>
+        fetchApi(`/semreports/admin/review${departmentId ? `?departmentId=${departmentId}` : ''}`),
+
+    getByStaffId: (staffId: number): Promise<SemReport[]> =>
+        fetchApi(`/semreports/staff/${staffId}`),
+
+    managerReview: (id: number, data: ReviewSemReportDto): Promise<SemReport> =>
+        fetchApi(`/semreports/${id}/manager-review`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+
+    adminReview: (id: number, data: ReviewSemReportDto): Promise<SemReport> =>
+        fetchApi(`/semreports/${id}/admin-review`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        }),
+}
+
 // ==================== Profile API ====================
 export const profileApi = {
     get: (): Promise<any> =>
@@ -495,6 +546,7 @@ export const api = {
     comments: commentsApi,
     responsibilityGroups: responsibilityGroupsApi,
     profile: profileApi,
+    semReports: semReportsApi,
 }
 
 export default api

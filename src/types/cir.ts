@@ -427,3 +427,77 @@ export interface GroupAssignmentResult {
   totalAssignmentsCreated: number
   skippedDuplicates: number
 }
+
+// ==================== Semester Reports ====================
+export type SemReportStatus = 'DRAFT' | 'UNDER_MANAGER_REVIEW' | 'UNDER_ADMIN_REVIEW' | 'APPROVED' | 'REJECTED'
+export type SemReportItemType = 'BATCH' | 'RESPONSIBILITY'
+
+export interface SemReportAttachment {
+  id: number
+  fileName: string
+  fileUrl: string
+  fileType?: string
+  uploadedAt: string
+}
+
+export interface SemReportItem {
+  id: number
+  type: SemReportItemType
+  name: string
+  description?: string
+  attachments: SemReportAttachment[]
+  createdAt: string
+}
+
+export interface SemReport {
+  id: number
+  semesterStartDate: string
+  semesterEndDate: string
+  status: SemReportStatus
+  rejectionReason?: string | null
+  managerReviewedAt?: string | null
+  adminReviewedAt?: string | null
+  staffId: number
+  staff?: {
+    id: number
+    name: string
+    email: string
+    avatarUrl?: string | null
+    departmentId?: number | null
+    subDepartmentId?: number | null
+    department?: { id: number; name: string } | null
+    subDepartment?: { id: number; name: string } | null
+  }
+  managerReviewedBy?: { id: number; name: string; email: string; avatarUrl?: string | null } | null
+  adminReviewedBy?: { id: number; name: string; email: string; avatarUrl?: string | null } | null
+  rejectedBy?: { id: number; name: string; email: string; avatarUrl?: string | null } | null
+  items: SemReportItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateSemReportItemDto {
+  type: SemReportItemType
+  name: string
+  description?: string
+  attachmentUrls?: string[]
+}
+
+export interface CreateSemReportDto {
+  semesterStartDate: string
+  semesterEndDate: string
+  items: CreateSemReportItemDto[]
+  status?: 'DRAFT' | 'SUBMITTED'
+}
+
+export interface UpdateSemReportDto {
+  semesterStartDate?: string
+  semesterEndDate?: string
+  items?: CreateSemReportItemDto[]
+  status?: 'DRAFT' | 'SUBMITTED'
+}
+
+export interface ReviewSemReportDto {
+  action: 'APPROVE' | 'REJECT'
+  rejectionReason?: string
+}
