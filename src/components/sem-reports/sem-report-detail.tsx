@@ -31,18 +31,22 @@ export function SemReportDetail({ report, children }: SemReportDetailProps) {
             Semester: {startDate} — {endDate}
           </h3>
           {report.staff && (
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-              <UserAvatar
-                name={report.staff.name}
-                avatarUrl={report.staff.avatarUrl}
-                size="lg"
-              />
-              <span>
-                {report.staff.name} ({report.staff.email})
-                {report.staff.department && <> • {report.staff.department.name}</>}
-                {report.staff.subDepartment && <> | {report.staff.subDepartment.name}</>}
-              </span>
-            </div>
+       <div className="flex items-center gap-4">
+  <UserAvatar
+    name={report.staff.name}
+    avatarUrl={report.staff.avatarUrl}
+    className="h-14 w-14"
+  />
+
+  <div className="flex flex-col">
+    <span className="text-base font-semibold text-foreground">
+      {report.staff.name}
+    </span>
+    <span className="text-sm text-muted-foreground">
+      {report.staff.email}
+    </span>
+  </div>
+</div>
           )}
         </div>
         <SemReportStatusBadge status={report.status} />
@@ -74,23 +78,23 @@ export function SemReportDetail({ report, children }: SemReportDetailProps) {
         <span>Created: {format(new Date(report.createdAt), "MMM d, yyyy h:mm a")}</span>
         {report.managerReviewedAt && report.managerReviewedBy && (
           <span className="flex items-center gap-1.5">
-           Approved By • Manager:
-            <UserAvatar
+           Approved By : Manager:
+            {/* <UserAvatar
               name={report.managerReviewedBy.name}
               avatarUrl={report.managerReviewedBy.avatarUrl}
               size="sm"
-            />
+            /> */}
             {report.managerReviewedBy.name} on {format(new Date(report.managerReviewedAt), "MMM d, yyyy")}
           </span>
         )}
         {report.adminReviewedAt && report.adminReviewedBy && (
           <span className="flex items-center gap-1.5">
             Admin:
-            <UserAvatar
+            {/* <UserAvatar
               name={report.adminReviewedBy.name}
               avatarUrl={report.adminReviewedBy.avatarUrl}
               size="sm"
-            />
+            /> */}
             {report.adminReviewedBy.name} on {format(new Date(report.adminReviewedAt), "MMM d, yyyy")}
           </span>
         )}

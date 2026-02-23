@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle, XCircle, Loader2 } from "lucide-react"
+import { CheckCircle, XCircle, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -40,11 +40,11 @@ export function ReviewActions({ onApprove, onReject, isLoading = false }: Review
       <div className="flex items-center gap-3">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+            <Button disabled={isLoading} className="rounded-none">
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               ) : (
-                <CheckCircle className="h-4 w-4 mr-2" />
+                <Check className="h-4 w-4 mr-2" />
               )}
               Approve
             </Button>
@@ -60,7 +60,7 @@ export function ReviewActions({ onApprove, onReject, isLoading = false }: Review
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={onApprove}
-                className="bg-green-600 hover:bg-green-700"
+                className=""
               >
                 Approve
               </AlertDialogAction>
@@ -69,7 +69,7 @@ export function ReviewActions({ onApprove, onReject, isLoading = false }: Review
         </AlertDialog>
 
         <Button
-          variant="destructive"
+          className="bg-white text-black dark:text-white border dark:black dark:border-white rounded-none"
           disabled={isLoading}
           onClick={() => setShowRejectForm(!showRejectForm)}
         >

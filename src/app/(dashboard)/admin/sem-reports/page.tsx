@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { toast } from "sonner"
 import { FileText } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -20,21 +20,49 @@ import { api } from "@/lib/api"
 import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
-import type { SemReport, Department } from "@/types/cir"
+import type { SemReport, Department, SubDepartment } from "@/types/cir"
+
+// Generate academic year options (e.g., "2025-2026", "2024-2025", ...)
+function getAcademicYearOptions(): { label: string; startYear: number }[] {
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() // 0-indexed
+  // Academic year typically starts in June/July
+  const startYear = currentMonth >= 5 ? currentYear : currentYear - 1
+  const years: { label: string; startYear: number }[] = []
+  for (let y = startYear; y >= startYear - 5; y--) {
+    years.push({ label: `${y}-${y + 1}`, startYear: y })
+  }
+  return years
+}
 
 export default function AdminSemReportsPage() {
   const { user } = useAuth()
   const [reports, setReports] = useState<SemReport[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
+  const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
   const [selectedDeptId, setSelectedDeptId] = useState<number | undefined>()
+  const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("all")
+  const [selectedStaffId, setSelectedStaffId] = useState<string>("all")
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [reviewLoading, setReviewLoading] = useState(false)
+
+  const academicYears = useMemo(() => getAcademicYearOptions(), [])
 
   const fetchDepartments = useCallback(async () => {
     try {
       const data = await api.departments.getAll()
       setDepartments(data)
+    } catch {
+      // non-critical
+    }
+  }, [])
+
+  const fetchSubDepartments = useCallback(async () => {
+    try {
+      const data = await api.subDepartments.getAll()
+      setSubDepartments(data)
     } catch {
       // non-critical
     }
@@ -54,11 +82,23 @@ export default function AdminSemReportsPage() {
 
   useEffect(() => {
     fetchDepartments()
-  }, [fetchDepartments])
+    fetchSubDepartments()
+  }, [fetchDepartments, fetchSubDepartments])
 
   useEffect(() => {
     fetchReports()
   }, [fetchReports])
+
+  // Reset dependent filters when department changes
+  useEffect(() => {
+    setSelectedSubDeptId("all")
+    setSelectedStaffId("all")
+  }, [selectedDeptId])
+
+  // Reset staff filter when sub-department changes
+  useEffect(() => {
+    setSelectedStaffId("all")
+  }, [selectedSubDeptId])
 
   const handleApprove = async (reportId: number) => {
     try {
@@ -91,8 +131,60 @@ export default function AdminSemReportsPage() {
     }
   }
 
-  const pendingReports = reports.filter((r) => r.status === "UNDER_ADMIN_REVIEW")
-  const otherReports = reports.filter((r) => r.status !== "UNDER_ADMIN_REVIEW")
+  // Filter sub-departments based on selected department
+  const filteredSubDepartments = useMemo(() => {
+    if (!selectedDeptId) return subDepartments
+    return subDepartments.filter((sd) => String(sd.departmentId) === String(selectedDeptId))
+  }, [subDepartments, selectedDeptId])
+
+  // Get unique staff from reports, filtered by sub-department
+  const staffOptions = useMemo(() => {
+    const staffMap = new Map<number, { id: number; name: string; subDepartmentId?: number | null }>()
+    reports.forEach((r) => {
+      if (r.staff) {
+        staffMap.set(r.staff.id, {
+          id: r.staff.id,
+          name: r.staff.name,
+          subDepartmentId: r.staff.subDepartmentId,
+        })
+      }
+    })
+    let staffList = Array.from(staffMap.values())
+    if (selectedSubDeptId !== "all") {
+      staffList = staffList.filter((s) => String(s.subDepartmentId) === selectedSubDeptId)
+    }
+    return staffList.sort((a, b) => a.name.localeCompare(b.name))
+  }, [reports, selectedSubDeptId])
+
+  // Apply all filters to reports
+  const filteredReports = useMemo(() => {
+    return reports.filter((r) => {
+      // Sub-department filter
+      if (selectedSubDeptId !== "all" && String(r.staff?.subDepartmentId) !== selectedSubDeptId) {
+        return false
+      }
+      // Staff filter
+      if (selectedStaffId !== "all" && String(r.staff?.id) !== selectedStaffId) {
+        return false
+      }
+      // Academic year filter
+      if (selectedAcademicYear !== "all") {
+        const ay = academicYears.find((y) => y.label === selectedAcademicYear)
+        if (ay) {
+          const reportStart = new Date(r.semesterStartDate)
+          const ayStart = new Date(ay.startYear, 5, 1) // June 1
+          const ayEnd = new Date(ay.startYear + 1, 4, 31) // May 31
+          if (reportStart < ayStart || reportStart > ayEnd) {
+            return false
+          }
+        }
+      }
+      return true
+    })
+  }, [reports, selectedSubDeptId, selectedStaffId, selectedAcademicYear, academicYears])
+
+  const pendingReports = filteredReports.filter((r) => r.status === "UNDER_ADMIN_REVIEW")
+  const otherReports = filteredReports.filter((r) => r.status !== "UNDER_ADMIN_REVIEW")
 
   if (loading) {
     return (
@@ -117,17 +209,18 @@ export default function AdminSemReportsPage() {
         </p>
       </div>
 
-      {/* Department Filter */}
-      <div className="flex items-end gap-4">
-        <div className="space-y-1.5 w-64">
-          <Label className="text-sm">Filter by Department</Label>
+      {/* Filters */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Department Filter */}
+        <div className="space-y-1.5 w-full">
+          <Label className="text-sm">Department</Label>
           <Select
             value={selectedDeptId?.toString() || "all"}
             onValueChange={(val) =>
               setSelectedDeptId(val === "all" ? undefined : parseInt(val))
             }
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="All Departments" />
             </SelectTrigger>
             <SelectContent>
@@ -135,6 +228,69 @@ export default function AdminSemReportsPage() {
               {departments.map((dept) => (
                 <SelectItem key={dept.id} value={dept.id.toString()}>
                   {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sub-Department Filter */}
+        <div className="space-y-1.5 w-full">
+          <Label className="text-sm">Sub Department</Label>
+          <Select
+            value={selectedSubDeptId}
+            onValueChange={setSelectedSubDeptId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Sub Departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Sub Departments</SelectItem>
+              {filteredSubDepartments.map((sd) => (
+                <SelectItem key={sd.id} value={sd.id.toString()}>
+                  {sd.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Staff Filter */}
+        <div className="space-y-1.5 w-full">
+          <Label className="text-sm">Staff</Label>
+          <Select
+            value={selectedStaffId}
+            onValueChange={setSelectedStaffId}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Staff" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Staff</SelectItem>
+              {staffOptions.map((s) => (
+                <SelectItem key={s.id} value={s.id.toString()}>
+                  {s.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Academic Year Filter */}
+        <div className="space-y-1.5 w-48">
+          <Label className="text-sm">Academic Year</Label>
+          <Select
+            value={selectedAcademicYear}
+            onValueChange={setSelectedAcademicYear}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="All Years" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {academicYears.map((ay) => (
+                <SelectItem key={ay.label} value={ay.label}>
+                  {ay.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -198,7 +354,7 @@ export default function AdminSemReportsPage() {
               <FileText className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-1">No Other Reports</h3>
               <p className="text-muted-foreground text-sm">
-                No other reports found with the selected filter.
+                No other reports found with the selected filters.
               </p>
             </Card>
           ) : (

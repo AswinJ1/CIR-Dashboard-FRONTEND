@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, Suspense } from "react"
 import { useRouter } from "next/navigation"
 import { api } from "@/lib/api"
-import { Employee, WorkSubmission } from "@/types/cir"
+import { Employee, WorkSubmission, SemReport } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -61,6 +61,10 @@ import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend as ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
 import { Line, Doughnut } from 'react-chartjs-2'
+import { Separator } from "@/components/ui/separator"
+import { SemReportCard } from "@/components/sem-reports/sem-report-card"
+import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
+import { ReviewActions } from "@/components/sem-reports/review-actions"
 
 // Register ChartJS components
 ChartJS.register(ArcElement, ChartTooltip, ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
@@ -72,6 +76,12 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
     const [staff, setStaff] = useState<Employee | null>(null)
     const [staffSubmissions, setStaffSubmissions] = useState<WorkSubmission[]>([])
     const [isLoading, setIsLoading] = useState(true)
+
+    // Semester reports state
+    const [semReports, setSemReports] = useState<SemReport[]>([])
+    const [semReportsLoading, setSemReportsLoading] = useState(false)
+    const [expandedReportId, setExpandedReportId] = useState<number | null>(null)
+    const [semReviewLoading, setSemReviewLoading] = useState(false)
 
     // Analytics date range
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -106,6 +116,17 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
 
             setStaff(staffMember)
             setStaffSubmissions(allSubmissions.filter(s => String(s.staffId) === staffId))
+
+            // Fetch semester reports for this staff member
+            try {
+                setSemReportsLoading(true)
+                const reports = await api.semReports.getByStaffId(Number(staffId))
+                setSemReports(reports)
+            } catch (err) {
+                console.error("Failed to fetch sem reports:", err)
+            } finally {
+                setSemReportsLoading(false)
+            }
         } catch (error) {
             console.error("Failed to fetch staff data:", error)
             toast.error("Failed to load staff data")
@@ -113,6 +134,43 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
             setIsLoading(false)
         }
     }
+
+    // Semester report review handlers
+    const handleSemApprove = async (reportId: number) => {
+        try {
+            setSemReviewLoading(true)
+            await api.semReports.managerReview(reportId, { action: "APPROVE" })
+            toast.success("Report approved and forwarded to Admin review")
+            setExpandedReportId(null)
+            const reports = await api.semReports.getByStaffId(Number(staffId))
+            setSemReports(reports)
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to approve report")
+        } finally {
+            setSemReviewLoading(false)
+        }
+    }
+
+    const handleSemReject = async (reportId: number, reason: string) => {
+        try {
+            setSemReviewLoading(true)
+            await api.semReports.managerReview(reportId, {
+                action: "REJECT",
+                rejectionReason: reason,
+            })
+            toast.success("Report rejected")
+            setExpandedReportId(null)
+            const reports = await api.semReports.getByStaffId(Number(staffId))
+            setSemReports(reports)
+        } catch (err: any) {
+            toast.error(err?.message || "Failed to reject report")
+        } finally {
+            setSemReviewLoading(false)
+        }
+    }
+
+    const pendingSemReports = semReports.filter((r) => r.status === "UNDER_MANAGER_REVIEW")
+    const reviewedSemReports = semReports.filter((r) => r.status !== "UNDER_MANAGER_REVIEW" && r.status !== "DRAFT")
 
     // Group submissions by status
     const groupedSubmissions = useMemo(() => {
@@ -452,9 +510,6 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
             <Card>
                 <CardContent className="pt-6">
                     <div className="flex items-start gap-6">
-                        {/* <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-8 w-8 text-primary" />
-                        </div> */}
                         <Avatar className="h-24 w-24 ring-2 ring-primary/20 hover:ring-primary/40 transition-all border-2 border-background shadow-sm flex-shrink-0">
                             {staff.avatarUrl ? (
                                 <AvatarImage src={staff.avatarUrl} alt={staff.name || ''} />
@@ -466,19 +521,15 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         </Avatar>
                         <div className="space-y-2">
                                 <div className="flex items-center gap-2">
-                                {/* <Mail className="h-4 w-4 text-muted-foreground" /> */}
                                 <span>{staff.name}</span>
                             </div>
                             <div className="flex items-center gap-2">
-                                {/* <Mail className="h-4 w-4 text-muted-foreground" /> */}
                                 <span>{staff.email}</span>
                             </div>
-                         
                                 <div className="flex items-center gap-2">
                                     <Building className="h-4 w-4 text-muted-foreground" />
                                     <span>{staff.subDepartment?.name}</span> | <span>{staff.department?.name}</span>
                                 </div>
-                            {/* <span>{staff.role}</span> */}
                         </div>
                     </div>
                 </CardContent>
@@ -533,6 +584,113 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             <SubmissionTable data={groupedSubmissions.rejected} showActions={false} />
                         </TabsContent>
                     </Tabs>
+                </CardContent>
+            </Card>
+
+            {/* Semester Reports Section - Between Submissions and Analytics */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Semester Reports</CardTitle>
+                    {/* <CardDescription>
+                        Review semester reports submitted by {staff.name}
+                    </CardDescription> */}
+                </CardHeader>
+                <CardContent>
+                    {semReportsLoading ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                        </div>
+                    ) : semReports.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                            <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+                            <p className="text-muted-foreground text-sm">No semester reports found for this staff member.</p>
+                        </div>
+                    ) : (
+                        <Tabs defaultValue="pending-sem">
+                            <TabsList className="mb-4">
+                                <TabsTrigger value="pending-sem" className="gap-2">
+                                    Pending Review
+                                    {pendingSemReports.length > 0 && (
+                                        <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
+                                            {pendingSemReports.length}
+                                        </span>
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger value="reviewed-sem" className="gap-2">
+                                    Reviewed
+                                    {reviewedSemReports.length > 0 && (
+                                        <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                            {reviewedSemReports.length}
+                                        </span>
+                                    )}
+                                </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="pending-sem">
+                                {pendingSemReports.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                                        <p className="text-muted-foreground text-sm">No reports pending your review.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {pendingSemReports.map((report) => (
+                                            <div key={report.id} className="space-y-0">
+                                                <div
+                                                    className="cursor-pointer"
+                                                    onClick={() =>
+                                                        setExpandedReportId(expandedReportId === report.id ? null : report.id)
+                                                    }
+                                                >
+                                                    <SemReportCard report={report} />
+                                                </div>
+                                                {expandedReportId === report.id && (
+                                                    <Card className="border-t-0 rounded-t-none pt-4 p-6">
+                                                        <SemReportDetail report={report}>
+                                                            <ReviewActions
+                                                                onApprove={() => handleSemApprove(report.id)}
+                                                                onReject={(reason) => handleSemReject(report.id, reason)}
+                                                                isLoading={semReviewLoading}
+                                                            />
+                                                        </SemReportDetail>
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="reviewed-sem">
+                                {reviewedSemReports.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+                                        <p className="text-muted-foreground text-sm">No reviewed reports yet.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid gap-4">
+                                        {reviewedSemReports.map((report) => (
+                                            <div key={report.id} className="space-y-0">
+                                                <div
+                                                    className="cursor-pointer"
+                                                    onClick={() =>
+                                                        setExpandedReportId(expandedReportId === report.id ? null : report.id)
+                                                    }
+                                                >
+                                                    <SemReportCard report={report} />
+                                                </div>
+                                                {expandedReportId === report.id && (
+                                                    <Card className="border-t-0 rounded-t-none pt-4 p-6">
+                                                        <SemReportDetail report={report} />
+                                                    </Card>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </TabsContent>
+                        </Tabs>
+                    )}
                 </CardContent>
             </Card>
 
@@ -607,37 +765,37 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                 </CardHeader>
                 <CardContent className="space-y-6">
                     {/* Stats Cards */}
-                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-lg border bg-card p-4">
+                    <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 rounded-none">
+                        <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-blue-100 rounded-lg">
+                                <div className="p-2 ">
                                     <FileText className="h-4 w-4 text-blue-600" />
                                 </div>
                                 <span className="text-sm text-muted-foreground">Total Submissions</span>
                             </div>
                             <p className="text-2xl font-bold mt-2">{analyticsStats.total}</p>
                         </div>
-                        <div className="rounded-lg border bg-card p-4">
+                        <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-green-100 rounded-lg">
+                                <div className="p-2 ">
                                     <TrendingUp className="h-4 w-4 text-green-600" />
                                 </div>
                                 <span className="text-sm text-muted-foreground">Approval Rate</span>
                             </div>
                             <p className="text-2xl font-bold mt-2">{analyticsStats.approvalRate}%</p>
                         </div>
-                        <div className="rounded-lg border bg-card p-4">
+                        <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-amber-100 rounded-lg">
+                                <div className="p-2 ">
                                     <Clock className="h-4 w-4 text-amber-600" />
                                 </div>
                                 <span className="text-sm text-muted-foreground">Pending Review</span>
                             </div>
                             <p className="text-2xl font-bold mt-2">{analyticsStats.pending}</p>
                         </div>
-                        <div className="rounded-lg border bg-card p-4">
+                        <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-purple-100 rounded-lg">
+                                <div className="p-2 ">
                                     <Clock className="h-4 w-4 text-purple-600" />
                                 </div>
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>

@@ -12,22 +12,22 @@ const statusConfig: Record<SemReportStatus, { label: string; variant: "default" 
   UNDER_MANAGER_REVIEW: {
     label: "Under Manager Review",
     variant: "outline",
-    className: "bg-yellow-50 text-yellow-700 border-yellow-300",
+    className: "rounded-none",
   },
   UNDER_ADMIN_REVIEW: {
     label: "Under Admin Review",
     variant: "outline",
-    className: "bg-blue-50 text-blue-700 border-blue-300",
+    className: "rounded-none",
   },
   APPROVED: {
     label: "Approved",
     variant: "default",
-    className: "bg-green-50 text-green-700 border-green-300",
+    className: "rounded-none",
   },
   REJECTED: {
     label: "Rejected",
     variant: "destructive",
-    className: "bg-red-50 text-red-700 border-red-300",
+    className: "bg-red-50 text-red-700 border-red-300 rounded-none",
   },
 }
 

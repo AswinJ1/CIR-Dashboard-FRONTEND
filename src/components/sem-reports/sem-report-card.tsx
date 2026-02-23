@@ -41,17 +41,31 @@ export function SemReportCard({
               <Calendar className="h-4 w-4 text-muted-foreground" />
               {startDate} — {endDate}
             </CardTitle>
-            {showStaffInfo && report.staff && (
-              <div className="text-sm text-muted-foreground flex items-center gap-1.5">
-                <UserAvatar
-                  name={report.staff.name}
-                  avatarUrl={report.staff.avatarUrl}
-                  size="md"
-                />
-                {report.staff.name} • {report.staff.department?.name || "N/A"}{" "}
-                {report.staff.subDepartment ? `/ ${report.staff.subDepartment.name}` : ""}
-              </div>
-            )}
+         {showStaffInfo && report.staff && (
+  <div className="flex items-center gap-4">
+    <UserAvatar
+      name={report.staff.name}
+      avatarUrl={report.staff.avatarUrl}
+     className="h-12 w-12"
+    />
+
+    <div className="flex flex-col">
+      <span className="text-sm font-semibold text-foreground">
+        {report.staff.name}
+      </span>
+
+      <span className="text-xs text-muted-foreground">
+        {report.staff.department?.name || "No Department"}
+      </span>
+
+      {report.staff.subDepartment && (
+        <span className="text-xs text-muted-foreground">
+          {report.staff.subDepartment.name}
+        </span>
+      )}
+    </div>
+  </div>
+)}
           </div>
           <SemReportStatusBadge status={report.status} />
         </div>
@@ -86,11 +100,11 @@ export function SemReportCard({
               {report.rejectedBy && (
                 <span className="text-xs mt-0.5 opacity-80 flex items-center gap-1">
                   Rejected by
-                  <UserAvatar
+                  {/* <UserAvatar
                     name={report.rejectedBy.name}
                     avatarUrl={report.rejectedBy.avatarUrl}
-                    size="sm"
-                  />
+                    className="h-12 w-12"
+                  /> */}
                   {report.rejectedBy.name}
                 </span>
               )}
@@ -125,23 +139,23 @@ export function SemReportCard({
           <span>Created {format(new Date(report.createdAt), "MMM d, yyyy 'at' h:mm a")}</span>
           {report.managerReviewedAt && report.managerReviewedBy && (
             <span className="flex items-center gap-1">
-             Approved By • Manager:
-              <UserAvatar
+             Approved By : Manager
+              {/* <UserAvatar
                 name={report.managerReviewedBy.name}
                 avatarUrl={report.managerReviewedBy.avatarUrl}
-                size="sm"
-              />
+                className="sm"
+              /> */}
               {report.managerReviewedBy.name} on {format(new Date(report.managerReviewedAt), "MMM d")}
             </span>
           )}
           {report.adminReviewedAt && report.adminReviewedBy && (
             <span className="flex items-center gap-1">
               • Admin:
-              <UserAvatar
+              {/* <UserAvatar
                 name={report.adminReviewedBy.name}
                 avatarUrl={report.adminReviewedBy.avatarUrl}
                 size="sm"
-              />
+              /> */}
               {report.adminReviewedBy.name} on {format(new Date(report.adminReviewedAt), "MMM d")}
             </span>
           )}
