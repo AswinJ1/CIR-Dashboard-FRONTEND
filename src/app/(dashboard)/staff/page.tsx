@@ -237,8 +237,8 @@ export default function StaffDashboardPage() {
             currentDate.setDate(currentDate.getDate() + 1)
         }
 
-        // Count rejected submissions (for today only)
-        const todayRejectedCount = todaySubmissionsData.filter(s =>
+        // Count ALL rejected submissions (not just today)
+        const allRejectedCount = allSubmissions.filter(s =>
             (s.status === 'REJECTED') || (s.assignment?.status === 'REJECTED')
         ).length
 
@@ -249,7 +249,7 @@ export default function StaffDashboardPage() {
             verifiedDaysCount,
             missedDaysCount,
             totalSubmittedDays: submissionDates.size,
-            totalRejectedCount: todayRejectedCount,
+            totalRejectedCount: allRejectedCount,
         }
     }, [allSubmissions, today, staffCreatedAt])
 
@@ -371,21 +371,59 @@ export default function StaffDashboardPage() {
         ],
     }
 
-    // Daily Submissions (Line Chart)
-    const dailySubmissionsData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [
-            {
-                label: 'Responsibilities',
-                data: dailyData.map(d => d.submissions),
-                borderColor: 'rgba(99, 102, 241, 1)',
-                backgroundColor: 'rgba(99, 102, 241, 0.2)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+    // Responsibility Hours (Bar Chart) - grouped by responsibility, filtered by date range
+    const responsibilityHoursData = useMemo(() => {
+        const respMap = new Map<string, number>()
+        filteredSubmissions.forEach(s => {
+            const title = s.assignment?.responsibility?.title || 'Unknown'
+            const hours = (s as any).hoursWorked || 0
+            respMap.set(title, (respMap.get(title) || 0) + hours)
+        })
+        const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
+        const colors = [
+            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
+            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
+            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
+        ]
+        return {
+            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
+            datasets: [{
+                label: 'Hours Worked',
+                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
+                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
+                borderWidth: 2,
+                borderRadius: 6,
+            }],
+            _fullTitles: entries.map(([title]) => title),
+        }
+    }, [filteredSubmissions])
+
+    const respBarChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                titleFont: { size: 14 },
+                bodyFont: { size: 13 },
+                callbacks: {
+                    title: function (context: any) {
+                        const index = context[0]?.dataIndex
+                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
+                    },
+                    label: function (context: any) {
+                        return `Hours: ${context.raw}h`
+                    }
+                }
             },
-        ],
+        },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
+        },
     }
 
     // Weekly Comparison (Bar Chart)
@@ -422,8 +460,8 @@ export default function StaffDashboardPage() {
                 backgroundColor: 'rgba(34, 197, 94, 0.2)',
                 fill: true,
                 tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+                pointRadius: 0,
+                pointHoverRadius: 0,
             },
         ],
     }
@@ -660,7 +698,7 @@ export default function StaffDashboardPage() {
                             {metrics.totalRejectedCount} Rejected Submission{metrics.totalRejectedCount > 1 ? 's' : ''}
                         </CardTitle>
                         <CardDescription className="text-red-600 dark:text-red-400">
-                            Some of your work requires revision. Check the Work Calendar for details.
+                            Some of your work requires revision. Check the Work submissions for details.
                         </CardDescription>
                     </CardHeader>
                 </Card>
@@ -929,24 +967,30 @@ export default function StaffDashboardPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Daily Submissions Line Chart */}
+                            {/* Hours by Responsibility Bar Chart */}
                             <Card className="lg:col-span-2">
                                 <CardHeader>
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <CardTitle className="flex items-center gap-2">
                                                 <TrendingUp className="h-5 w-5 text-indigo-600" />
-                                                Daily Responsibilities
+                                                Hours by Responsibility
                                             </CardTitle>
-                                            <CardDescription>Number of responsibilities per day</CardDescription>
+                                            <CardDescription>Total hours worked per responsibility</CardDescription>
                                         </div>
-                                        <Button variant="outline" size="sm" onClick={() => exportToCSV(dailyData.map(d => ({ Date: d.date, Responsibilities: d.submissions, Hours: d.hours })), 'daily_responsibilities')}>
+                                        <Button variant="outline" size="sm" onClick={() => exportToCSV((responsibilityHoursData as any)._fullTitles?.map((title: string, i: number) => ({ Responsibility: title, Hours: responsibilityHoursData.datasets[0].data[i] })) || [], 'hours_by_responsibility')}>
                                             <Download className="h-4 w-4" />
                                         </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    <Line data={dailySubmissionsData} options={lineChartOptions} />
+                                    {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
+                                        <Bar data={responsibilityHoursData} options={respBarChartOptions} />
+                                    ) : (
+                                        <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                                            No submission data in selected period
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         </div>

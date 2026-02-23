@@ -98,18 +98,31 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
     const [assignmentsPage, setAssignmentsPage] = useState(1)
     const [submissionsPage, setSubmissionsPage] = useState(1)
 
+    // Activity card date filter
+    const [activityFilterDate, setActivityFilterDate] = useState<Date | null>(null)
+
     // Paginated data
-    const assignmentsTotalPages = Math.ceil(assignments.length / ITEMS_PER_PAGE)
+    const activityAssignments = useMemo(() => {
+        if (!activityFilterDate) return assignments
+        return assignments.filter(a => isSameDay(new Date(a.assignedAt), activityFilterDate))
+    }, [assignments, activityFilterDate])
+
+    const activitySubmissions = useMemo(() => {
+        if (!activityFilterDate) return submissions
+        return submissions.filter(s => isSameDay(new Date(s.workDate || s.submittedAt), activityFilterDate))
+    }, [submissions, activityFilterDate])
+
+    const assignmentsTotalPages = Math.ceil(activityAssignments.length / ITEMS_PER_PAGE)
     const paginatedAssignments = useMemo(() => {
         const start = (assignmentsPage - 1) * ITEMS_PER_PAGE
-        return assignments.slice(start, start + ITEMS_PER_PAGE)
-    }, [assignments, assignmentsPage])
+        return activityAssignments.slice(start, start + ITEMS_PER_PAGE)
+    }, [activityAssignments, assignmentsPage])
 
-    const submissionsTotalPages = Math.ceil(submissions.length / ITEMS_PER_PAGE)
+    const submissionsTotalPages = Math.ceil(activitySubmissions.length / ITEMS_PER_PAGE)
     const paginatedSubmissions = useMemo(() => {
         const start = (submissionsPage - 1) * ITEMS_PER_PAGE
-        return submissions.slice(start, start + ITEMS_PER_PAGE)
-    }, [submissions, submissionsPage])
+        return activitySubmissions.slice(start, start + ITEMS_PER_PAGE)
+    }, [activitySubmissions, submissionsPage])
 
     function openViewResponsibilityDialog(assignment: Assignment) {
         setSelectedAssignment(assignment)
@@ -240,30 +253,58 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
         }]
     }), [analyticsStats])
 
-    const dailySubmissionsChartData = useMemo(() => ({
-        labels: dailyChartData.map(d => d.date),
-        datasets: [{
-            label: 'Total Submissions',
-            data: dailyChartData.map(d => d.submissions),
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99, 102, 241, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#6366f1',
-        }, {
-            label: 'Verified',
-            data: dailyChartData.map(d => d.verified),
-            borderColor: '#22c55e',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#22c55e',
-        }]
-    }), [dailyChartData])
+    // Responsibility Hours (Bar Chart) - grouped by responsibility
+    const responsibilityHoursData = useMemo(() => {
+        const respMap = new Map<string, number>()
+        submissions.forEach(s => {
+            const title = s.assignment?.responsibility?.title || 'Unknown'
+            const hours = s.hoursWorked || 0
+            respMap.set(title, (respMap.get(title) || 0) + hours)
+        })
+        const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
+        const colors = [
+            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
+            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
+            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
+        ]
+        return {
+            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
+            datasets: [{
+                label: 'Hours Worked',
+                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
+                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
+                borderWidth: 2,
+                borderRadius: 6,
+            }],
+            _fullTitles: entries.map(([title]) => title),
+        }
+    }, [submissions])
+
+    const respBarChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                callbacks: {
+                    title: function (context: any) {
+                        const index = context[0]?.dataIndex
+                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
+                    },
+                    label: function (context: any) {
+                        return `Hours: ${context.raw}h`
+                    }
+                }
+            },
+        },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
+        },
+    }
 
     const hoursTrendChartData = useMemo(() => ({
         labels: dailyChartData.map(d => d.date),
@@ -274,8 +315,8 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
             backgroundColor: 'rgba(139, 92, 246, 0.15)',
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 0,
+            pointHoverRadius: 0,
             pointBackgroundColor: '#8b5cf6',
         }]
     }), [dailyChartData])
@@ -592,7 +633,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="end">
-                                <div className="flex gap-2 p-3 border-b">
+                                {/* <div className="flex gap-2 p-3 border-b">
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -614,14 +655,14 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                     >
                                         This Month
                                     </Button>
-                                </div>
+                                </div> */}
                                 <Calendar
                                     initialFocus
                                     mode="range"
                                     defaultMonth={dateRange?.from}
                                     selected={dateRange}
                                     onSelect={(range) => setDateRange(range as DateRange | undefined)}
-                                    numberOfMonths={2}
+                                    numberOfMonths={1}
                                 />
                             </PopoverContent>
                         </Popover>
@@ -657,9 +698,9 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                             </div>
                             <p className="text-2xl font-bold mt-2">{analyticsStats.pending}</p>
                         </div>
-                        <div className="rounded-lg border bg-card p-4">
+                        <div className=" border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-purple-100 rounded-lg">
+                                <div className="p-2 bg-purple-100 ">
                                     <Clock className="h-4 w-4 text-purple-600" />
                                 </div>
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>
@@ -670,19 +711,25 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
 
                     {/* Charts */}
                     <div className="grid gap-6 lg:grid-cols-2">
-                        {/* Daily Submissions Line Chart */}
-                        <div className="rounded-lg border p-4">
+                        {/* Hours by Responsibility Bar Chart */}
+                        <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
                                 <Activity className="h-5 w-5 text-indigo-500" />
-                                <h3 className="font-semibold">Daily Submissions</h3>
+                                <h3 className="font-semibold">Hours by Responsibility</h3>
                             </div>
                             <div className="h-[250px]">
-                                <Line data={dailySubmissionsChartData} options={lineChartOptions} />
+                                {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
+                                    <Bar data={responsibilityHoursData} options={respBarChartOptions} />
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                                        No submission data available
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         {/* Status Distribution Doughnut Chart */}
-                        <div className="rounded-lg border p-4">
+                        <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
                                 <BarChart3 className="h-5 w-5 text-green-500" />
                                 <h3 className="font-semibold">Status Distribution</h3>
@@ -693,7 +740,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </div>
 
                         {/* Verified Submissions Bar Chart */}
-                        <div className="rounded-lg border p-4">
+                        <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
                                 <BarChart3 className="h-5 w-5 text-emerald-500" />
                                 <h3 className="font-semibold">Verified Submissions</h3>
@@ -704,7 +751,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </div>
 
                         {/* Hours Trend Line Chart */}
-                        <div className="rounded-lg border p-4">
+                        <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
                                 <Clock className="h-5 w-5 text-purple-500" />
                                 <h3 className="font-semibold">Hours Trend</h3>
@@ -720,10 +767,50 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
             {/* Tabs for Assignments and Submissions */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Activity</CardTitle>
-                    <CardDescription>
-                        Assignments and submission history
-                    </CardDescription>
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div>
+                            <CardTitle>Activity</CardTitle>
+                            <CardDescription>
+                                Assignments and submission history
+                            </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {activityFilterDate && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        setActivityFilterDate(null)
+                                        setAssignmentsPage(1)
+                                        setSubmissionsPage(1)
+                                    }}
+                                    className="text-xs text-muted-foreground"
+                                >
+                                    Clear filter
+                                </Button>
+                            )}
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-[200px] justify-start text-left font-normal">
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {activityFilterDate ? format(activityFilterDate, "MMM d, yyyy") : "Filter by date"}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="end">
+                                    <Calendar
+                                        mode="single"
+                                        selected={activityFilterDate || undefined}
+                                        onSelect={(date) => {
+                                            setActivityFilterDate(date || null)
+                                            setAssignmentsPage(1)
+                                            setSubmissionsPage(1)
+                                        }}
+                                        className="p-2"
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue="assignments">
@@ -731,13 +818,13 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                             <TabsTrigger value="assignments" className="gap-2">
                                 Assignments
                                 <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                                    {assignments.length}
+                                    {activityAssignments.length}
                                 </span>
                             </TabsTrigger>
                             <TabsTrigger value="submissions" className="gap-2">
                                 Submissions
                                 <span className="bg-muted text-muted-foreground px-2 py-0.5 rounded-full text-xs">
-                                    {submissions.length}
+                                    {activitySubmissions.length}
                                 </span>
                             </TabsTrigger>
                         </TabsList>
@@ -804,7 +891,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                     {assignmentsTotalPages > 1 && (
                                         <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                             <p className="text-sm text-muted-foreground">
-                                                Page {assignmentsPage} of {assignmentsTotalPages} ({assignments.length} assignments)
+                                                Page {assignmentsPage} of {assignmentsTotalPages} ({activityAssignments.length} assignments)
                                             </p>
                                             <div className="flex gap-2">
                                                 <Button
@@ -875,7 +962,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                     {submissionsTotalPages > 1 && (
                                         <div className="flex items-center justify-between mt-4 pt-4 border-t">
                                             <p className="text-sm text-muted-foreground">
-                                                Page {submissionsPage} of {submissionsTotalPages} ({submissions.length} submissions)
+                                                Page {submissionsPage} of {submissionsTotalPages} ({activitySubmissions.length} submissions)
                                             </p>
                                             <div className="flex gap-2">
                                                 <Button

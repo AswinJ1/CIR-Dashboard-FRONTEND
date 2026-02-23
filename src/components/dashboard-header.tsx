@@ -36,6 +36,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 
@@ -199,6 +200,7 @@ const searchOptions: SearchOption[] = [
 
 export default function DashboardHeader() {
   const { user, role, isLoading, isAuthenticated, logout } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [profile, setProfile] = useState<any>(null)
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -449,7 +451,7 @@ export default function DashboardHeader() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => document.documentElement.classList.toggle("dark")}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               <Sun className="h-5 w-5 dark:hidden" />
               <Moon className="h-5 w-5 hidden dark:block" />

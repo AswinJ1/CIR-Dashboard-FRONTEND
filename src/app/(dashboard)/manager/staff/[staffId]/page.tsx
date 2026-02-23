@@ -56,12 +56,16 @@ import {
     CalendarIcon,
     TrendingUp,
     Activity,
+    Target,
 } from "lucide-react"
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
 import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend as ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Line, Doughnut } from 'react-chartjs-2'
+import { Line, Doughnut, Bar } from 'react-chartjs-2'
+import { Badge } from "@/components/ui/badge"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
@@ -82,6 +86,18 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
     const [semReportsLoading, setSemReportsLoading] = useState(false)
     const [expandedReportId, setExpandedReportId] = useState<number | null>(null)
     const [semReviewLoading, setSemReviewLoading] = useState(false)
+
+    // Selected date for daily submissions view
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+    const [openDay, setOpenDay] = useState<string>(format(new Date(), 'yyyy-MM-dd'))
+
+    // Submissions date range filter
+    const [submissionDateRange, setSubmissionDateRange] = useState<DateRange>({
+        from: subDays(new Date(), 30),
+        to: new Date(),
+    })
+    const [submissionsPage, setSubmissionsPage] = useState(1)
+    const SUBMISSIONS_PER_PAGE = 10
 
     // Analytics date range
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -180,6 +196,21 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
         return { pending, approved, rejected }
     }, [staffSubmissions])
 
+    // Filter submissions by submission date range
+    const dateRangeSubmissions = useMemo(() => {
+        return staffSubmissions.filter(s => {
+            const date = new Date(s.workDate || s.submittedAt)
+            return date >= submissionDateRange.from && date <= submissionDateRange.to
+        }).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
+    }, [staffSubmissions, submissionDateRange])
+
+    // Paginated submissions
+    const submissionsTotalPages = Math.ceil(dateRangeSubmissions.length / SUBMISSIONS_PER_PAGE)
+    const paginatedSubmissions = useMemo(() => {
+        const start = (submissionsPage - 1) * SUBMISSIONS_PER_PAGE
+        return dateRangeSubmissions.slice(start, start + SUBMISSIONS_PER_PAGE)
+    }, [dateRangeSubmissions, submissionsPage])
+
     // Filter submissions by date range for analytics
     const filteredSubmissions = useMemo(() => {
         return staffSubmissions.filter(s => {
@@ -249,40 +280,132 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
         ],
     }), [analyticsStats])
 
-    // Daily Submissions (Line Chart)
-    const dailySubmissionsChartData = useMemo(() => ({
-        labels: dailyChartData.map(d => d.date),
-        datasets: [
-            {
-                label: 'Submissions',
-                data: dailyChartData.map(d => d.submissions),
-                borderColor: 'rgba(59, 130, 246, 1)',
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+    // Responsibility Hours (Bar Chart) - grouped by responsibility for analytics date range
+    const responsibilityHoursData = useMemo(() => {
+        const respMap = new Map<string, number>()
+        filteredSubmissions.forEach(s => {
+            const title = s.assignment?.responsibility?.title || 'Unknown'
+            const hours = (s as any).hoursWorked || 0
+            respMap.set(title, (respMap.get(title) || 0) + hours)
+        })
+        const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
+        const colors = [
+            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
+            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
+            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
+        ]
+        return {
+            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
+            datasets: [{
+                label: 'Hours Worked',
+                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
+                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
+                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
+                borderWidth: 2,
+                borderRadius: 6,
+            }],
+            _fullTitles: entries.map(([title]) => title),
+        }
+    }, [filteredSubmissions])
+
+    const respBarChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                callbacks: {
+                    title: function (context: any) {
+                        const index = context[0]?.dataIndex
+                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
+                    },
+                    label: function (context: any) {
+                        return `Hours: ${context.raw}h`
+                    }
+                }
             },
-        ],
-    }), [dailyChartData])
+        },
+        scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
+        },
+    }
+
+    // Submissions for selected date, grouped by responsibility
+    const dateSubmissions = useMemo(() => {
+        return staffSubmissions.filter(s =>
+            isSameDay(new Date(s.workDate || s.submittedAt), selectedDate)
+        )
+    }, [staffSubmissions, selectedDate])
+
+    const groupedDateSubmissions = useMemo(() => {
+        const groups = new Map<string, WorkSubmission[]>()
+        dateSubmissions.forEach(s => {
+            const title = s.assignment?.responsibility?.title || 'Unknown'
+            if (!groups.has(title)) groups.set(title, [])
+            groups.get(title)!.push(s)
+        })
+        return Array.from(groups.entries()).map(([title, subs]) => ({
+            title,
+            submissions: subs,
+            totalHours: subs.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
+        }))
+    }, [dateSubmissions])
+
+    // All submissions grouped by day for accordion view
+    const allDaysGrouped = useMemo(() => {
+        const dayMap = new Map<string, WorkSubmission[]>()
+        staffSubmissions.forEach(s => {
+            const dateKey = format(new Date(s.workDate || s.submittedAt), 'yyyy-MM-dd')
+            if (!dayMap.has(dateKey)) dayMap.set(dateKey, [])
+            dayMap.get(dateKey)!.push(s)
+        })
+        return Array.from(dayMap.entries())
+            .sort((a, b) => b[0].localeCompare(a[0]))
+            .map(([dateKey, subs]) => {
+                const respGroups = new Map<string, WorkSubmission[]>()
+                subs.forEach(s => {
+                    const title = s.assignment?.responsibility?.title || 'Unknown'
+                    if (!respGroups.has(title)) respGroups.set(title, [])
+                    respGroups.get(title)!.push(s)
+                })
+                return {
+                    dateKey,
+                    dateLabel: format(new Date(dateKey), 'EEEE, MMM d, yyyy'),
+                    submissions: subs,
+                    totalHours: subs.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
+                    groups: Array.from(respGroups.entries()).map(([title, items]) => ({
+                        title,
+                        submissions: items,
+                        totalHours: items.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
+                    })),
+                }
+            })
+    }, [staffSubmissions])
 
     // Hours Trend (Line Chart)
-    const hoursTrendChartData = useMemo(() => ({
-        labels: dailyChartData.map(d => d.date),
-        datasets: [
-            {
-                label: 'Hours Worked',
-                data: dailyChartData.map(d => d.hours),
-                borderColor: 'rgba(139, 92, 246, 1)',
-                backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-            },
-        ],
-    }), [dailyChartData])
+   const hoursTrendChartData = useMemo(() => ({
+  labels: dailyChartData.map(d => d.date),
+  datasets: [
+    {
+      label: "Hours Worked",
+      data: dailyChartData.map(d => d.hours),
 
+      borderColor: "rgba(139, 92, 246, 1)",
+      backgroundColor: "rgba(139, 92, 246, 0.15)",
+
+      fill: true,
+
+      tension: 0.4,              // smooth curve
+      pointRadius: 0,            // remove dots for clean area look
+      pointHoverRadius: 6,
+
+      borderWidth: 2,
+    },
+  ],
+}), [dailyChartData])
     // Chart Options
     const pieChartOptions = {
         responsive: true,
@@ -535,55 +658,134 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                 </CardContent>
             </Card>
 
-            {/* Submissions Tabs */}
+            {/* Submissions */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Submissions</CardTitle>
-                    <CardDescription>
-                        {staffSubmissions.length} total submission{staffSubmissions.length !== 1 ? 's' : ''}
-                    </CardDescription>
+                    <div className="flex flex-col sm:flex-row justify-between gap-4">
+                        <div>
+                            <CardTitle>All Submissions</CardTitle>
+                            <CardDescription>
+                                {dateRangeSubmissions.length} submission{dateRangeSubmissions.length !== 1 ? 's' : ''} in selected range
+                            </CardDescription>
+                        </div>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {format(submissionDateRange.from, "LLL dd, y")} - {format(submissionDateRange.to, "LLL dd, y")}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="end">
+                                {/* <div className="flex flex-wrap gap-1 p-2 border-b">
+                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setSubmissionDateRange({ from: subDays(new Date(), 7), to: new Date() }); setSubmissionsPage(1) }}>7 days</Button>
+         
+                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setSubmissionDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }); setSubmissionsPage(1) }}>This Month</Button>
+                                </div> */}
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={submissionDateRange.from}
+                                    selected={submissionDateRange}
+                                    onSelect={(range: any) => {
+                                        if (range?.from && range?.to) {
+                                            setSubmissionDateRange(range)
+                                            setSubmissionsPage(1)
+                                        }
+                                    }}
+                                    numberOfMonths={1}
+                                    className="p-2"
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <Tabs defaultValue="pending">
-                        <TabsList className="mb-4">
-                            <TabsTrigger value="pending" className="gap-2">
-                                Pending
-                                {groupedSubmissions.pending.length > 0 && (
-                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.pending.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                            <TabsTrigger value="approved" className="gap-2">
-                                Approved
-                                {groupedSubmissions.approved.length > 0 && (
-                                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.approved.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                            <TabsTrigger value="rejected" className="gap-2">
-                                Rejected
-                                {groupedSubmissions.rejected.length > 0 && (
-                                    <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
-                                        {groupedSubmissions.rejected.length}
-                                    </span>
-                                )}
-                            </TabsTrigger>
-                        </TabsList>
+                    <div className="flex gap-3 mb-4">
+                        <Badge variant="secondary" className="gap-1">
+                            <Clock className="h-3 w-3 text-amber-500" />
+                            {groupedSubmissions.pending.length} Pending
+                        </Badge>
+                        <Badge variant="secondary" className="gap-1">
+                            <CheckCircle className="h-3 w-3 text-green-500" />
+                            {groupedSubmissions.approved.length} Approved
+                        </Badge>
+                        <Badge variant="secondary" className="gap-1">
+                            <XCircle className="h-3 w-3 text-red-500" />
+                            {groupedSubmissions.rejected.length} Rejected
+                        </Badge>
+                    </div>
 
-                        <TabsContent value="pending">
-                            <SubmissionTable data={groupedSubmissions.pending} />
-                        </TabsContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Responsibility</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Hours</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {paginatedSubmissions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                        No submissions in selected date range
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                paginatedSubmissions.map((submission) => (
+                                    <TableRow key={submission.id}>
+                                        <TableCell className="font-medium max-w-[200px] truncate">
+                                            {submission.assignment?.responsibility?.title || 'N/A'}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {format(new Date(submission.workDate || submission.submittedAt), "MMM d, yyyy")}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="h-3 w-3" />
+                                                {(submission as any).hoursWorked || '-'}h
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            <SubmissionStatusBadge status={submission.status} />
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" onClick={() => openReviewDialog(submission)}>
+                                                <Eye className="h-4 w-4 mr-1" /> Review
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
 
-                        <TabsContent value="approved">
-                            <SubmissionTable data={groupedSubmissions.approved} showActions={false} />
-                        </TabsContent>
-
-                        <TabsContent value="rejected">
-                            <SubmissionTable data={groupedSubmissions.rejected} showActions={false} />
-                        </TabsContent>
-                    </Tabs>
+                    {submissionsTotalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                            <p className="text-sm text-muted-foreground">
+                                Page {submissionsPage} of {submissionsTotalPages} ({dateRangeSubmissions.length} submissions)
+                            </p>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSubmissionsPage(p => Math.max(1, p - 1))}
+                                    disabled={submissionsPage === 1}
+                                >
+                                    Previous
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setSubmissionsPage(p => Math.min(submissionsTotalPages, p + 1))}
+                                    disabled={submissionsPage === submissionsTotalPages}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -827,16 +1029,22 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             </CardContent>
                         </Card>
 
-                        {/* Daily Submissions Line Chart */}
+                        {/* Hours by Responsibility Bar Chart */}
                         <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-base">
                                     <TrendingUp className="h-5 w-5 text-indigo-600" />
-                                    Daily Submissions
+                                    Hours by Responsibility
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <Line data={dailySubmissionsChartData} options={lineChartOptions} />
+                                {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
+                                    <Bar data={responsibilityHoursData} options={respBarChartOptions} />
+                                ) : (
+                                    <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                                        No submission data available
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
@@ -858,113 +1066,67 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
 
             {/* Review Dialog */}
             <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-lg">
                     <DialogHeader>
-                        <DialogTitle>Review Submission</DialogTitle>
+                        <DialogTitle className="text-lg">{selectedSubmission?.assignment?.responsibility?.title || 'Submission'}</DialogTitle>
                         <DialogDescription>
-                            {selectedSubmission?.assignment?.responsibility?.title}
+                            {selectedSubmission && format(new Date(selectedSubmission.submittedAt), "EEEE, MMM d, yyyy 'at' h:mm a")}
                         </DialogDescription>
                     </DialogHeader>
 
                     {selectedSubmission && (
                         <div className="space-y-4">
-                            {/* Submission Info */}
-                            <div className="text-sm text-muted-foreground border-b pb-3">
-                                Submitted: {format(new Date(selectedSubmission.submittedAt), "PPP 'at' h:mm a")}
-                            </div>
-
-                            {/* Hours Worked */}
-                            {(selectedSubmission as any).hoursWorked && (
-                                <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                                    <Clock className="h-4 w-4 text-muted-foreground" />
-                                    <span className="font-medium">Hours Worked:</span>
-                                    <span>{(selectedSubmission as any).hoursWorked} hours</span>
+                            {/* Quick Info Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs text-muted-foreground">Hours Worked</p>
+                                    <p className="text-lg font-semibold">{(selectedSubmission as any).hoursWorked || 0}h</p>
                                 </div>
-                            )}
+                                <div className="rounded-lg border p-3">
+                                    <p className="text-xs text-muted-foreground">Current Status</p>
+                                    <div className="mt-1"><SubmissionStatusBadge status={selectedSubmission.status} /></div>
+                                </div>
+                            </div>
 
                             {/* Staff Comment */}
-                            <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-sm font-medium">
-                                    <MessageSquare className="h-4 w-4" />
-                                    Staff Comments:
+                            {(selectedSubmission as any).staffComment && (
+                                <div className="rounded-lg border p-3 space-y-1">
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1"><MessageSquare className="h-3 w-3" /> Staff Comment</p>
+                                    <p className="text-sm whitespace-pre-wrap">{(selectedSubmission as any).staffComment}</p>
                                 </div>
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <p className="whitespace-pre-wrap">
-                                        {(selectedSubmission as any).staffComment || 'No comments provided'}
-                                    </p>
-                                </div>
-                            </div>
+                            )}
 
                             {/* Work Proof */}
                             {((selectedSubmission as any).workProofUrl || (selectedSubmission as any).workProofText) && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-2 text-sm font-medium">
-                                        <FileText className="h-4 w-4" />
-                                        Work Proof:
-                                    </div>
-                                    <div className="p-4 bg-muted rounded-lg">
-                                        {(selectedSubmission as any).workProofText && (
-                                            <p className="whitespace-pre-wrap">{(selectedSubmission as any).workProofText}</p>
-                                        )}
-                                        {(selectedSubmission as any).workProofUrl && (
-                                            <a
-                                                href={(selectedSubmission as any).workProofUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-1 text-primary hover:underline"
-                                            >
-                                                <Link2 className="h-4 w-4" />
-                                                View attachment
-                                            </a>
-                                        )}
-                                    </div>
+                                <div className="rounded-lg border p-3 space-y-1">
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1"><FileText className="h-3 w-3" /> Work Proof</p>
+                                    {(selectedSubmission as any).workProofText && (
+                                        <p className="text-sm whitespace-pre-wrap">{(selectedSubmission as any).workProofText}</p>
+                                    )}
+                                    {(selectedSubmission as any).workProofUrl && (
+                                        <a href={(selectedSubmission as any).workProofUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-primary hover:underline">
+                                            <Link2 className="h-3 w-3" /> View attachment
+                                        </a>
+                                    )}
                                 </div>
                             )}
 
-                            {/* Rejection Reason (for rejected) */}
+                            {/* Previous Rejection Reason */}
                             {selectedSubmission.status === 'REJECTED' && selectedSubmission.rejectionReason && (
-                                <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                                    <p className="text-sm font-medium text-red-700 dark:text-red-400 mb-1">
-                                        Previous Rejection Reason:
-                                    </p>
-                                    <p className="text-red-600 dark:text-red-300">
-                                        {selectedSubmission.rejectionReason}
-                                    </p>
+                                <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Rejection Reason</p>
+                                    <p className="text-sm text-red-600 dark:text-red-300">{selectedSubmission.rejectionReason}</p>
                                 </div>
                             )}
 
-                            {/* Status Change Dropdown */}
-                            <div className="space-y-3 pt-4 border-t">
-                                <Label className="text-sm font-medium">Change Status</Label>
-                                <Select value={newStatus} onValueChange={setNewStatus}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select new status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="VERIFIED">
-                                            <span className="flex items-center gap-2">
-                                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                                Approve
-                                            </span>
-                                        </SelectItem>
-                                        <SelectItem value="REJECTED">
-                                            <span className="flex items-center gap-2">
-                                                <XCircle className="h-4 w-4 text-red-600" />
-                                                Reject
-                                            </span>
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Rejection Reason Input - Show when changing to REJECTED */}
+                            {/* Rejection Reason Input */}
                             {newStatus === 'REJECTED' && (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     <Label className="text-sm font-medium">
                                         Rejection Reason <span className="text-red-500">*</span>
                                     </Label>
                                     <Textarea
-                                        placeholder="Provide feedback on why this submission is being rejected..."
+                                        placeholder="Why is this submission being rejected?"
                                         value={rejectionReason}
                                         onChange={(e) => setRejectionReason(e.target.value)}
                                         rows={3}
@@ -974,21 +1136,37 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         </div>
                     )}
 
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
-                            Cancel
+                    <DialogFooter className="flex gap-2 sm:gap-2">
+                        <Button variant="outline" onClick={() => setReviewDialogOpen(false)} className="flex-1">
+                            Close
                         </Button>
-                        <Button
-                            onClick={handleStatusChange}
-                            disabled={isVerifying || !newStatus || (newStatus === 'REJECTED' && !rejectionReason.trim())}
-                            className={newStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700' : newStatus === 'REJECTED' ? 'bg-red-600 hover:bg-red-700' : ''}
-                        >
-                            {isVerifying ? (
-                                <><Clock className="h-4 w-4 mr-2 animate-spin" /> Updating...</>
-                            ) : (
-                                <>Save Changes</>
-                            )}
-                        </Button>
+                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && newStatus !== 'REJECTED' && (
+                            <Button
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                disabled={isVerifying}
+                                onClick={() => handleVerify('VERIFIED')}
+                            >
+                                {isVerifying ? <><Clock className="h-4 w-4 mr-1 animate-spin" /> Approving...</> : <><CheckCircle className="h-4 w-4 mr-1" /> Approve</>}
+                            </Button>
+                        )}
+                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && newStatus !== 'REJECTED' && (
+                            <Button
+                                variant="outline"
+                                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                                onClick={() => setNewStatus('REJECTED')}
+                            >
+                                <XCircle className="h-4 w-4 mr-1" /> Reject
+                            </Button>
+                        )}
+                        {newStatus === 'REJECTED' && (
+                            <Button
+                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                disabled={isVerifying || !rejectionReason.trim()}
+                                onClick={() => handleVerify('REJECTED')}
+                            >
+                                {isVerifying ? <><Clock className="h-4 w-4 mr-1 animate-spin" /> Rejecting...</> : <><XCircle className="h-4 w-4 mr-1" /> Confirm Reject</>}
+                            </Button>
+                        )}
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
