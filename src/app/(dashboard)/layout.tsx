@@ -132,12 +132,12 @@ const navigation: NavigationItem[] = [
     icon: <UserCheck className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
-  {
-    name: "Sem Reports",
-    href: "/manager/sem-reports",
-    icon: <FileText className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
+  // {
+  //   name: "Sem Reports",
+  //   href: "/manager/sem-reports",
+  //   icon: <FileText className="w-5 h-5" />,
+  //   roles: ["MANAGER"]
+  // },
   // {
   //   name: "Profile",
   //   href: "/manager/profile",
