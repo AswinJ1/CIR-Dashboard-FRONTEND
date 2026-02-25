@@ -274,7 +274,7 @@ export interface InlineResponsibilityFormData {
     description: string
     hoursWorked: string
     workDescription: string
-    workProofType: 'TEXT' | 'PDF' | 'IMAGE'
+    workProofType: 'NONE' | 'TEXT' | 'PDF' | 'IMAGE'
     workProofText: string
     workProofUrl: string
     isNew: boolean // True if this is a new responsibility being created
@@ -290,7 +290,7 @@ export function createEmptyInlineForm(): InlineResponsibilityFormData {
         description: '',
         hoursWorked: '',
         workDescription: '',
-        workProofType: 'TEXT',
+        workProofType: 'NONE',
         workProofText: '',
         workProofUrl: '',
         isNew: true,
@@ -304,7 +304,7 @@ export interface AssignmentWithFormData extends Assignment {
     formData: {
         hoursWorked: string
         workDescription: string
-        workProofType: 'TEXT' | 'PDF' | 'IMAGE'
+        workProofType: 'NONE' | 'TEXT' | 'PDF' | 'IMAGE'
         workProofText: string
         workProofUrl: string
     }
@@ -324,7 +324,7 @@ export function assignmentToFormData(
         formData: {
             hoursWorked: '',
             workDescription: '',
-            workProofType: 'TEXT',
+            workProofType: 'NONE',
             workProofText: '',
             workProofUrl: '',
         },

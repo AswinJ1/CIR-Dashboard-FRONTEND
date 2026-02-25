@@ -60,7 +60,7 @@ interface AssignmentFormData {
     assignmentId: string | number
     hoursWorked: string
     workDescription: string
-    workProofType: "TEXT" | "PDF" | "IMAGE"
+    workProofType: "NONE" | "TEXT" | "PDF" | "IMAGE"
     workProofText: string
     workProofUrl: string
 }
@@ -138,7 +138,7 @@ export default function StaffWorkCalendarPage() {
             assignmentId,
             hoursWorked: '',
             workDescription: '',
-            workProofType: 'TEXT',
+            workProofType: 'NONE',
             workProofText: '',
             workProofUrl: '',
         }
@@ -153,7 +153,7 @@ export default function StaffWorkCalendarPage() {
                 assignmentId,
                 hoursWorked: '',
                 workDescription: '',
-                workProofType: 'TEXT' as const,
+                workProofType: 'NONE' as const,
                 workProofText: '',
                 workProofUrl: '',
             }
@@ -186,6 +186,50 @@ export default function StaffWorkCalendarPage() {
             return
         }
 
+        // Client-side validation
+        const validationErrors: string[] = []
+
+        for (const assignment of todayUnsubmittedAssignments) {
+            const formData = getFormData(assignment.id)
+            const hours = parseFloat(formData.hoursWorked)
+            const title = assignment.responsibility?.title || 'Untitled'
+
+            if (!isNaN(hours) && hours > 0) {
+                if (hours > 24) {
+                    validationErrors.push(`${title}: Hours cannot exceed 24`)
+                }
+                // Validate proof content when proof type is selected
+                if (formData.workProofType === 'TEXT' && !formData.workProofText.trim()) {
+                    validationErrors.push(`${title}: Proof text is required when proof type is Text`)
+                }
+                if ((formData.workProofType === 'PDF' || formData.workProofType === 'IMAGE') && !formData.workProofUrl.trim()) {
+                    validationErrors.push(`${title}: ${formData.workProofType} URL is required when proof type is ${formData.workProofType}`)
+                }
+            }
+        }
+
+        for (const newResp of newResponsibilities) {
+            const hours = parseFloat(newResp.hoursWorked)
+            if (newResp.title.trim()) {
+                if (isNaN(hours) || hours <= 0) {
+                    validationErrors.push(`${newResp.title}: Hours worked is required`)
+                } else if (hours > 24) {
+                    validationErrors.push(`${newResp.title}: Hours cannot exceed 24`)
+                }
+                if (newResp.workProofType === 'TEXT' && !newResp.workProofText.trim()) {
+                    validationErrors.push(`${newResp.title}: Proof text is required when proof type is Text`)
+                }
+                if ((newResp.workProofType === 'PDF' || newResp.workProofType === 'IMAGE') && !newResp.workProofUrl.trim()) {
+                    validationErrors.push(`${newResp.title}: ${newResp.workProofType} URL is required when proof type is ${newResp.workProofType}`)
+                }
+            }
+        }
+
+        if (validationErrors.length > 0) {
+            toast.error(validationErrors[0])
+            return
+        }
+
         setIsSubmitting(true)
         const errors: string[] = []
         let successCount = 0
@@ -207,15 +251,24 @@ export default function StaffWorkCalendarPage() {
                             ? parseInt(assignment.id)
                             : assignment.id as number
 
-                        await api.workSubmissions.create({
+                        const payload: any = {
                             assignment: { connect: { id: assignmentId } },
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: formData.workDescription || undefined,
-                            workProofType: formData.workProofType,
-                            workProofText: formData.workProofType === 'TEXT' ? formData.workProofText : undefined,
-                            workProofUrl: formData.workProofType !== 'TEXT' ? formData.workProofUrl : undefined,
-                        })
+                        }
+
+                        // Only include proof fields when a real proof type is selected with content
+                        if (formData.workProofType !== 'NONE') {
+                            payload.workProofType = formData.workProofType
+                            if (formData.workProofType === 'TEXT' && formData.workProofText.trim()) {
+                                payload.workProofText = formData.workProofText.trim()
+                            } else if (formData.workProofType !== 'TEXT' && formData.workProofUrl.trim()) {
+                                payload.workProofUrl = formData.workProofUrl.trim()
+                            }
+                        }
+
+                        await api.workSubmissions.create(payload)
                         successCount++
                     } catch (error: any) {
                         errors.push(`${assignment.responsibility?.title}: ${error.message || 'Failed to submit'}`)
@@ -267,15 +320,24 @@ export default function StaffWorkCalendarPage() {
                             ? parseInt(result.assignments[0].id)
                             : result.assignments[0].id
 
-                        await api.workSubmissions.create({
+                        const newPayload: any = {
                             assignment: { connect: { id: assignmentId } },
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: newResp.workDescription || undefined,
-                            workProofType: newResp.workProofType,
-                            workProofText: newResp.workProofType === 'TEXT' ? newResp.workProofText : undefined,
-                            workProofUrl: newResp.workProofType !== 'TEXT' ? newResp.workProofUrl : undefined,
-                        })
+                        }
+
+                        // Only include proof fields when a real proof type is selected with content
+                        if (newResp.workProofType !== 'NONE') {
+                            newPayload.workProofType = newResp.workProofType
+                            if (newResp.workProofType === 'TEXT' && newResp.workProofText.trim()) {
+                                newPayload.workProofText = newResp.workProofText.trim()
+                            } else if (newResp.workProofType !== 'TEXT' && newResp.workProofUrl.trim()) {
+                                newPayload.workProofUrl = newResp.workProofUrl.trim()
+                            }
+                        }
+
+                        await api.workSubmissions.create(newPayload)
                         successCount++
                     }
                 } catch (error: any) {
@@ -551,7 +613,7 @@ export default function StaffWorkCalendarPage() {
 
                                             <div className="grid gap-3 sm:grid-cols-2">
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                                    <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                     <Input
                                                         type="number"
                                                         min="0.5"
@@ -567,14 +629,15 @@ export default function StaffWorkCalendarPage() {
                                                     <Label className="text-xs text-foreground">Proof Type</Label>
                                                     <Select
                                                         value={formData.workProofType}
-                                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") =>
-                                                            updateFormData(assignment.id, { workProofType: v })
+                                                        onValueChange={(v: "NONE" | "TEXT" | "PDF" | "IMAGE") =>
+                                                            updateFormData(assignment.id, { workProofType: v, workProofText: '', workProofUrl: '' })
                                                         }
                                                     >
                                                         <SelectTrigger className="h-9 border-foreground/20 bg-background">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-background border-foreground/20">
+                                                            <SelectItem value="NONE">None</SelectItem>
                                                             <SelectItem value="TEXT">Text</SelectItem>
                                                             <SelectItem value="PDF">PDF URL</SelectItem>
                                                             <SelectItem value="IMAGE">Image URL</SelectItem>
@@ -594,7 +657,7 @@ export default function StaffWorkCalendarPage() {
                                                 />
                                             </div>
 
-                                            {formData.workProofType === 'TEXT' ? (
+                                            {formData.workProofType === 'TEXT' && (
                                                 <div className="space-y-1">
                                                     <Label className="text-xs text-foreground">Proof Details</Label>
                                                     <Textarea
@@ -605,7 +668,8 @@ export default function StaffWorkCalendarPage() {
                                                         className="resize-none border-foreground/20 bg-background"
                                                     />
                                                 </div>
-                                            ) : (
+                                            )}
+                                            {(formData.workProofType === 'PDF' || formData.workProofType === 'IMAGE') && (
                                                 <div className="space-y-1">
                                                     <Label className="text-xs text-foreground">{formData.workProofType} URL</Label>
                                                     <Input
@@ -652,7 +716,7 @@ export default function StaffWorkCalendarPage() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-foreground">Description</Label>
+                                            <Label className="text-xs text-foreground">Description </Label>
                                             <Textarea
                                                 placeholder="Describe the responsibility..."
                                                 value={newResp.description}
@@ -664,7 +728,7 @@ export default function StaffWorkCalendarPage() {
 
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                                <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                 <Input
                                                     type="number"
                                                     min="0.5"
@@ -677,17 +741,18 @@ export default function StaffWorkCalendarPage() {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Proof Type</Label>
+                                                <Label className="text-xs text-foreground">Proof Type </Label>
                                                 <Select
                                                     value={newResp.workProofType}
-                                                    onValueChange={(v: "TEXT" | "PDF" | "IMAGE") =>
-                                                        updateNewResponsibility(newResp.id, { workProofType: v })
+                                                    onValueChange={(v: "NONE" | "TEXT" | "PDF" | "IMAGE") =>
+                                                        updateNewResponsibility(newResp.id, { workProofType: v, workProofText: '', workProofUrl: '' })
                                                     }
                                                 >
                                                     <SelectTrigger className="h-9 border-foreground/20 bg-background">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-background border-foreground/20">
+                                                        <SelectItem value="NONE">None</SelectItem>
                                                         <SelectItem value="TEXT">Text</SelectItem>
                                                         <SelectItem value="PDF">PDF URL</SelectItem>
                                                         <SelectItem value="IMAGE">Image URL</SelectItem>
@@ -707,7 +772,7 @@ export default function StaffWorkCalendarPage() {
                                             />
                                         </div>
 
-                                        {newResp.workProofType === 'TEXT' ? (
+                                        {newResp.workProofType === 'TEXT' && (
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-foreground">Proof Details</Label>
                                                 <Textarea
@@ -718,7 +783,8 @@ export default function StaffWorkCalendarPage() {
                                                     className="resize-none border-foreground/20 bg-background"
                                                 />
                                             </div>
-                                        ) : (
+                                        )}
+                                        {(newResp.workProofType === 'PDF' || newResp.workProofType === 'IMAGE') && (
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-foreground">{newResp.workProofType} URL</Label>
                                                 <Input
