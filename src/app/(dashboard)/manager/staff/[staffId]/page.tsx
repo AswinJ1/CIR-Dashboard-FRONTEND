@@ -98,6 +98,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
     })
     const [submissionsPage, setSubmissionsPage] = useState(1)
     const SUBMISSIONS_PER_PAGE = 10
+    const [submissionStatusFilter, setSubmissionStatusFilter] = useState<string>("all")
 
     // Analytics date range
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -196,13 +197,19 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
         return { pending, approved, rejected }
     }, [staffSubmissions])
 
-    // Filter submissions by submission date range
+    // Filter submissions by date range + status
     const dateRangeSubmissions = useMemo(() => {
         return staffSubmissions.filter(s => {
             const date = new Date(s.workDate || s.submittedAt)
-            return date >= submissionDateRange.from && date <= submissionDateRange.to
+            const inRange = date >= submissionDateRange.from && date <= submissionDateRange.to
+            if (!inRange) return false
+            if (submissionStatusFilter === "all") return true
+            if (submissionStatusFilter === "pending") return s.status === 'SUBMITTED' || s.status === 'PENDING'
+            if (submissionStatusFilter === "approved") return s.status === 'VERIFIED'
+            if (submissionStatusFilter === "rejected") return s.status === 'REJECTED'
+            return true
         }).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-    }, [staffSubmissions, submissionDateRange])
+    }, [staffSubmissions, submissionDateRange, submissionStatusFilter])
 
     // Paginated submissions
     const submissionsTotalPages = Math.ceil(dateRangeSubmissions.length / SUBMISSIONS_PER_PAGE)
@@ -661,60 +668,88 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
             {/* Submissions */}
             <Card>
                 <CardHeader>
-                    <div className="flex flex-col sm:flex-row justify-between gap-4">
-                        <div>
-                            <CardTitle>All Submissions</CardTitle>
-                            <CardDescription>
-                                {dateRangeSubmissions.length} submission{dateRangeSubmissions.length !== 1 ? 's' : ''} in selected range
-                            </CardDescription>
+                    <div className="flex flex-col gap-4">
+                        <div className="flex flex-col sm:flex-row justify-between gap-4">
+                            <div>
+                                <CardTitle>All Submissions</CardTitle>
+                                <CardDescription>
+                                    {dateRangeSubmissions.length} submission{dateRangeSubmissions.length !== 1 ? 's' : ''} found
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-9 justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {format(submissionDateRange.from, "MMM dd, y")}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="end">
+                                        <Calendar
+                                            initialFocus
+                                            mode="single"
+                                            selected={submissionDateRange.from}
+                                            onSelect={(date: any) => {
+                                                if (date) {
+                                                    setSubmissionDateRange(prev => ({ ...prev, from: date }))
+                                                    setSubmissionsPage(1)
+                                                }
+                                            }}
+                                            className="p-2"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                                <span className="text-sm text-muted-foreground">to</span>
+                                <Popover>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" size="sm" className="h-9 justify-start text-left font-normal">
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {format(submissionDateRange.to, "MMM dd, y")}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0" align="end">
+                                        <Calendar
+                                            initialFocus
+                                            mode="single"
+                                            selected={submissionDateRange.to}
+                                            onSelect={(date: any) => {
+                                                if (date) {
+                                                    setSubmissionDateRange(prev => ({ ...prev, to: date }))
+                                                    setSubmissionsPage(1)
+                                                }
+                                            }}
+                                            className="p-2"
+                                        />
+                                    </PopoverContent>
+                                </Popover>
+                            </div>
                         </div>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {format(submissionDateRange.from, "LLL dd, y")} - {format(submissionDateRange.to, "LLL dd, y")}
+                        {/* Status filter tabs */}
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { key: "all", label: "All", count: staffSubmissions.length },
+                                { key: "pending", label: "Pending", count: groupedSubmissions.pending.length, icon: <Clock className="h-3 w-3 text-amber-500" /> },
+                                { key: "approved", label: "Approved", count: groupedSubmissions.approved.length, icon: <CheckCircle className="h-3 w-3 text-green-500" /> },
+                                { key: "rejected", label: "Rejected", count: groupedSubmissions.rejected.length, icon: <XCircle className="h-3 w-3 text-red-500" /> },
+                            ].map((tab) => (
+                                <Button
+                                    key={tab.key}
+                                    variant={submissionStatusFilter === tab.key ? "default" : "outline"}
+                                    size="sm"
+                                    className="h-8 gap-1.5"
+                                    onClick={() => { setSubmissionStatusFilter(tab.key); setSubmissionsPage(1) }}
+                                >
+                                    {tab.icon}
+                                    {tab.label}
+                                    <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                                        {tab.count}
+                                    </Badge>
                                 </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="end">
-                                {/* <div className="flex flex-wrap gap-1 p-2 border-b">
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setSubmissionDateRange({ from: subDays(new Date(), 7), to: new Date() }); setSubmissionsPage(1) }}>7 days</Button>
-         
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => { setSubmissionDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }); setSubmissionsPage(1) }}>This Month</Button>
-                                </div> */}
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={submissionDateRange.from}
-                                    selected={submissionDateRange}
-                                    onSelect={(range: any) => {
-                                        if (range?.from && range?.to) {
-                                            setSubmissionDateRange(range)
-                                            setSubmissionsPage(1)
-                                        }
-                                    }}
-                                    numberOfMonths={1}
-                                    className="p-2"
-                                />
-                            </PopoverContent>
-                        </Popover>
+                            ))}
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-3 mb-4">
-                        <Badge variant="secondary" className="gap-1">
-                            <Clock className="h-3 w-3 text-amber-500" />
-                            {groupedSubmissions.pending.length} Pending
-                        </Badge>
-                        <Badge variant="secondary" className="gap-1">
-                            <CheckCircle className="h-3 w-3 text-green-500" />
-                            {groupedSubmissions.approved.length} Approved
-                        </Badge>
-                        <Badge variant="secondary" className="gap-1">
-                            <XCircle className="h-3 w-3 text-red-500" />
-                            {groupedSubmissions.rejected.length} Rejected
-                        </Badge>
-                    </div>
-
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -1114,10 +1149,28 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             {/* Previous Rejection Reason */}
                             {selectedSubmission.status === 'REJECTED' && selectedSubmission.rejectionReason && (
                                 <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-                                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Rejection Reason</p>
+                                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">Previous Rejection Reason</p>
                                     <p className="text-sm text-red-600 dark:text-red-300">{selectedSubmission.rejectionReason}</p>
                                 </div>
                             )}
+
+                            {/* Change Status Dropdown */}
+                            <div className="space-y-2 pt-2 border-t">
+                                <Label className="text-sm font-medium">Change Status</Label>
+                                <Select value={newStatus} onValueChange={setNewStatus}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select new status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="VERIFIED">
+                                            <span className="flex items-center gap-2"><CheckCircle className="h-3.5 w-3.5 text-green-500" /> Approved</span>
+                                        </SelectItem>
+                                        <SelectItem value="REJECTED">
+                                            <span className="flex items-center gap-2"><XCircle className="h-3.5 w-3.5 text-red-500" /> Rejected</span>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
 
                             {/* Rejection Reason Input */}
                             {newStatus === 'REJECTED' && (
@@ -1140,31 +1193,19 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         <Button variant="outline" onClick={() => setReviewDialogOpen(false)} className="flex-1">
                             Close
                         </Button>
-                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && newStatus !== 'REJECTED' && (
+                        {selectedSubmission && newStatus && newStatus !== selectedSubmission.status && (
                             <Button
-                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                disabled={isVerifying}
-                                onClick={() => handleVerify('VERIFIED')}
+                                className={`flex-1 ${newStatus === 'VERIFIED' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+                                disabled={isVerifying || (newStatus === 'REJECTED' && !rejectionReason.trim())}
+                                onClick={() => handleStatusChange()}
                             >
-                                {isVerifying ? <><Clock className="h-4 w-4 mr-1 animate-spin" /> Approving...</> : <><CheckCircle className="h-4 w-4 mr-1" /> Approve</>}
-                            </Button>
-                        )}
-                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && newStatus !== 'REJECTED' && (
-                            <Button
-                                variant="outline"
-                                className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                                onClick={() => setNewStatus('REJECTED')}
-                            >
-                                <XCircle className="h-4 w-4 mr-1" /> Reject
-                            </Button>
-                        )}
-                        {newStatus === 'REJECTED' && (
-                            <Button
-                                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                                disabled={isVerifying || !rejectionReason.trim()}
-                                onClick={() => handleVerify('REJECTED')}
-                            >
-                                {isVerifying ? <><Clock className="h-4 w-4 mr-1 animate-spin" /> Rejecting...</> : <><XCircle className="h-4 w-4 mr-1" /> Confirm Reject</>}
+                                {isVerifying ? (
+                                    <><Clock className="h-4 w-4 mr-1 animate-spin" /> Saving...</>
+                                ) : newStatus === 'VERIFIED' ? (
+                                    <><CheckCircle className="h-4 w-4 mr-1" /> Confirm Approve</>
+                                ) : (
+                                    <><XCircle className="h-4 w-4 mr-1" /> Confirm Reject</>
+                                )}
                             </Button>
                         )}
                     </DialogFooter>
