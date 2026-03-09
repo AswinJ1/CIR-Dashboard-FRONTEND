@@ -82,6 +82,12 @@ const navigation: NavigationItem[] = [
   //   icon: <BarChart3 className="w-5 h-5" />,
   //   roles: ["ADMIN"]
   // },
+  {
+    name: "Classroom Management",
+    href: "/dashboard/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["ADMIN", "MANAGER", "STAFF"]
+  },
   // {
   //   name: "Profile",
   //   href: "/admin/profile",
@@ -126,6 +132,12 @@ const navigation: NavigationItem[] = [
     icon: <UserCheck className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "Classroom Management",
+    href: "/manager/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
   // {
   //   name: "Profile",
   //   href: "/manager/profile",
@@ -156,6 +168,12 @@ const navigation: NavigationItem[] = [
     name: "Work Submissions",
     href: "/staff/work-submissions",
     icon: <FileCheck className="w-5 h-5" />,
+    roles: ["STAFF"]
+  },
+  {
+    name: "Classroom Management",
+    href: "/staff/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   // {
@@ -251,14 +269,24 @@ export default function DashboardLayout({
   if (!isAuthenticated || !role) return null
 
   // Role-based path access control
-  const rolePathMap: Record<Role, string> = {
-    'ADMIN': '/admin',
-    'MANAGER': '/manager',
-    'STAFF': '/staff',
+  const rolePathMap: Record<Role, string[]> = {
+    'ADMIN': ['/admin', '/dashboard'],
+    'MANAGER': ['/manager', '/dashboard'],
+    'STAFF': ['/staff', '/dashboard'],
   }
 
-  const allowedPathPrefix = rolePathMap[role]
-  const isAuthorized = pathname.startsWith(allowedPathPrefix)
+  const allowedPaths = rolePathMap[role]
+  const isAuthorized = allowedPaths.some(prefix => pathname.startsWith(prefix))
+
+  // Debug logging
+  if (pathname.includes('classrooms')) {
+    console.log('🔐 Layout Auth Check:', {
+      role,
+      pathname,
+      allowedPaths,
+      isAuthorized
+    })
+  }
 
   // Show 403 Forbidden if user is accessing unauthorized path
   if (!isAuthorized) {
