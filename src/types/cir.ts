@@ -501,3 +501,55 @@ export interface ReviewSemReportDto {
   action: 'APPROVE' | 'REJECT'
   rejectionReason?: string
 }
+
+// ==================== Classrooms ====================
+export interface Classroom {
+  id: number
+  name: string
+  isDisabled?: boolean
+}
+
+export interface CreateClassroomDto {
+  name: string
+}
+
+// ==================== Classroom Bookings ====================
+export type RecurrenceRule = 'WEEKLY'
+
+export interface CreateBookingDto {
+  title: string
+  description?: string
+  classroomId: number
+  bookingDate: string       // "YYYY-MM-DD"
+  startTime: string         // ISO 8601 date-time string
+  endTime: string           // ISO 8601 date-time string
+  isRecurring: boolean
+  recurrenceRule?: RecurrenceRule  // Required when isRecurring is true
+  recurrenceEnd?: string          // "YYYY-MM-DD", required when isRecurring is true
+}
+
+export interface ClassroomBooking {
+  id: number
+  title: string
+  description?: string
+  classroomId: number
+  classroom?: {
+    id: number
+    name: string
+  }
+  bookingDate: string
+  startTime: string         // ISO 8601 date-time string
+  endTime: string           // ISO 8601 date-time string
+  isRecurring?: boolean
+  recurrenceRule?: RecurrenceRule
+  recurrenceEnd?: string    // "YYYY-MM-DD"
+  userId: number
+  bookedBy?: {
+    id: number
+    name: string
+    email?: string
+    role?: string
+  }
+  createdAt?: string
+  updatedAt?: string
+}

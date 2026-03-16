@@ -88,6 +88,12 @@ const navigation: NavigationItem[] = [
   //   icon: <BarChart3 className="w-5 h-5" />,
   //   roles: ["ADMIN"]
   // },
+  {
+    name: "Classroom Management",
+    href: "/dashboard/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["ADMIN"]
+  },
   // {
   //   name: "Profile",
   //   href: "/admin/profile",
@@ -132,6 +138,12 @@ const navigation: NavigationItem[] = [
     icon: <UserCheck className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "Classroom Management",
+    href: "/dashboard/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
   // {
   //   name: "Sem Reports",
   //   href: "/manager/sem-reports",
@@ -174,6 +186,12 @@ const navigation: NavigationItem[] = [
     name: "Semester Reports",
     href: "/staff/sem-reports",
     icon: <FileText className="w-5 h-5" />,
+    roles: ["STAFF"]
+  },
+  {
+    name: "Classroom Management",
+    href: "/dashboard/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
     roles: ["STAFF"]
   },
   // {
