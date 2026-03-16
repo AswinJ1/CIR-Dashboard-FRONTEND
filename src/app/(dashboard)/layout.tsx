@@ -82,18 +82,18 @@ const navigation: NavigationItem[] = [
     icon: <FileText className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
+  {
+    name:"Classroom Management",
+    href: "/admin/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["ADMIN"]
+  }
   // {
   //   name: "Analytics",
   //   href: "/admin/analytics",
   //   icon: <BarChart3 className="w-5 h-5" />,
   //   roles: ["ADMIN"]
   // },
-  {
-    name: "Classroom Management",
-    href: "/dashboard/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
   // {
   //   name: "Profile",
   //   href: "/admin/profile",
@@ -102,12 +102,14 @@ const navigation: NavigationItem[] = [
   // },
 
   // Manager Navigation
+  ,
   {
     name: "Dashboard",
     href: "/manager",
     icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  
   // {
   //   name: "Review Submissions",
   //   href: "/manager/submissions",
@@ -126,12 +128,19 @@ const navigation: NavigationItem[] = [
     icon: <ClipboardList className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "Classroom Management",
+    href: "/manager/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  }
   // {
   //   name: " Manage Group Responsibilities",
   //   href: "/manager/responsibility-groups",
   //   icon: <FolderOpen className="w-5 h-5" />,
   //   roles: ["MANAGER"]
   // },
+  ,
   {
     name: "Staff",
     href: "/manager/staff",
@@ -140,16 +149,10 @@ const navigation: NavigationItem[] = [
   },
   {
     name: "Classroom Management",
-    href: "/dashboard/classrooms",
+    href: "/manager/classrooms",
     icon: <FolderOpen className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
-  // {
-  //   name: "Sem Reports",
-  //   href: "/manager/sem-reports",
-  //   icon: <FileText className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // },
   // {
   //   name: "Profile",
   //   href: "/manager/profile",
@@ -183,17 +186,11 @@ const navigation: NavigationItem[] = [
     roles: ["STAFF"]
   },
   {
-    name: "Semester Reports",
-    href: "/staff/sem-reports",
-    icon: <FileText className="w-5 h-5" />,
-    roles: ["STAFF"]
-  },
-  {
     name: "Classroom Management",
-    href: "/dashboard/classrooms",
+    href: "/staff/classrooms",
     icon: <FolderOpen className="w-5 h-5" />,
     roles: ["STAFF"]
-  },
+  }
   // {
   //   name: "Analytics",
   //   href: "/staff/analytics",
@@ -287,14 +284,24 @@ export default function DashboardLayout({
   if (!isAuthenticated || !role) return null
 
   // Role-based path access control
-  const rolePathMap: Record<Role, string> = {
-    'ADMIN': '/admin',
-    'MANAGER': '/manager',
-    'STAFF': '/staff',
+  const rolePathMap: Record<Role, string[]> = {
+    'ADMIN': ['/admin', '/dashboard'],
+    'MANAGER': ['/manager', '/dashboard'],
+    'STAFF': ['/staff', '/dashboard'],
   }
 
-  const allowedPathPrefix = rolePathMap[role]
-  const isAuthorized = pathname.startsWith(allowedPathPrefix)
+  const allowedPaths = rolePathMap[role]
+  const isAuthorized = allowedPaths.some(prefix => pathname.startsWith(prefix))
+
+  // Debug logging
+  if (pathname.includes('classrooms')) {
+    console.log('🔐 Layout Auth Check:', {
+      role,
+      pathname,
+      allowedPaths,
+      isAuthorized
+    })
+  }
 
   // Show 403 Forbidden if user is accessing unauthorized path
   if (!isAuthorized) {
