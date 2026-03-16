@@ -5,9 +5,9 @@ import type { NextRequest } from "next/server"
 
 // Define role-based route access
 const roleAccess: Record<string, string[]> = {
-  ADMIN: ["/admin", "/dashboard"],
-  MANAGER: ["/manager", "/dashboard"],
-  STAFF: ["/staff", "/dashboard"],
+  ADMIN: ["/admin"],
+  MANAGER: ["/manager"],
+  STAFF: ["/staff"],
 }
 
 // Public routes that don't require authentication
