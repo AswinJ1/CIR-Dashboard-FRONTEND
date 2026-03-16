@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ClassroomBooking, Role } from "@/types/cir"
+import { useAuth } from "@/components/providers/auth-context"
 import {
     Table,
     TableBody,
@@ -22,7 +23,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, X, Calendar, Clock, Repeat } from "lucide-react"
+import { Search, X, Calendar, Clock, Repeat, Lock } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
@@ -40,15 +41,37 @@ export default function BookingTable({
     userRole,
     onCancel
 }: BookingTableProps) {
+    const { user } = useAuth()
     const [searchQuery, setSearchQuery] = useState("")
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
     const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null)
     const [isCanceling, setIsCanceling] = useState(false)
 
+    /**
+     * Determine if the current user can cancel a booking
+     * Rules:
+     * - ADMIN can cancel any booking
+     * - MANAGER can cancel only their own bookings
+     * - STAFF can cancel only their own bookings
+     */
+    const canCancelBooking = (booking: ClassroomBooking): boolean => {
+        if (!user) return false
+        
+        // ADMIN can cancel any booking
+        if (userRole === "ADMIN") return true
+        
+        // MANAGER and STAFF can only cancel their own bookings
+        // Compare bookedBy.id with user.id (handle string/number conversion)
+        const bookingOwnerId = booking.bookedBy?.id
+        const currentUserId = typeof user.id === 'string' ? parseInt(user.id, 10) : user.id
+        
+        return bookingOwnerId === currentUserId
+    }
+
     const filteredBookings = bookings.filter(booking =>
         booking.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.classroom?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        booking.user?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+        booking.classroom?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        booking.bookedBy?.name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
     const handleCancelClick = (id: number) => {
@@ -127,10 +150,7 @@ export default function BookingTable({
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Title</TableHead>
-                                <TableHead>Classroom</TableHead>
-                                {(userRole === "ADMIN" || userRole === "MANAGER") && (
-                                    <TableHead>Booked By</TableHead>
-                                )}
+                                <TableHead>Booked By</TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Time</TableHead>
                                 <TableHead>Recurrence</TableHead>
@@ -144,13 +164,17 @@ export default function BookingTable({
                                         {booking.title}
                                     </TableCell>
                                     <TableCell>
-                                        {booking.classroom?.name || "Unknown"}
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="font-medium">
+                                                {booking.bookedBy?.name ?? "Unknown User"}
+                                            </span>
+                                            {booking.bookedBy?.role && (
+                                                <span className="text-xs text-muted-foreground">
+                                                    {booking.bookedBy.role}
+                                                </span>
+                                            )}
+                                        </div>
                                     </TableCell>
-                                    {(userRole === "ADMIN" || userRole === "MANAGER") && (
-                                        <TableCell>
-                                            {booking.user?.name || "Unknown User"}
-                                        </TableCell>
-                                    )}
                                     <TableCell>
                                         {formatDate(booking.bookingDate)}
                                     </TableCell>
@@ -179,13 +203,24 @@ export default function BookingTable({
                                         )}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => handleCancelClick(booking.id)}
-                                        >
-                                            <X className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                        {canCancelBooking(booking) ? (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleCancelClick(booking.id)}
+                                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                title="Cancel this booking"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        ) : (
+                                            <div 
+                                                className="text-muted-foreground cursor-not-allowed"
+                                                title="You don't have permission to cancel this booking"
+                                            >
+                                                <Lock className="h-4 w-4" />
+                                            </div>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

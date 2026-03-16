@@ -315,8 +315,8 @@ export default function ManagerDashboardPage() {
             backgroundColor: 'rgba(99, 102, 241, 0.15)',
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 0,
+            pointHoverRadius: 0,
         }, {
             label: 'Verified',
             data: dailyData.map(d => d.verified),
@@ -324,8 +324,8 @@ export default function ManagerDashboardPage() {
             backgroundColor: 'rgba(34, 197, 94, 0.15)',
             fill: true,
             tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            pointRadius: 0,
+            pointHoverRadius: 0,
         }]
     }
 
@@ -349,18 +349,65 @@ export default function ManagerDashboardPage() {
         }]
     }
 
-    const hoursChartData = {
-        labels: dailyData.map(d => d.date),
+    const staffHoursBarData = {
+        labels: staffStats.map(s => s.name.split(' ')[0]),
         datasets: [{
             label: 'Hours Worked',
-            data: dailyData.map(d => d.hours),
-            borderColor: 'rgba(139, 92, 246, 1)',
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            data: staffStats.map(s => s.hours),
+            backgroundColor: staffStats.map((_, i) => {
+                const colors = [
+                    'rgba(139, 92, 246, 0.8)',
+                    'rgba(59, 130, 246, 0.8)',
+                    'rgba(99, 102, 241, 0.8)',
+                    'rgba(168, 85, 247, 0.8)',
+                    'rgba(236, 72, 153, 0.8)',
+                    'rgba(244, 63, 94, 0.8)',
+                    'rgba(251, 146, 60, 0.8)',
+                    'rgba(34, 197, 94, 0.8)',
+                ]
+                return colors[i % colors.length]
+            }),
+            borderColor: staffStats.map((_, i) => {
+                const colors = [
+                    'rgba(139, 92, 246, 1)',
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(99, 102, 241, 1)',
+                    'rgba(168, 85, 247, 1)',
+                    'rgba(236, 72, 153, 1)',
+                    'rgba(244, 63, 94, 1)',
+                    'rgba(251, 146, 60, 1)',
+                    'rgba(34, 197, 94, 1)',
+                ]
+                return colors[i % colors.length]
+            }),
+            borderWidth: 2,
+            borderRadius: 6,
         }]
+    }
+
+    const staffHoursBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                padding: 12,
+                callbacks: {
+                    title: function (context: any) {
+                        const index = context[0]?.dataIndex
+                        return staffStats[index]?.name || context[0]?.label
+                    },
+                    label: function (context: any) {
+                        return `Hours: ${context.raw}h`
+                    }
+                }
+            },
+        },
+        scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours Worked' } },
+        },
     }
 
     // Staff Performance Analytics Charts
@@ -405,8 +452,8 @@ export default function ManagerDashboardPage() {
             backgroundColor: 'rgba(34, 197, 94, 0.15)',
             fill: true,
             tension: 0.4,
-            pointRadius: 5,
-            pointHoverRadius: 7,
+            pointRadius: 0,
+            pointHoverRadius: 0,
             pointBackgroundColor: staffStats.map(s =>
                 s.approvalRate >= 80 ? 'rgba(34, 197, 94, 1)' :
                     s.approvalRate >= 50 ? 'rgba(251, 191, 36, 1)' :
@@ -463,8 +510,8 @@ export default function ManagerDashboardPage() {
             backgroundColor: 'rgba(59, 130, 246, 0.15)',
             fill: true,
             tension: 0.4,
-            pointRadius: 5,
-            pointHoverRadius: 7,
+            pointRadius: 0,
+            pointHoverRadius: 0,
             pointBackgroundColor: responsibilityStats.map(r =>
                 r.completionRate >= 80 ? 'rgba(34, 197, 94, 1)' :
                     r.completionRate >= 50 ? 'rgba(251, 191, 36, 1)' :
@@ -794,19 +841,18 @@ export default function ManagerDashboardPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <CardTitle className="flex items-center gap-2">
-                                        {/* <Clock className="h-5 w-5 text-purple-500" /> */}
-                                        Hours Trend
+                                        Staff Hours
                                     </CardTitle>
-                                    <CardDescription>Daily hours worked</CardDescription>
+                                    <CardDescription>Hours worked by each employee</CardDescription>
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => exportToCSV(dailyData.map(d => ({ Date: d.date, Hours: d.hours })), 'hours_trend')}>
+                                <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Hours: s.hours })), 'staff_hours')}>
                                     <Download className="h-4 w-4" />
                                 </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
                             <div className="h-[250px]">
-                                <Line data={hoursChartData} options={lineChartOptions} />
+                                <Bar data={staffHoursBarData} options={staffHoursBarOptions} />
                             </div>
                         </CardContent>
                     </Card>

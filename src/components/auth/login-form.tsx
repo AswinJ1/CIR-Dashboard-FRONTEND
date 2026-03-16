@@ -72,10 +72,10 @@ export function LoginForm() {
       </div>
 
       {/* Heading */}
-      <h1 className="text-2xl font-semibold text-gray-900">
+      <h1 className="text-2xl font-semibold text-foreground">
         Login to your CIR Account
       </h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <p className="mt-1 text-sm text-muted-foreground">
   Everything you need to manage work, people, and responsibilities — in one place.
 </p>
 
@@ -93,7 +93,7 @@ export function LoginForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-foreground">
                   Email
                 </label>
                 <FormControl>
@@ -114,7 +114,7 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-foreground">
                   Password
                 </label>
                 <FormControl>
@@ -127,7 +127,7 @@ export function LoginForm() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     >
                       {showPassword ? (
                         <EyeOff size={18} />

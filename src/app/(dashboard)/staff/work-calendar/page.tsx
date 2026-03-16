@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
-import { Assignment, WorkSubmission, ResubmitWorkSubmissionDto } from "@/types/cir"
+import { Assignment, WorkSubmission } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,7 +60,7 @@ interface AssignmentFormData {
     assignmentId: string | number
     hoursWorked: string
     workDescription: string
-    workProofType: "TEXT" | "PDF" | "IMAGE"
+    workProofType: "NONE" | "TEXT" | "PDF" | "IMAGE"
     workProofText: string
     workProofUrl: string
 }
@@ -71,16 +71,6 @@ export default function StaffWorkCalendarPage() {
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
-    const [resubmitDialogOpen, setResubmitDialogOpen] = useState(false)
-    const [resubmitSubmission, setResubmitSubmission] = useState<WorkSubmission | null>(null)
-    const [isResubmitting, setIsResubmitting] = useState(false)
-    const [resubmitData, setResubmitData] = useState({
-        hoursWorked: '',
-        staffComment: '',
-        workProofType: 'TEXT' as 'TEXT' | 'PDF' | 'IMAGE',
-        workProofText: '',
-        workProofUrl: ''
-    })
 
     // selectedDate is now effectively always today for this view
     const selectedDate = useMemo(() => new Date(), [])
@@ -125,14 +115,6 @@ export default function StaffWorkCalendarPage() {
             setIsLoading(false)
         }
     }
-    const rejectedSubmissions = useMemo(() => {
-        if (!user?.id) return []
-        return allSubmissions.filter(s =>
-            s.staffId === user.id &&
-            s.status === 'REJECTED'
-        )
-    }, [allSubmissions, user?.id])
-
     // Get today's unsubmitted assignments
     const todayUnsubmittedAssignments = useMemo(() => {
         return getActiveUnsubmittedAssignments(assignments, today, allSubmissions)
@@ -156,7 +138,7 @@ export default function StaffWorkCalendarPage() {
             assignmentId,
             hoursWorked: '',
             workDescription: '',
-            workProofType: 'TEXT',
+            workProofType: 'NONE',
             workProofText: '',
             workProofUrl: '',
         }
@@ -171,7 +153,7 @@ export default function StaffWorkCalendarPage() {
                 assignmentId,
                 hoursWorked: '',
                 workDescription: '',
-                workProofType: 'TEXT' as const,
+                workProofType: 'NONE' as const,
                 workProofText: '',
                 workProofUrl: '',
             }
@@ -197,66 +179,54 @@ export default function StaffWorkCalendarPage() {
         )
     }, [])
 
-    function openResubmitDialog(submission: WorkSubmission) {
-        setResubmitSubmission(submission)
-        setResubmitData({
-            hoursWorked: String(submission.hoursWorked || ''),
-            staffComment: submission.staffComment || '',
-            workProofType: (submission.workProofType || 'TEXT') as 'TEXT' | 'PDF' | 'IMAGE',
-            workProofText: submission.workProofText || '',
-            workProofUrl: submission.workProofUrl || ''
-        })
-        setResubmitDialogOpen(true)
-    }
-
-
-    // Handle resubmission of rejected work
-    async function handleResubmit() {
-        if (!resubmitSubmission) return
-
-        const hours = parseFloat(resubmitData.hoursWorked)
-        if (isNaN(hours) || hours <= 0) {
-            toast.error("Please enter valid hours")
-            return
-        }
-
-        if (hours > 24) {
-            toast.error("Hours cannot exceed 24")
-            return
-        }
-
-        setIsResubmitting(true)
-        try {
-            const submitData: ResubmitWorkSubmissionDto = {
-                hoursWorked: hours,
-                staffComment: resubmitData.staffComment || undefined,
-                workProofType: resubmitData.workProofType,
-            }
-
-            if (resubmitData.workProofType === 'TEXT') {
-                submitData.workProofText = resubmitData.workProofText || undefined
-            } else {
-                submitData.workProofUrl = resubmitData.workProofUrl || undefined
-            }
-
-            await api.workSubmissions.resubmit(resubmitSubmission.id, submitData)
-
-            toast.success("Work resubmitted successfully!")
-            setResubmitDialogOpen(false)
-            setResubmitSubmission(null)
-            await fetchData()
-        } catch (error: any) {
-            console.error("Failed to resubmit:", error)
-            toast.error(error.message || "Failed to resubmit work")
-        } finally {
-            setIsResubmitting(false)
-        }
-    }
-
     // Submit all work for today
     async function handleSubmitTodaysWork() {
         if (!user?.id) {
             toast.error("User information is missing. Please log in again.")
+            return
+        }
+
+        // Client-side validation
+        const validationErrors: string[] = []
+
+        for (const assignment of todayUnsubmittedAssignments) {
+            const formData = getFormData(assignment.id)
+            const hours = parseFloat(formData.hoursWorked)
+            const title = assignment.responsibility?.title || 'Untitled'
+
+            if (!isNaN(hours) && hours > 0) {
+                if (hours > 24) {
+                    validationErrors.push(`${title}: Hours cannot exceed 24`)
+                }
+                // Validate proof content when proof type is selected
+                if (formData.workProofType === 'TEXT' && !formData.workProofText.trim()) {
+                    validationErrors.push(`${title}: Proof text is required when proof type is Text`)
+                }
+                if ((formData.workProofType === 'PDF' || formData.workProofType === 'IMAGE') && !formData.workProofUrl.trim()) {
+                    validationErrors.push(`${title}: ${formData.workProofType} URL is required when proof type is ${formData.workProofType}`)
+                }
+            }
+        }
+
+        for (const newResp of newResponsibilities) {
+            const hours = parseFloat(newResp.hoursWorked)
+            if (newResp.title.trim()) {
+                if (isNaN(hours) || hours <= 0) {
+                    validationErrors.push(`${newResp.title}: Hours worked is required`)
+                } else if (hours > 24) {
+                    validationErrors.push(`${newResp.title}: Hours cannot exceed 24`)
+                }
+                if (newResp.workProofType === 'TEXT' && !newResp.workProofText.trim()) {
+                    validationErrors.push(`${newResp.title}: Proof text is required when proof type is Text`)
+                }
+                if ((newResp.workProofType === 'PDF' || newResp.workProofType === 'IMAGE') && !newResp.workProofUrl.trim()) {
+                    validationErrors.push(`${newResp.title}: ${newResp.workProofType} URL is required when proof type is ${newResp.workProofType}`)
+                }
+            }
+        }
+
+        if (validationErrors.length > 0) {
+            toast.error(validationErrors[0])
             return
         }
 
@@ -281,15 +251,24 @@ export default function StaffWorkCalendarPage() {
                             ? parseInt(assignment.id)
                             : assignment.id as number
 
-                        await api.workSubmissions.create({
+                        const payload: any = {
                             assignment: { connect: { id: assignmentId } },
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: formData.workDescription || undefined,
-                            workProofType: formData.workProofType,
-                            workProofText: formData.workProofType === 'TEXT' ? formData.workProofText : undefined,
-                            workProofUrl: formData.workProofType !== 'TEXT' ? formData.workProofUrl : undefined,
-                        })
+                        }
+
+                        // Only include proof fields when a real proof type is selected with content
+                        if (formData.workProofType !== 'NONE') {
+                            payload.workProofType = formData.workProofType
+                            if (formData.workProofType === 'TEXT' && formData.workProofText.trim()) {
+                                payload.workProofText = formData.workProofText.trim()
+                            } else if (formData.workProofType !== 'TEXT' && formData.workProofUrl.trim()) {
+                                payload.workProofUrl = formData.workProofUrl.trim()
+                            }
+                        }
+
+                        await api.workSubmissions.create(payload)
                         successCount++
                     } catch (error: any) {
                         errors.push(`${assignment.responsibility?.title}: ${error.message || 'Failed to submit'}`)
@@ -341,15 +320,24 @@ export default function StaffWorkCalendarPage() {
                             ? parseInt(result.assignments[0].id)
                             : result.assignments[0].id
 
-                        await api.workSubmissions.create({
+                        const newPayload: any = {
                             assignment: { connect: { id: assignmentId } },
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: newResp.workDescription || undefined,
-                            workProofType: newResp.workProofType,
-                            workProofText: newResp.workProofType === 'TEXT' ? newResp.workProofText : undefined,
-                            workProofUrl: newResp.workProofType !== 'TEXT' ? newResp.workProofUrl : undefined,
-                        })
+                        }
+
+                        // Only include proof fields when a real proof type is selected with content
+                        if (newResp.workProofType !== 'NONE') {
+                            newPayload.workProofType = newResp.workProofType
+                            if (newResp.workProofType === 'TEXT' && newResp.workProofText.trim()) {
+                                newPayload.workProofText = newResp.workProofText.trim()
+                            } else if (newResp.workProofType !== 'TEXT' && newResp.workProofUrl.trim()) {
+                                newPayload.workProofUrl = newResp.workProofUrl.trim()
+                            }
+                        }
+
+                        await api.workSubmissions.create(newPayload)
                         successCount++
                     }
                 } catch (error: any) {
@@ -429,20 +417,7 @@ export default function StaffWorkCalendarPage() {
                     Refresh
                 </Button>
             </div>
-            {rejectedSubmissions.length > 0 && (
-                <Card className="border-2 border-black bg-background dark:border-white">
-                    <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-black dark:text-white">
 
-                            Rejected Submissions - Action Required ({rejectedSubmissions.length})
-                        </CardTitle>
-                        <CardDescription className="text-black dark:text-white">
-                            The following submissions were rejected by your manager. Please review the feedback and resubmit.
-                        </CardDescription>
-                    </CardHeader>
-
-                </Card>
-            )}
 
             <div className="space-y-6">
                 {/* Right Side - Date Info & Action */}
@@ -555,66 +530,6 @@ export default function StaffWorkCalendarPage() {
                             </Card>
 
 
-                            {rejectedSubmissions.length > 0 && (
-                                <Card className="border border-black bg-background dark:border-white">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="flex items-center gap-2 text-black dark:text-white">
-                                            <RotateCcw className="h-5 w-5" />
-                                            Rejected Work – Resubmission Required
-                                        </CardTitle>
-                                        <CardDescription className="text-black dark:text-white">
-                                            Fix the issues mentioned by your manager and resubmit.
-                                        </CardDescription>
-                                    </CardHeader>
-
-                                    <CardContent className="space-y-3">
-                                        {rejectedSubmissions.map(submission => {
-                                            return (
-                                                <div
-                                                    key={submission.id}
-                                                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3
-                         rounded-lg border border-black dark:border-white bg-background p-4"
-                                                >
-                                                    {/* Left: Info */}
-                                                    <div className="space-y-1">
-                                                        <p className="font-medium text-sm">
-                                                            {submission.assignment?.responsibility?.title || 'Untitled Responsibility'}
-                                                        </p>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {submission.hoursWorked || 0} hours submitted
-                                                        </p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            Originally submitted: {format(new Date(submission.submittedAt), "PPP")}
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Right: Status + Action */}
-                                                    <div className="flex items-center gap-3">
-                                                        <div
-                                                            className="border-black/50 text-black dark:border-white dark:text-white "
-                                                        >
-                                                            Rejected |
-                                                        </div>
-
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            onClick={() => openResubmitDialog(submission)}
-                                                            className="border-black/40 text-black dark:border-white dark:text-white
-                              "
-                                                        >
-                                                            <RotateCcw className="h-4 w-4 mr-1" />
-                                                            Resubmit
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            )
-                                        })}
-                                    </CardContent>
-                                </Card>
-                            )}
-
-
 
                             {/* Already Submitted Today - Summary */}
                             {/* {todaySubmittedAssignments.length > 0 && (
@@ -698,7 +613,7 @@ export default function StaffWorkCalendarPage() {
 
                                             <div className="grid gap-3 sm:grid-cols-2">
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                                    <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                     <Input
                                                         type="number"
                                                         min="0.5"
@@ -714,14 +629,15 @@ export default function StaffWorkCalendarPage() {
                                                     <Label className="text-xs text-foreground">Proof Type</Label>
                                                     <Select
                                                         value={formData.workProofType}
-                                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") =>
-                                                            updateFormData(assignment.id, { workProofType: v })
+                                                        onValueChange={(v: "NONE" | "TEXT" | "PDF" | "IMAGE") =>
+                                                            updateFormData(assignment.id, { workProofType: v, workProofText: '', workProofUrl: '' })
                                                         }
                                                     >
                                                         <SelectTrigger className="h-9 border-foreground/20 bg-background">
                                                             <SelectValue />
                                                         </SelectTrigger>
                                                         <SelectContent className="bg-background border-foreground/20">
+                                                            <SelectItem value="NONE">None</SelectItem>
                                                             <SelectItem value="TEXT">Text</SelectItem>
                                                             <SelectItem value="PDF">PDF URL</SelectItem>
                                                             <SelectItem value="IMAGE">Image URL</SelectItem>
@@ -741,7 +657,7 @@ export default function StaffWorkCalendarPage() {
                                                 />
                                             </div>
 
-                                            {formData.workProofType === 'TEXT' ? (
+                                            {formData.workProofType === 'TEXT' && (
                                                 <div className="space-y-1">
                                                     <Label className="text-xs text-foreground">Proof Details</Label>
                                                     <Textarea
@@ -752,7 +668,8 @@ export default function StaffWorkCalendarPage() {
                                                         className="resize-none border-foreground/20 bg-background"
                                                     />
                                                 </div>
-                                            ) : (
+                                            )}
+                                            {(formData.workProofType === 'PDF' || formData.workProofType === 'IMAGE') && (
                                                 <div className="space-y-1">
                                                     <Label className="text-xs text-foreground">{formData.workProofType} URL</Label>
                                                     <Input
@@ -799,7 +716,7 @@ export default function StaffWorkCalendarPage() {
                                         </div>
 
                                         <div className="space-y-1">
-                                            <Label className="text-xs text-foreground">Description</Label>
+                                            <Label className="text-xs text-foreground">Description </Label>
                                             <Textarea
                                                 placeholder="Describe the responsibility..."
                                                 value={newResp.description}
@@ -811,7 +728,7 @@ export default function StaffWorkCalendarPage() {
 
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Hours Worked *</Label>
+                                                <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                 <Input
                                                     type="number"
                                                     min="0.5"
@@ -824,17 +741,18 @@ export default function StaffWorkCalendarPage() {
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Proof Type</Label>
+                                                <Label className="text-xs text-foreground">Proof Type </Label>
                                                 <Select
                                                     value={newResp.workProofType}
-                                                    onValueChange={(v: "TEXT" | "PDF" | "IMAGE") =>
-                                                        updateNewResponsibility(newResp.id, { workProofType: v })
+                                                    onValueChange={(v: "NONE" | "TEXT" | "PDF" | "IMAGE") =>
+                                                        updateNewResponsibility(newResp.id, { workProofType: v, workProofText: '', workProofUrl: '' })
                                                     }
                                                 >
                                                     <SelectTrigger className="h-9 border-foreground/20 bg-background">
                                                         <SelectValue />
                                                     </SelectTrigger>
                                                     <SelectContent className="bg-background border-foreground/20">
+                                                        <SelectItem value="NONE">None</SelectItem>
                                                         <SelectItem value="TEXT">Text</SelectItem>
                                                         <SelectItem value="PDF">PDF URL</SelectItem>
                                                         <SelectItem value="IMAGE">Image URL</SelectItem>
@@ -854,7 +772,7 @@ export default function StaffWorkCalendarPage() {
                                             />
                                         </div>
 
-                                        {newResp.workProofType === 'TEXT' ? (
+                                        {newResp.workProofType === 'TEXT' && (
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-foreground">Proof Details</Label>
                                                 <Textarea
@@ -865,7 +783,8 @@ export default function StaffWorkCalendarPage() {
                                                     className="resize-none border-foreground/20 bg-background"
                                                 />
                                             </div>
-                                        ) : (
+                                        )}
+                                        {(newResp.workProofType === 'PDF' || newResp.workProofType === 'IMAGE') && (
                                             <div className="space-y-1">
                                                 <Label className="text-xs text-foreground">{newResp.workProofType} URL</Label>
                                                 <Input
@@ -925,146 +844,6 @@ export default function StaffWorkCalendarPage() {
                                 <>
                                     <Send className="h-4 w-4 mr-2" />
                                     Submit
-                                </>
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            {/* ✅ NEW: Resubmit Dialog */}
-            <Dialog open={resubmitDialogOpen} onOpenChange={setResubmitDialogOpen}>
-                <DialogContent className="max-w-2xl bg-background border-foreground/20">
-                    <DialogHeader>
-                        <DialogTitle className="text-foreground">Resubmit Work</DialogTitle>
-                        <DialogDescription className="text-muted-foreground">
-                            Update your submission based on manager's feedback
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {resubmitSubmission && (
-                        <div className="space-y-4 py-4">
-                            {/* Responsibility Title */}
-                            <div>
-                                <h4 className="font-semibold text-lg text-foreground">
-                                    {resubmitSubmission.assignment?.responsibility?.title || 'Work Submission'}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                    Originally submitted: {format(new Date(resubmitSubmission.submittedAt), "PPP")}
-                                </p>
-                            </div>
-
-                            {/* Manager's Feedback */}
-                            {resubmitSubmission.managerComment && (
-                                <div className="p-4 ">
-                                    <p className="text-sm font-semibold  mb-2 flex items-center gap-2">
-                                        {/* <AlertTriangle className="h-4 w-4" /> */}
-                                        Manager's Feedback:
-                                    </p>
-                                    <p className="">
-                                        {resubmitSubmission.managerComment}
-                                    </p>
-                                </div>
-                            )}
-
-                            <div className="border-t border-foreground/10 pt-4 space-y-4">
-                                {/* Hours Worked */}
-                                <div className="space-y-2">
-                                    <Label className="text-foreground">Hours Worked *</Label>
-                                    <Input
-                                        type="number"
-                                        min="0.5"
-                                        max="24"
-                                        step="0.5"
-                                        placeholder="e.g., 2.5"
-                                        value={resubmitData.hoursWorked}
-                                        onChange={(e) => setResubmitData({ ...resubmitData, hoursWorked: e.target.value })}
-                                        className="border-foreground/20 bg-background"
-                                    />
-                                </div>
-
-                                {/* Proof Type */}
-                                <div className="space-y-2">
-                                    <Label className="text-foreground">Proof Type</Label>
-                                    <Select
-                                        value={resubmitData.workProofType}
-                                        onValueChange={(v: "TEXT" | "PDF" | "IMAGE") =>
-                                            setResubmitData({ ...resubmitData, workProofType: v })
-                                        }
-                                    >
-                                        <SelectTrigger className="border-foreground/20 bg-background">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-background border-foreground/20">
-                                            <SelectItem value="TEXT">Text</SelectItem>
-                                            <SelectItem value="PDF">PDF URL</SelectItem>
-                                            <SelectItem value="IMAGE">Image URL</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Work Description */}
-                                <div className="space-y-2">
-                                    <Label className="text-foreground">Updated Work Description</Label>
-                                    <Textarea
-                                        placeholder="Explain what you've updated or changed..."
-                                        value={resubmitData.staffComment}
-                                        onChange={(e) => setResubmitData({ ...resubmitData, staffComment: e.target.value })}
-                                        rows={4}
-                                        className="resize-none border-foreground/20 bg-background"
-                                    />
-                                </div>
-
-                                {/* Work Proof */}
-                                {resubmitData.workProofType === 'TEXT' ? (
-                                    <div className="space-y-2">
-                                        <Label className="text-foreground">Work Proof Details</Label>
-                                        <Textarea
-                                            placeholder="Provide updated proof of your work..."
-                                            value={resubmitData.workProofText}
-                                            onChange={(e) => setResubmitData({ ...resubmitData, workProofText: e.target.value })}
-                                            rows={4}
-                                            className="resize-none border-foreground/20 bg-background"
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2">
-                                        <Label className="text-foreground">{resubmitData.workProofType} URL</Label>
-                                        <Input
-                                            type="url"
-                                            placeholder="https://..."
-                                            value={resubmitData.workProofUrl}
-                                            onChange={(e) => setResubmitData({ ...resubmitData, workProofUrl: e.target.value })}
-                                            className="border-foreground/20 bg-background"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    <DialogFooter className="border-t border-foreground/10 pt-4">
-                        <Button
-                            variant="outline"
-                            onClick={() => setResubmitDialogOpen(false)}
-                            disabled={isResubmitting}
-                            className="border-foreground/20"
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleResubmit}
-                            disabled={isResubmitting}
-                            className="bg-foreground text-background hover:bg-foreground/90"
-                        >
-                            {isResubmitting ? (
-                                <>
-                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                    Resubmitting...
-                                </>
-                            ) : (
-                                <>
-                                    <RotateCcw className="h-4 w-4 mr-2" />
-                                    Resubmit Work
                                 </>
                             )}
                         </Button>

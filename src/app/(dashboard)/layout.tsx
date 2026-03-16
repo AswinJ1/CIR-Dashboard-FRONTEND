@@ -76,18 +76,24 @@ const navigation: NavigationItem[] = [
     icon: <FileCheck className="w-5 h-5" />,
     roles: ["ADMIN"]
   },
+  {
+    name: "Sem Reports",
+    href: "/admin/sem-reports",
+    icon: <FileText className="w-5 h-5" />,
+    roles: ["ADMIN"]
+  },
+  {
+    name:"Classroom Management",
+    href: "/admin/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["ADMIN"]
+  }
   // {
   //   name: "Analytics",
   //   href: "/admin/analytics",
   //   icon: <BarChart3 className="w-5 h-5" />,
   //   roles: ["ADMIN"]
   // },
-  {
-    name: "Classroom Management",
-    href: "/dashboard/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["ADMIN", "MANAGER", "STAFF"]
-  },
   // {
   //   name: "Profile",
   //   href: "/admin/profile",
@@ -96,12 +102,14 @@ const navigation: NavigationItem[] = [
   // },
 
   // Manager Navigation
+  ,
   {
     name: "Dashboard",
     href: "/manager",
     icon: <LayoutDashboard className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  
   // {
   //   name: "Review Submissions",
   //   href: "/manager/submissions",
@@ -120,12 +128,19 @@ const navigation: NavigationItem[] = [
     icon: <ClipboardList className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "Classroom Management",
+    href: "/manager/classrooms",
+    icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  }
   // {
   //   name: " Manage Group Responsibilities",
   //   href: "/manager/responsibility-groups",
   //   icon: <FolderOpen className="w-5 h-5" />,
   //   roles: ["MANAGER"]
   // },
+  ,
   {
     name: "Staff",
     href: "/manager/staff",
@@ -175,7 +190,7 @@ const navigation: NavigationItem[] = [
     href: "/staff/classrooms",
     icon: <FolderOpen className="w-5 h-5" />,
     roles: ["STAFF"]
-  },
+  }
   // {
   //   name: "Analytics",
   //   href: "/staff/analytics",

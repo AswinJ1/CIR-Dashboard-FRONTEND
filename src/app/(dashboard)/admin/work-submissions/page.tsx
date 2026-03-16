@@ -62,6 +62,7 @@ export default function AdminWorkSubmissionsPage() {
     const [selectedSubmission, setSelectedSubmission] = useState<WorkSubmission | null>(null)
     const [verifyComment, setVerifyComment] = useState("")
     const [isVerifying, setIsVerifying] = useState(false)
+    const [newStatus, setNewStatus] = useState<string>("")
 
     useEffect(() => {
         fetchData()
@@ -140,15 +141,17 @@ export default function AdminWorkSubmissionsPage() {
     function openViewDialog(submission: WorkSubmission) {
         setSelectedSubmission(submission)
         setVerifyComment("")
+        setNewStatus(submission.status)
         setViewDialogOpen(true)
     }
 
-    async function handleVerify(approved: boolean) {
-        if (!selectedSubmission) return
+    async function handleVerify(approved: boolean, submission?: WorkSubmission) {
+        const target = submission || selectedSubmission
+        if (!target) return
 
         setIsVerifying(true)
         try {
-            await api.workSubmissions.verify(selectedSubmission.id, {
+            await api.workSubmissions.verify(target.id, {
                 approved,
                 managerComment: verifyComment,
             })
@@ -322,9 +325,7 @@ export default function AdminWorkSubmissionsPage() {
                                                                 size="sm"
                                                                 className="text-black dark:text-white border border-black dark:border-white p-2 dark:bg-black rounded-none"
                                                                 onClick={() => {
-                                                                    setSelectedSubmission(submission)
-                                                                    setVerifyComment("")
-                                                                    handleVerify(true)
+                                                                    handleVerify(true, submission)
                                                                 }}
                                                             >
                                                                 {/* <CheckCircle className="h-4 w-4" /> */}
@@ -337,7 +338,7 @@ export default function AdminWorkSubmissionsPage() {
                                                                 onClick={() => openViewDialog(submission)}
                                                             >
                                                                 {/* <XCircle className="h-4 w-4" /> */}
-                                                                REJECT
+                                                                REVIEW
                                                             </Button>
                                                         </>
                                                     )}
@@ -447,27 +448,53 @@ export default function AdminWorkSubmissionsPage() {
                                 </div>
                             )}
 
-                            {(selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && (
-                                <div className="space-y-2 pt-4 border-t">
-                                    <Label htmlFor="verifyComment">Verification Comment</Label>
-                                    <Textarea
-                                        id="verifyComment"
-                                        placeholder="Add a comment (required for rejection)..."
-                                        value={verifyComment}
-                                        onChange={(e) => setVerifyComment(e.target.value)}
-                                        rows={3}
-                                    />
-                                </div>
-                            )}
-
                             {(selectedSubmission as any).managerComment && (
                                 <div>
-                                    <Label className="text-muted-foreground text-xs">Manager Comment</Label>
+                                    <Label className="text-muted-foreground text-xs">Previous Manager Comment</Label>
                                     <p className="text-sm mt-1 p-2 bg-muted rounded">
                                         {(selectedSubmission as any).managerComment}
                                     </p>
                                 </div>
                             )}
+
+                            <div className="space-y-3 pt-4 border-t">
+                                <Label>Change Status</Label>
+                                <Select value={newStatus} onValueChange={setNewStatus}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="VERIFIED">Verified</SelectItem>
+                                        <SelectItem value="REJECTED">Rejected</SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {newStatus === 'REJECTED' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="verifyComment">Rejection Reason</Label>
+                                        <Textarea
+                                            id="verifyComment"
+                                            placeholder="Add a reason for rejection..."
+                                            value={verifyComment}
+                                            onChange={(e) => setVerifyComment(e.target.value)}
+                                            rows={3}
+                                        />
+                                    </div>
+                                )}
+
+                                {newStatus !== 'REJECTED' && (
+                                    <div className="space-y-2">
+                                        <Label htmlFor="verifyComment">Comment (optional)</Label>
+                                        <Textarea
+                                            id="verifyComment"
+                                            placeholder="Add a comment..."
+                                            value={verifyComment}
+                                            onChange={(e) => setVerifyComment(e.target.value)}
+                                            rows={3}
+                                        />
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -475,26 +502,21 @@ export default function AdminWorkSubmissionsPage() {
                         <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
                             Close
                         </Button>
-                        {selectedSubmission && (selectedSubmission.status === 'SUBMITTED' || selectedSubmission.status === 'PENDING') && (
-                            <>
-                                <Button
-                                    variant="destructive"
-                                    onClick={() => handleVerify(false)}
-                                    disabled={isVerifying || !verifyComment.trim()}
-                                    className="bg-black dark:bg-white text-white dark:text-black border-2 border-black dark:border-white hover:bg-gray-800 dark:hover:bg-gray-200 "
-                                >
-                                    <XCircle className="h-4 w-4 mr-2" />
-                                    Reject
-                                </Button>
-                                <Button
-                                    onClick={() => handleVerify(true)}
-                                    disabled={isVerifying}
-                                    className="bg-black dark:bg-white text-white dark:text-black border-2 border-black dark:border-white hover:bg-gray-800 dark:hover:bg-gray-200 "
-                                >
+                        {selectedSubmission && newStatus !== selectedSubmission.status && (
+                            <Button
+                                onClick={() => handleVerify(newStatus === 'VERIFIED')}
+                                disabled={isVerifying || (newStatus === 'REJECTED' && !verifyComment.trim())}
+                                className="bg-black dark:bg-white text-white dark:text-black border-2 border-black dark:border-white hover:bg-gray-800 dark:hover:bg-gray-200"
+                            >
+                                {isVerifying ? (
+                                    <Clock className="h-4 w-4 mr-2 animate-spin" />
+                                ) : newStatus === 'VERIFIED' ? (
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    Verify
-                                </Button>
-                            </>
+                                ) : (
+                                    <XCircle className="h-4 w-4 mr-2" />
+                                )}
+                                {newStatus === 'VERIFIED' ? 'Confirm Verify' : 'Confirm Reject'}
+                            </Button>
                         )}
                     </DialogFooter>
                 </DialogContent>

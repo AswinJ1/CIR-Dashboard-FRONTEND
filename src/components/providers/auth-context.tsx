@@ -139,6 +139,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const logout = () => {
+        // Clear user-scoped theme key before nulling user
+        if (user?.id) {
+            try { localStorage.removeItem(`theme-${user.id}`) } catch {}
+        }
+        // Clear generic theme key and remove dark class
+        try {
+            localStorage.removeItem('theme')
+            document.documentElement.classList.remove('dark')
+        } catch {}
+
         authApi.logout()
         setUser(null)
         setRole(null)
