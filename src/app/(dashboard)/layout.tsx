@@ -88,12 +88,6 @@ const navigation: NavigationItem[] = [
   //   icon: <BarChart3 className="w-5 h-5" />,
   //   roles: ["ADMIN"]
   // },
-  {
-    name: "Classroom Management",
-    href: "/dashboard/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["ADMIN", "MANAGER", "STAFF"]
-  },
   // {
   //   name: "Profile",
   //   href: "/admin/profile",
@@ -136,12 +130,6 @@ const navigation: NavigationItem[] = [
     name: "Staff",
     href: "/manager/staff",
     icon: <UserCheck className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "Classroom Management",
-    href: "/manager/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
   // {
@@ -281,24 +269,14 @@ export default function DashboardLayout({
   if (!isAuthenticated || !role) return null
 
   // Role-based path access control
-  const rolePathMap: Record<Role, string[]> = {
-    'ADMIN': ['/admin', '/dashboard'],
-    'MANAGER': ['/manager', '/dashboard'],
-    'STAFF': ['/staff', '/dashboard'],
+  const rolePathMap: Record<Role, string> = {
+    'ADMIN': '/admin',
+    'MANAGER': '/manager',
+    'STAFF': '/staff',
   }
 
-  const allowedPaths = rolePathMap[role]
-  const isAuthorized = allowedPaths.some(prefix => pathname.startsWith(prefix))
-
-  // Debug logging
-  if (pathname.includes('classrooms')) {
-    console.log('🔐 Layout Auth Check:', {
-      role,
-      pathname,
-      allowedPaths,
-      isAuthorized
-    })
-  }
+  const allowedPathPrefix = rolePathMap[role]
+  const isAuthorized = pathname.startsWith(allowedPathPrefix)
 
   // Show 403 Forbidden if user is accessing unauthorized path
   if (!isAuthorized) {

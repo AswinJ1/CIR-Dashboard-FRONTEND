@@ -44,7 +44,7 @@ import {
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
-  const url ="http://localhost:3001/api";
+  const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url) {
     throw new Error(
       "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
@@ -534,50 +534,6 @@ export const profileApi = {
         }),
 }
 
-// ==================== Classrooms API ====================
-export const classroomApi = {
-    getAll: (): Promise<any[]> =>
-        fetchApi('/classrooms'),
-
-    create: (data: { name: string }): Promise<any> =>
-        fetchApi('/classrooms', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
-
-    disable: (id: number): Promise<any> =>
-        fetchApi(`/classrooms/${id}/disable`, {
-            method: 'PATCH',
-        }),
-}
-
-// ==================== Classroom Bookings API ====================
-export const bookingApi = {
-    create: (data: {
-        title: string
-        description?: string
-        classroomId: number
-        bookingDate: string
-        startTime: string
-        endTime: string
-        isRecurring: boolean
-        recurrenceRule?: string
-        recurrenceEnd?: string
-    }): Promise<any> =>
-        fetchApi('/classroom-bookings', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        }),
-
-    getByClassroomAndDate: (classroomId: number, date: string): Promise<any[]> =>
-        fetchApi(`/classroom-bookings/classroom/${classroomId}/date/${date}`),
-
-    cancel: (id: number): Promise<void> =>
-        fetchApi(`/classroom-bookings/${id}`, {
-            method: 'DELETE',
-        }),
-}
-
 // ==================== Unified API Export ====================
 export const api = {
     auth: authApi,
@@ -591,8 +547,6 @@ export const api = {
     responsibilityGroups: responsibilityGroupsApi,
     profile: profileApi,
     semReports: semReportsApi,
-    classrooms: classroomApi,
-    bookings: bookingApi,
 }
 
 export default api
