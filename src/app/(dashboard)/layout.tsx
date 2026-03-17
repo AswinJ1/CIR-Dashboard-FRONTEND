@@ -128,19 +128,18 @@ const navigation: NavigationItem[] = [
     icon: <ClipboardList className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
-  {
-    name: "Classroom Management",
-    href: "/manager/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  }
+  // {
+  //   name: "Classroom Management",
+  //   href: "/manager/classrooms",
+  //   icon: <FolderOpen className="w-5 h-5" />,
+  //   roles: ["MANAGER"]
+  // }
   // {
   //   name: " Manage Group Responsibilities",
   //   href: "/manager/responsibility-groups",
   //   icon: <FolderOpen className="w-5 h-5" />,
   //   roles: ["MANAGER"]
   // },
-  ,
   {
     name: "Staff",
     href: "/manager/staff",
