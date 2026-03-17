@@ -27,7 +27,6 @@ import { Search, X, Calendar, Clock, Repeat, Lock } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-
 interface BookingTableProps {
     bookings: ClassroomBooking[]
     isLoading: boolean
@@ -211,7 +210,8 @@ export default function BookingTable({
                                                 className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                 title="Cancel this booking"
                                             >
-                                                <X className="h-4 w-4" />
+                                                {/* <X className="h-4 w-4" /> */}
+                                                Cancel Booking
                                             </Button>
                                         ) : (
                                             <div 
