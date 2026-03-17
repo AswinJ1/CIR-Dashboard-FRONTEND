@@ -44,7 +44,7 @@ import {
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
-  const url ="http://localhost:3001/api";
+  const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url) {
     throw new Error(
       "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
