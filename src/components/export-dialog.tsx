@@ -86,24 +86,25 @@ interface WorkSubmission {
 // =====================================================
 
 // Column layout per week: [weekIndex][daySlot] => colIndex (1-indexed for ExcelJS)
+// Each week has 7 days + 1 remarks column
 const WEEK_DAY_COLS: number[][] = [
-    [2, 3, 4, 5, 6, 7],      // B-G
-    [10, 11, 12, 13, 14, 15], // J-O
-    [17, 18, 19, 20, 21, 22], // Q-V
-    [24, 25, 26, 27, 28, 29], // X-AC
-    [31, 32, 33, 34, 35, 36], // AE-AJ
+    [2, 3, 4, 5, 6, 7, 8],
+    [10, 11, 12, 13, 14, 15, 16],
+    [18, 19, 20, 21, 22, 23, 24],
+    [26, 27, 28, 29, 30, 31, 32],
+    [34, 35, 36, 37, 38, 39, 40],
 ]
 
 const WEEK_HEADER_RANGES: { s: number; e: number }[] = [
-    { s: 2, e: 8 },   // B-H
-    { s: 10, e: 15 },  // J-O
-    { s: 17, e: 22 },  // Q-V
-    { s: 24, e: 29 },  // X-AC
-    { s: 31, e: 36 },  // AE-AJ
+    { s: 2, e: 8 },  
+    { s: 10, e: 16 }, 
+    { s: 18, e: 24 }, 
+    { s: 26, e: 32 }, 
+    { s: 34, e: 40 }, 
 ]
 
-const REMARKS_COLS = [9, 16, 23, 30, 37] // I, P, W, AD, AK (1-indexed)
-const LAST_COL = 38 // AL (1-indexed)
+const REMARKS_COLS = [9, 17, 25, 33, 41] 
+const LAST_COL = 42
 
 const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -120,7 +121,6 @@ const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 function dayToCol(day: number): number {
     const weekIndex = Math.floor((day - 1) / 7)
     const dayInWeek = (day - 1) % 7
-    if (dayInWeek === 6) return -1 // 7th day of each "week block" is skipped
     if (weekIndex >= 5) return -1
     return WEEK_DAY_COLS[weekIndex][dayInWeek]
 }
