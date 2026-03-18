@@ -58,7 +58,7 @@ export default function ClassroomManagementPage() {
     const hasPageAccess = userRole && allowedRoles.includes(userRole)
 
   
-    const canDisableClassroom =  userRole === "MANAGER"
+    // const canDisableClassroom =  userRole === "MANAGER"
 
     // If role not loaded or no access, show loading/error
     if (!userRole || !hasPageAccess) {
@@ -241,7 +241,7 @@ export default function ClassroomManagementPage() {
                                 classrooms={classrooms}
                                 isLoading={isLoading}
                                 userRole={userRole}
-                                onDisable={canDisableClassroom ? handleDisableClassroom : undefined}
+                                // onDisable={canDisableClassroom ? handleDisableClassroom : undefined}
                                 onBook={handleBookClassroom}
                             />
                         </CardContent>
