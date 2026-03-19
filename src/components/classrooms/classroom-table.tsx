@@ -23,14 +23,27 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, Ban, CheckCircle, FolderOpen } from "lucide-react"
+import { Search, Ban, CheckCircle, FolderOpen, Trash2, Check, MoreHorizontal } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { on } from "events"
+import { se } from "date-fns/locale"
+
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface ClassroomTableProps {
     classrooms: Classroom[]
     isLoading: boolean
     userRole: Role
     onDisable?: (id: number) => Promise<void>
+    onEnable?: (id: number) => Promise<void>
+    onDelete?: (id: number) => Promise<void>
     onBook: (classroom: Classroom) => void
 }
 
@@ -39,22 +52,56 @@ export default function ClassroomTable({
     isLoading,
     userRole,
     onDisable,
+    onEnable,
+    onDelete,
     onBook
 }: ClassroomTableProps) {
     const [searchQuery, setSearchQuery] = useState("")
     const [disableDialogOpen, setDisableDialogOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [enableDialogOpen, setEnableDialogOpen] = useState(false)
     const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const filteredClassrooms = classrooms.filter(classroom =>
-        classroom.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
+    const filteredClassrooms = classrooms.filter(classroom => {
+        const matchesSearch = classroom.name.toLowerCase().includes(searchQuery.toLowerCase())
+        // If Admin, show everything. Otherwise, only show if NOT false.
+        const isVisible = userRole === "ADMIN" ? true : classroom.isActive !== false
+        return matchesSearch && isVisible
+    })
 
     const handleDisableClick = (classroom: Classroom) => {
         setSelectedClassroom(classroom)
         setDisableDialogOpen(true)
     }
-
+    const handleEnableClick = (classroom: Classroom) => {
+        setSelectedClassroom(classroom)
+        setEnableDialogOpen(true)
+    }
+    const handleDeleteClick = (classroom: Classroom) => {
+        setSelectedClassroom(classroom)
+        setDeleteDialogOpen(true)
+    }
+    // const handleDeleteClick = async (classroom: Classroom) => {
+    //     if (!onDelete) return
+    //     try {
+    //         await onDelete(classroom.id)
+    
+    //     } catch (error) {
+    //         console.error("Error deleting classroom:", error)
+    //     }
+    // }
+    // const handleEnableClick = async (classroom: Classroom) => {
+    //     if (!onEnable) return
+    //     setIsSubmitting(true)
+    //     try {
+    //         await onEnable(classroom.id)
+    //     } catch (error) {
+    //         console.error("Error enabling classroom:", error)
+    //     } finally {
+    //         setIsSubmitting(false)
+    //     }
+    // }
     const handleDisableConfirm = async () => {
         if (!selectedClassroom || !onDisable) return
 
@@ -67,12 +114,35 @@ export default function ClassroomTable({
             setIsSubmitting(false)
         }
     }
+    const handleEnableConfirm = async () => {
+        if (!selectedClassroom || !onEnable) return
+        setIsSubmitting(true)
+        try {
+            await onEnable(selectedClassroom.id)
+            setEnableDialogOpen(false)
+            setSelectedClassroom(null)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!selectedClassroom || !onDelete) return
+        setIsSubmitting(true)
+        try {
+            await onDelete(selectedClassroom.id)
+            setDeleteDialogOpen(false)
+            setSelectedClassroom(null)
+        } finally {
+            setIsSubmitting(false)
+        }
+    }
 
     const getStatusBadge = (classroom: Classroom) => {
-        if (classroom.isDisabled) {
-            return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Disabled</Badge>
+        if (classroom.isActive== false) {
+            return <Badge variant="outline" className="bg-red-700 text-white border rounded-none">Disabled</Badge>
         }
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Active</Badge>
+        return <Badge variant="outline" className="bg-green-700 text-white border rounded-none">Active</Badge>
     }
 
     if (isLoading) {
@@ -121,27 +191,61 @@ export default function ClassroomTable({
                                     <TableCell className="font-medium">{classroom.name}</TableCell>
                                     <TableCell>{getStatusBadge(classroom)}</TableCell>
                                     <TableCell className="text-right">
-                                        <div className="flex items-center justify-end gap-2">
-                                            {!classroom.isDisabled && (
-                                                <Button
-                                                    size="sm"
-                                                    onClick={() => onBook(classroom)}
-                                                >
-                                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                                    Book
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
                                                 </Button>
-                                            )}
-                                            {onDisable && !classroom.isDisabled && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDisableClick(classroom)}
-                                                >
-                                                    <Ban className="w-4 h-4 mr-1 text-destructive" />
-                                                    Disable
-                                                </Button>
-                                            )}
-                                        </div>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuSeparator />
+                                                
+                                                {/* If Active, allow Booking */}
+                                                {classroom.isActive !== false && (
+                                                    <DropdownMenuItem onClick={() => onBook(classroom)}>
+                                                        <CheckCircle className="w-4 h-4 mr-2" />
+                                                        Book Classroom
+                                                    </DropdownMenuItem>
+                                                )}
+
+                                                {/* If Active, allow Disabling */}
+                                                {onDisable && classroom.isActive !== false && (
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleDisableClick(classroom)}
+                                                        className="text-destructive focus:text-destructive"
+                                                    >
+                                                        <Ban className="w-4 h-4 mr-2" />
+                                                        Disable
+                                                    </DropdownMenuItem>
+                                                )}
+
+                                                {/* If INACTIVE (false), allow Enabling */}
+                                                {onEnable && classroom.isActive === false && (
+                                                    <DropdownMenuItem 
+                                                        onClick={() => handleEnableClick(classroom)}
+                                                    >
+                                                        {/* <Check className="w-4 h-4 mr-2" /> */}
+                                                        Enable
+                                                    </DropdownMenuItem>
+                                                )}
+
+                                                {/* Both Active and Inactive can be Deleted */}
+                                                {onDelete && (
+                                                    <>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleDeleteClick(classroom)}
+                                                            className="text-destructive focus:text-destructive"
+                                                        >
+                                                            <Trash2 className="w-4 h-4 mr-2" />
+                                                            Delete
+                                                        </DropdownMenuItem>
+                                                    </>
+                                                )}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -172,6 +276,52 @@ export default function ClassroomTable({
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            
+            {/* Enaable Confirmation Dialog */}
+            <AlertDialog open={enableDialogOpen} onOpenChange={setEnableDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Enable Classroom</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to enable &quot;{selectedClassroom?.name}&quot;?
+                            Enabled classrooms can be booked.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleEnableConfirm}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Enabling..." : "Enable"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+               <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Classroom</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Are you sure you want to delete &quot;{selectedClassroom?.name}&quot;?
+                                This action cannot be undone.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isSubmitting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleDeleteConfirm}
+                            disabled={isSubmitting}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isSubmitting ? "Deleting  ..." : "Delete"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            
         </div>
     )
 }

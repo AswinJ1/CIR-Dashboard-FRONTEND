@@ -29,6 +29,9 @@ import BookClassroomModal from "@/components/classrooms/book-classroom-modal"
 import { classroomApi, bookingApi } from "@/lib/api"
 import { toast } from "sonner"
 
+
+
+//need to edit 
 export default function ClassroomManagementPage() {
     const { user } = useAuth()
     const userRole = user?.role as Role
@@ -59,7 +62,8 @@ export default function ClassroomManagementPage() {
 
     const canCreateClassroom = userRole === "ADMIN"
     const canDisableClassroom = userRole === "ADMIN"
-
+    const canEnableClassroom = userRole === "ADMIN"
+    const canDeleteClassroom = userRole === "ADMIN"
     // If role not loaded or no access, show loading/error
     if (!userRole || !hasPageAccess) {
         return (
@@ -139,7 +143,28 @@ export default function ClassroomManagementPage() {
             throw error
         }
     }
+    const handleDeleteClassroom = async (id: number) =>
+    {
+        try{
+            await classroomApi.delete(id)
+            toast.success("Classroom deleted successfully")
+            fetchClassrooms()
+        } catch (error: any) {
+            handleApiError(error, "Failed to delete classroom")
+            throw error
+        }
+    }
 
+    const handleEnableClassroom = async (id: number) => {
+        try {
+            await classroomApi.enable(id)
+            toast.success("Classroom enabled successfully")
+            fetchClassrooms()
+        } catch (error: any) {  
+            handleApiError(error, "Failed to enable classroom")
+            throw error
+        }
+    }
     const handleDisableClassroom = async (id: number) => {
         try {
             await classroomApi.disable(id)
@@ -194,7 +219,7 @@ export default function ClassroomManagementPage() {
     }
 
     // Filter out disabled classrooms for the booking selector
-    const activeClassrooms = classrooms.filter(c => !c.isDisabled)
+    const activeClassrooms = classrooms.filter(c => c.isActive !== false)
 
     return (
         <div className="space-y-6 p-6">
@@ -207,8 +232,7 @@ export default function ClassroomManagementPage() {
                     </div>
                     <p className="text-muted-foreground">
                         {userRole === "ADMIN" && "Manage all classrooms and bookings across departments"}
-                        {userRole === "MANAGER" && "Manage classrooms and bookings for your department"}
-                        {userRole === "STAFF" && "View classrooms and create bookings"}
+                   
                     </p>
                 </div>
                 {canCreateClassroom && (
@@ -249,6 +273,8 @@ export default function ClassroomManagementPage() {
                                 isLoading={isLoading}
                                 userRole={userRole}
                                 onDisable={canDisableClassroom ? handleDisableClassroom : undefined}
+                                onEnable={canEnableClassroom ? handleEnableClassroom : undefined}
+                                onDelete={canDeleteClassroom ? handleDeleteClassroom : undefined}
                                 onBook={handleBookClassroom}
                             />
                         </CardContent>

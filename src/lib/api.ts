@@ -41,6 +41,7 @@ import {
     UpdateSemReportDto,
     ReviewSemReportDto,
 } from '@/types/cir'
+import { de } from 'date-fns/locale';
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
@@ -548,6 +549,14 @@ export const classroomApi = {
     disable: (id: number): Promise<any> =>
         fetchApi(`/classrooms/${id}/disable`, {
             method: 'PATCH',
+        }),
+    enable: (id: number): Promise<any> =>
+        fetchApi(`/classrooms/${id}/enable`, {
+            method: 'PATCH',
+        }),
+    delete: (id: number): Promise<void> =>
+        fetchApi(`/classrooms/${id}`, {
+            method: 'DELETE',
         }),
 }
 

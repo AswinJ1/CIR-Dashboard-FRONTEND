@@ -157,7 +157,7 @@ export default function BookClassroomModal({
     }
 
     // Filter to only show active (non-disabled) classrooms
-    const availableClassrooms = classrooms.filter(c => !c.isDisabled)
+    const availableClassrooms = classrooms.filter(c => c.isActive !== false)
 
     return (
         <Dialog open={open} onOpenChange={handleClose}>

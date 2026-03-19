@@ -506,7 +506,8 @@ export interface ReviewSemReportDto {
 export interface Classroom {
   id: number
   name: string
-  isDisabled?: boolean
+  isActive: boolean
+
 }
 
 export interface CreateClassroomDto {
