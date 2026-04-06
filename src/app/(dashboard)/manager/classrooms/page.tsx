@@ -194,7 +194,7 @@ export default function ClassroomManagementPage() {
     }
 
     // Filter out disabled classrooms for the booking selector
-    const activeClassrooms = classrooms.filter(c => !c.isActive)
+    const activeClassrooms = classrooms.filter(c => c.isActive !== false)
 
     return (
         <div className="space-y-6 p-6">

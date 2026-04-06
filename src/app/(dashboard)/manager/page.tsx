@@ -128,9 +128,9 @@ export default function ManagerDashboardPage() {
                     setEmployeeName(managerData.name)
                 }
 
-                // Filter staff in manager's sub-department
+                // Filter staff and managers in manager's sub-department
                 const deptStaff = allEmployees.filter(e =>
-                    String(e.subDepartmentId) === String(user.subDepartmentId) && e.role === 'STAFF'
+                    String(e.subDepartmentId) === String(user.subDepartmentId) && (e.role === 'STAFF' || e.role === 'MANAGER')
                 )
                 setStaffList(deptStaff)
 

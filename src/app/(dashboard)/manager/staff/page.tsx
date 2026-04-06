@@ -34,8 +34,8 @@ export default function ManagerStaffPage() {
                 api.employees.getAll(),
                 api.workSubmissions.getAll(),
             ])
-            // Backend already scopes to sub-department, filter for STAFF role
-            setStaff(employees.filter(e => e.role === 'STAFF'))
+            // Backend already scopes to sub-department, filter for STAFF and MANAGER roles
+            setStaff(employees.filter(e => e.role === 'STAFF' || e.role === 'MANAGER'))
             setSubmissions(allSubmissions)
         } catch (error) {
             console.error("Failed to fetch data:", error)

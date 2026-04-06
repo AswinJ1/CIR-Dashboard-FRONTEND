@@ -312,8 +312,14 @@ export const assignmentsApi = {
             body: JSON.stringify(data),
         }),
 
-    getAll: (): Promise<Assignment[]> =>
-        fetchApi('/assignment'),
+    getAll: (options?: { staffId?: string; responsibilityId?: string; status?: string }): Promise<Assignment[]> => {
+        const params = new URLSearchParams()
+        if (options?.staffId) params.append('staffId', options.staffId)
+        if (options?.responsibilityId) params.append('responsibilityId', options.responsibilityId)
+        if (options?.status) params.append('status', options.status)
+        const queryString = params.toString()
+        return fetchApi(`/assignment${queryString ? `?${queryString}` : ''}`)
+    },
 
     getById: (id: string): Promise<Assignment> =>
         fetchApi(`/assignment/${id}`),
@@ -338,8 +344,15 @@ export const workSubmissionsApi = {
             body: JSON.stringify(data),
         }),
 
-    getAll: (): Promise<WorkSubmission[]> =>
-        fetchApi('/work-submission'),
+    getAll: (options?: { staffId?: string; verifiedById?: string; assignmentId?: string; date?: string }): Promise<WorkSubmission[]> => {
+        const params = new URLSearchParams()
+        if (options?.staffId) params.append('staffId', options.staffId)
+        if (options?.verifiedById) params.append('verifiedById', options.verifiedById)
+        if (options?.assignmentId) params.append('assignmentId', options.assignmentId)
+        if (options?.date) params.append('date', options.date)
+        const queryString = params.toString()
+        return fetchApi(`/work-submission${queryString ? `?${queryString}` : ''}`)
+    },
 
     getById: (id: string): Promise<WorkSubmission> =>
         fetchApi(`/work-submission/${id}`),
