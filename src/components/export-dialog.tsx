@@ -829,7 +829,7 @@ export function AdminExportDialog({
 
     // Filter staff based on selected department/sub-department
     const filteredStaffList = useMemo(() => {
-        let staff = employees.filter(e => (e as any).role === 'STAFF')
+        let staff = employees.filter(e => (e as any).role === 'STAFF' || (e as any).role === 'MANAGER')
         if (selectedDepartmentId !== "all") {
             staff = staff.filter(e => String(e.departmentId) === selectedDepartmentId)
         }

@@ -152,6 +152,24 @@ const searchOptions: SearchOption[] = [
     icon: <User className="h-4 w-4" />,
     roles: ["MANAGER"]
   },
+  {
+    label: "My Work Calendar",
+    href: "/manager/work-calendar",
+    icon: <Calendar className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "My Submissions",
+    href: "/manager/work-submissions",
+    icon: <CheckSquare className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "My Responsibilities",
+    href: "/manager/my-responsibilities",
+    icon: <ClipboardList className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
 
   // ==================== STAFF Options ====================
   {

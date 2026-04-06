@@ -152,6 +152,24 @@ const navigation: NavigationItem[] = [
     icon: <FolderOpen className="w-5 h-5" />,
     roles: ["MANAGER"]
   },
+  {
+    name: "My Work Calendar",
+    href: "/manager/work-calendar",
+    icon: <CalendarRange className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
+  {
+    name: "My Work Submissions",
+    href: "/manager/work-submissions",
+    icon: <FileCheck className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
+  {
+    name: "My Responsibilities",
+    href: "/manager/my-responsibilities",
+    icon: <Calendar1 className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
   // {
   //   name: "Profile",
   //   href: "/manager/profile",

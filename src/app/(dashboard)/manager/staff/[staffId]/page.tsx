@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, Suspense } from "react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
 import { Employee, WorkSubmission, SemReport } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -77,6 +78,8 @@ type DateRange = { from: Date; to: Date }
 
 function StaffDetailContent({ staffId }: { staffId: string }) {
     const router = useRouter()
+    const { user } = useAuth()
+    const isOwnSubmission = String(user?.id) === String(staffId)
     const [staff, setStaff] = useState<Employee | null>(null)
     const [staffSubmissions, setStaffSubmissions] = useState<WorkSubmission[]>([])
     const [isLoading, setIsLoading] = useState(true)
@@ -757,13 +760,13 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                 <TableHead>Date</TableHead>
                                 <TableHead>Hours</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                {!isOwnSubmission && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedSubmissions.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={!isOwnSubmission ? 5 : 4} className="text-center py-8 text-muted-foreground">
                                         No submissions in selected date range
                                     </TableCell>
                                 </TableRow>
@@ -785,11 +788,13 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                         <TableCell>
                                             <SubmissionStatusBadge status={submission.status} />
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                            <Button variant="ghost" size="sm" onClick={() => openReviewDialog(submission)}>
-                                                <Eye className="h-4 w-4 mr-1" /> Review
-                                            </Button>
-                                        </TableCell>
+                                        {!isOwnSubmission && (
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="sm" onClick={() => openReviewDialog(submission)}>
+                                                    <Eye className="h-4 w-4 mr-1" /> Review
+                                                </Button>
+                                            </TableCell>
+                                        )}
                                     </TableRow>
                                 ))
                             )}
@@ -884,11 +889,13 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                                 {expandedReportId === report.id && (
                                                     <Card className="border-t-0 rounded-t-none pt-4 p-6">
                                                         <SemReportDetail report={report}>
-                                                            <ReviewActions
-                                                                onApprove={() => handleSemApprove(report.id)}
-                                                                onReject={(reason) => handleSemReject(report.id, reason)}
-                                                                isLoading={semReviewLoading}
-                                                            />
+                                                            {!isOwnSubmission && (
+                                                                <ReviewActions
+                                                                    onApprove={() => handleSemApprove(report.id)}
+                                                                    onReject={(reason) => handleSemReject(report.id, reason)}
+                                                                    isLoading={semReviewLoading}
+                                                                />
+                                                            )}
                                                         </SemReportDetail>
                                                     </Card>
                                                 )}
