@@ -40,6 +40,10 @@ import {
     CreateSemReportDto,
     UpdateSemReportDto,
     ReviewSemReportDto,
+    Timetable,
+    TimetableEntry,
+    CreateTimetableEntryDto,
+    UpdateTimetableEntryDto,
 } from '@/types/cir'
 import { de } from 'date-fns/locale';
 
@@ -594,10 +598,73 @@ export const bookingApi = {
     getByClassroomAndDate: (classroomId: number, date: string): Promise<any[]> =>
         fetchApi(`/classroom-bookings/classroom/${classroomId}/date/${date}`),
 
+    getAllByDate: (date: string): Promise<any[]> =>
+        fetchApi(`/classroom-bookings/date/${date}`),
+
+    getAllByClassroom: (classroomId: number): Promise<any[]> =>
+        fetchApi(`/classroom-bookings/classroom/${classroomId}/all`),
+
     cancel: (id: number): Promise<void> =>
         fetchApi(`/classroom-bookings/${id}`, {
             method: 'DELETE',
         }),
+
+    cancelMultiple: async (ids: number[]): Promise<void> => {
+        await Promise.all(ids.map(id => fetchApi(`/classroom-bookings/${id}`, { method: 'DELETE' })))
+    },
+}
+
+// ==================== Timetable API ====================
+export const timetableApi = {
+    create: (subDepartmentId: number, startDate: string, endDate: string): Promise<Timetable> =>
+        fetchApi('/timetables', {
+            method: 'POST',
+            body: JSON.stringify({ subDepartmentId, startDate, endDate }),
+        }),
+
+    getAll: (): Promise<Timetable[]> =>
+        fetchApi('/timetables'),
+
+    getById: (id: number): Promise<Timetable> =>
+        fetchApi(`/timetables/${id}`),
+
+    delete: (id: number): Promise<{ message: string }> =>
+        fetchApi(`/timetables/${id}`, {
+            method: 'DELETE',
+        }),
+
+    addEntry: (timetableId: number, dto: CreateTimetableEntryDto): Promise<TimetableEntry> =>
+        fetchApi(`/timetables/${timetableId}/entries`, {
+            method: 'POST',
+            body: JSON.stringify(dto),
+        }),
+
+    updateEntry: (timetableId: number, entryId: number, dto: UpdateTimetableEntryDto): Promise<TimetableEntry> =>
+        fetchApi(`/timetables/${timetableId}/entries/${entryId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(dto),
+        }),
+
+    removeEntry: (timetableId: number, entryId: number): Promise<{ message: string }> =>
+        fetchApi(`/timetables/${timetableId}/entries/${entryId}`, {
+            method: 'DELETE',
+        }),
+
+    publish: (id: number): Promise<Timetable> =>
+        fetchApi(`/timetables/${id}/publish`, {
+            method: 'POST',
+        }),
+
+    unpublish: (id: number): Promise<Timetable> =>
+        fetchApi(`/timetables/${id}/unpublish`, {
+            method: 'POST',
+        }),
+
+    getExportData: (id: number): Promise<Timetable> =>
+        fetchApi(`/timetables/${id}/export`),
+
+    getAssignableStaff: (subDeptId: number): Promise<{ id: number; name: string; email: string; role: string }[]> =>
+        fetchApi(`/timetables/sub-department/${subDeptId}/staff`),
 }
 
 // ==================== Unified API Export ====================
@@ -615,6 +682,7 @@ export const api = {
     classrooms: classroomApi,
     bookings: bookingApi,
     semReports: semReportsApi,
+    timetables: timetableApi,
 }
 
 export default api

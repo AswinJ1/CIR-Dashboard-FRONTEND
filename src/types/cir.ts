@@ -554,3 +554,67 @@ export interface ClassroomBooking {
   createdAt?: string
   updatedAt?: string
 }
+
+// ==================== Timetable ====================
+export interface Timetable {
+  id: number
+  subDepartmentId: number
+  semesterStartDate: string
+  semesterEndDate: string
+  isPublished: boolean
+  createdAt: string
+  updatedAt: string
+  subDepartment?: {
+    id: number
+    name: string
+    department?: {
+      id: number
+      name: string
+    }
+  }
+  entries?: TimetableEntry[]
+  _count?: {
+    entries: number
+  }
+}
+
+export interface TimetableEntry {
+  id: number
+  timetableId: number
+  day: string
+  staffId: number
+  batch: string
+  topic: string
+  startTime: string
+  endTime: string
+  classroomId: number
+  staff?: {
+    id: number
+    name: string
+    email: string
+  }
+  classroom?: {
+    id: number
+    name: string
+  }
+}
+
+export interface CreateTimetableEntryDto {
+  day: string
+  staffId: number
+  batch: string
+  topic: string
+  startTime: string // HH:mm
+  endTime: string   // HH:mm
+  classroomId: number
+}
+
+export interface UpdateTimetableEntryDto {
+  day?: string
+  staffId?: number
+  batch?: string
+  topic?: string
+  startTime?: string
+  endTime?: string
+  classroomId?: number
+}

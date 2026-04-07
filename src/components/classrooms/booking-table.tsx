@@ -23,28 +23,37 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Search, X, Calendar, Clock, Repeat, Lock } from "lucide-react"
+import { Search, Calendar, Clock, Repeat, Lock, Trash2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { format } from "date-fns"
 interface BookingTableProps {
     bookings: ClassroomBooking[]
     isLoading: boolean
     userRole: Role
     onCancel: (id: number) => Promise<void>
+    onCancelMultiple?: (ids: number[]) => Promise<void>
 }
 
 export default function BookingTable({
     bookings,
     isLoading,
     userRole,
-    onCancel
+    onCancel,
+    onCancelMultiple
 }: BookingTableProps) {
     const { user } = useAuth()
     const [searchQuery, setSearchQuery] = useState("")
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
+    const [isBulkCancel, setIsBulkCancel] = useState(false)
     const [selectedBookingId, setSelectedBookingId] = useState<number | null>(null)
+    const [selectedIds, setSelectedIds] = useState<number[]>([])
     const [isCanceling, setIsCanceling] = useState(false)
+
+    // Pagination state
+    const [currentPage, setCurrentPage] = useState(1)
+    const pageSize = 10
 
     /**
      * Determine if the current user can cancel a booking
@@ -73,22 +82,61 @@ export default function BookingTable({
         booking.bookedBy?.name?.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
+    // Pagination logic
+    const totalPages = Math.ceil(filteredBookings.length / pageSize)
+    const startIndex = (currentPage - 1) * pageSize
+    const paginatedBookings = filteredBookings.slice(startIndex, startIndex + pageSize)
+
+    // When search changes, reset to page 1
+    const handleSearchChange = (val: string) => {
+        setSearchQuery(val)
+        setCurrentPage(1)
+    }
+
     const handleCancelClick = (id: number) => {
+        setIsBulkCancel(false)
         setSelectedBookingId(id)
         setCancelDialogOpen(true)
     }
 
-    const handleConfirmCancel = async () => {
-        if (selectedBookingId === null) return
+    const handleBulkCancelClick = () => {
+        setIsBulkCancel(true)
+        setCancelDialogOpen(true)
+    }
 
+    const handleConfirmCancel = async () => {
         setIsCanceling(true)
         try {
-            await onCancel(selectedBookingId)
+            if (isBulkCancel && onCancelMultiple) {
+                await onCancelMultiple(selectedIds)
+                setSelectedIds([])
+            } else if (!isBulkCancel && selectedBookingId !== null) {
+                await onCancel(selectedBookingId)
+                // Remove from selection if it was selected
+                setSelectedIds(prev => prev.filter(id => id !== selectedBookingId))
+            }
             setCancelDialogOpen(false)
             setSelectedBookingId(null)
+            setIsBulkCancel(false)
         } finally {
             setIsCanceling(false)
         }
+    }
+
+    const toggleSelectAll = () => {
+        // Can only select bookings the user has permission to cancel
+        const cancellableBookings = paginatedBookings.filter(b => canCancelBooking(b))
+        if (selectedIds.length === cancellableBookings.length) {
+            setSelectedIds([])
+        } else {
+            setSelectedIds(cancellableBookings.map(b => b.id))
+        }
+    }
+
+    const toggleSelect = (id: number) => {
+        setSelectedIds(prev => 
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        )
     }
 
     const formatTime = (isoString: string) => {
@@ -126,10 +174,16 @@ export default function BookingTable({
                     <Input
                         placeholder="Search by title, classroom or user..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => handleSearchChange(e.target.value)}
                         className="pl-8"
                     />
                 </div>
+                {selectedIds.length > 0 && onCancelMultiple && (
+                    <Button variant="destructive" onClick={handleBulkCancelClick} className="shrink-0">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Cancel Selected ({selectedIds.length})
+                    </Button>
+                )}
             </div>
 
             {/* Table */}
@@ -148,6 +202,18 @@ export default function BookingTable({
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                {onCancelMultiple && (
+                                    <TableHead className="w-[50px]">
+                                        <Checkbox 
+                                            checked={
+                                                paginatedBookings.filter(b => canCancelBooking(b)).length > 0 && 
+                                                selectedIds.length === paginatedBookings.filter(b => canCancelBooking(b)).length
+                                            }
+                                            onCheckedChange={toggleSelectAll}
+                                            disabled={paginatedBookings.every(b => !canCancelBooking(b))}
+                                        />
+                                    </TableHead>
+                                )}
                                 <TableHead>Title</TableHead>
                                 <TableHead>Booked By</TableHead>
                                 <TableHead>Date</TableHead>
@@ -157,8 +223,17 @@ export default function BookingTable({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredBookings.map((booking) => (
+                            {paginatedBookings.map((booking) => (
                                 <TableRow key={booking.id}>
+                                    {onCancelMultiple && (
+                                        <TableCell>
+                                            <Checkbox 
+                                                checked={selectedIds.includes(booking.id)}
+                                                onCheckedChange={() => toggleSelect(booking.id)}
+                                                disabled={!canCancelBooking(booking)}
+                                            />
+                                        </TableCell>
+                                    )}
                                     <TableCell className="font-medium">
                                         {booking.title}
                                     </TableCell>
@@ -229,13 +304,42 @@ export default function BookingTable({
                 </div>
             )}
 
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                        Showing {startIndex + 1} to {Math.min(startIndex + pageSize, filteredBookings.length)} of {filteredBookings.length} bookings
+                    </p>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                        >
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Cancel Confirmation Dialog */}
             <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Cancel Booking</AlertDialogTitle>
+                        <AlertDialogTitle>{isBulkCancel ? "Cancel Multiple Bookings" : "Cancel Booking"}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to cancel this booking? This action cannot be undone.
+                            {isBulkCancel 
+                                ? `Are you sure you want to cancel the ${selectedIds.length} selected bookings? This action cannot be undone.`
+                                : "Are you sure you want to cancel this booking? This action cannot be undone."}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
