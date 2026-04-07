@@ -26,7 +26,7 @@ import ClassroomTable from "@/components/classrooms/classroom-table"
 import BookingTable from "@/components/classrooms/booking-table"
 import CreateClassroomModal from "@/components/classrooms/create-classroom-modal"
 import BookClassroomModal from "@/components/classrooms/book-classroom-modal"
-import { classroomApi, bookingApi } from "@/lib/api"
+import { classroomApi, bookingApi, departmentsApi, subDepartmentsApi, employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 
 
@@ -53,8 +53,17 @@ export default function ClassroomManagementPage() {
     const [preselectedClassroom, setPreselectedClassroom] = useState<Classroom | null>(null)
 
     // Booking filter state
-    const [selectedClassroomId, setSelectedClassroomId] = useState<string>("")
+    const [selectedClassroomId, setSelectedClassroomId] = useState<string>("all")
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+    const [showAllDates, setShowAllDates] = useState(false)
+
+    // Admin filter state
+    const [departments, setDepartments] = useState<any[]>([])
+    const [subDepartments, setSubDepartments] = useState<any[]>([])
+    const [staffList, setStaffList] = useState<any[]>([])
+    const [selectedDeptId, setSelectedDeptId] = useState<string>("all")
+    const [selectedSubDeptId, setSelectedSubDeptId] = useState<string>("all")
+    const [selectedStaffId, setSelectedStaffId] = useState<string>("all")
 
     // Check permissions
     const allowedRoles: Role[] = ["ADMIN"]
@@ -75,10 +84,28 @@ export default function ClassroomManagementPage() {
         )
     }
 
-    // Fetch classrooms on mount
+    // Fetch data on mount
     useEffect(() => {
         fetchClassrooms()
+        if (userRole === "ADMIN") {
+            fetchAdminFilterData()
+        }
     }, [userRole])
+
+    const fetchAdminFilterData = async () => {
+        try {
+            const [depts, subDepts, staff] = await Promise.all([
+                departmentsApi.getAll(),
+                subDepartmentsApi.getAll(),
+                employeesApi.getAll()
+            ])
+            setDepartments(depts)
+            setSubDepartments(subDepts)
+            setStaffList(staff)
+        } catch (error) {
+            console.error("Failed to fetch admin filter data:", error)
+        }
+    }
 
     const fetchClassrooms = async () => {
         setIsLoading(true)
@@ -97,11 +124,19 @@ export default function ClassroomManagementPage() {
 
         setIsLoadingBookings(true)
         try {
-            const dateStr = format(selectedDate, "yyyy-MM-dd")
-            const data = await bookingApi.getByClassroomAndDate(
-                Number(selectedClassroomId),
-                dateStr
-            )
+            let data;
+            if (showAllDates && selectedClassroomId !== "all") {
+                data = await bookingApi.getAllByClassroom(Number(selectedClassroomId))
+            } else if (selectedClassroomId === "all") {
+                const dateStr = format(selectedDate, "yyyy-MM-dd")
+                data = await bookingApi.getAllByDate(dateStr)
+            } else {
+                const dateStr = format(selectedDate, "yyyy-MM-dd")
+                data = await bookingApi.getByClassroomAndDate(
+                    Number(selectedClassroomId),
+                    dateStr
+                )
+            }
             setBookings(data)
         } catch (error: any) {
             handleApiError(error, "Failed to load bookings")
@@ -110,14 +145,14 @@ export default function ClassroomManagementPage() {
         }
     }
 
-    // Fetch bookings when classroom or date changes
+    // Fetch bookings when classroom, date, or showAllDates changes
     useEffect(() => {
         if (selectedClassroomId) {
             fetchBookings()
         } else {
             setBookings([])
         }
-    }, [selectedClassroomId, selectedDate])
+    }, [selectedClassroomId, selectedDate, showAllDates])
 
     const handleApiError = (error: any, fallback: string) => {
         const status = error?.statusCode
@@ -218,8 +253,30 @@ export default function ClassroomManagementPage() {
         }
     }
 
+    const handleCancelMultiple = async (ids: number[]) => {
+        try {
+            await bookingApi.cancelMultiple(ids)
+            toast.success("Selected bookings cancelled successfully")
+            fetchBookings()
+        } catch (error: any) {
+            handleApiError(error, "Failed to cancel selected bookings")
+            throw error
+        }
+    }
+
     // Filter out disabled classrooms for the booking selector
     const activeClassrooms = classrooms.filter(c => c.isActive !== false)
+
+    // Computed filtered lists for admin dropdowns
+    const filteredSubDepts = selectedDeptId === "all" 
+        ? subDepartments 
+        : subDepartments.filter(sd => sd.departmentId === selectedDeptId)
+
+    const filteredStaff = staffList.filter(staff => {
+        if (selectedDeptId !== "all" && staff.departmentId !== selectedDeptId) return false;
+        if (selectedSubDeptId !== "all" && staff.subDepartmentId !== selectedSubDeptId) return false;
+        return true;
+    })
 
     return (
         <div className="space-y-6 p-6">
@@ -290,9 +347,9 @@ export default function ClassroomManagementPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {/* Classroom + Date Selector */}
+                            {/* Classroom & Date Selector */}
                             <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="flex-1">
+                                <div className="flex-1 min-w-[200px]">
                                     <Select
                                         value={selectedClassroomId}
                                         onValueChange={setSelectedClassroomId}
@@ -301,6 +358,9 @@ export default function ClassroomManagementPage() {
                                             <SelectValue placeholder="Select a classroom" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="all">
+                                                📋 All Classrooms
+                                            </SelectItem>
                                             {activeClassrooms.map((c) => (
                                                 <SelectItem key={c.id} value={String(c.id)}>
                                                     {c.name}
@@ -331,22 +391,64 @@ export default function ClassroomManagementPage() {
                                         />
                                     </PopoverContent>
                                 </Popover>
+                                {selectedClassroomId !== "all" && (
+                                    <Button
+                                        variant={showAllDates ? "default" : "outline"}
+                                        onClick={() => setShowAllDates(!showAllDates)}
+                                        className="shrink-0"
+                                    >
+                                        {showAllDates ? "📅 Showing All Dates" : "📅 View All Dates"}
+                                    </Button>
+                                )}
                             </div>
 
-                            {/* Bookings Table */}
-                            {selectedClassroomId ? (
-                                <BookingTable
-                                    bookings={bookings}
-                                    isLoading={isLoadingBookings}
-                                    userRole={userRole}
-                                    onCancel={handleCancelBooking}
-                                />
-                            ) : (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                    <p>Select a classroom above to view its bookings</p>
+                            {/* Admin Staff Filters */}
+                            {userRole === "ADMIN" && (
+                                <div className="flex flex-col sm:flex-row gap-4 flex-wrap bg-muted/20 p-3 rounded-md border border-dashed">
+                                    <div className="flex-1 min-w-[200px]">
+                                        <Select value={selectedDeptId} onValueChange={(val) => { setSelectedDeptId(val); setSelectedSubDeptId("all"); setSelectedStaffId("all"); }}>
+                                            <SelectTrigger><SelectValue placeholder="All Departments" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">🏢 All Departments</SelectItem>
+                                                {departments.map((d) => (
+                                                    <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex-1 min-w-[200px]">
+                                        <Select value={selectedSubDeptId} onValueChange={(val) => { setSelectedSubDeptId(val); setSelectedStaffId("all"); }}>
+                                            <SelectTrigger><SelectValue placeholder="All Sub-Departments" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">🏘️ All Sub-Departments</SelectItem>
+                                                {filteredSubDepts.map((sd) => (
+                                                    <SelectItem key={sd.id} value={String(sd.id)}>{sd.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex-1 min-w-[200px]">
+                                        <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
+                                            <SelectTrigger><SelectValue placeholder="All Staff" /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">👥 All Staff</SelectItem>
+                                                {filteredStaff.map((staff) => (
+                                                    <SelectItem key={staff.id} value={String(staff.id)}>{staff.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
                                 </div>
                             )}
+
+                            {/* Bookings Table */}
+                            <BookingTable
+                                bookings={bookings.filter(b => selectedStaffId === 'all' || String(b.bookedBy?.id) === selectedStaffId)}
+                                isLoading={isLoadingBookings}
+                                userRole={userRole}
+                                onCancel={handleCancelBooking}
+                                onCancelMultiple={handleCancelMultiple}
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>

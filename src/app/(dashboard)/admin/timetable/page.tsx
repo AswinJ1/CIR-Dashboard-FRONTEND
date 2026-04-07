@@ -1,0 +1,604 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useAuth } from "@/components/providers/auth-context"
+import { api } from "@/lib/api"
+import { Timetable, TimetableEntry, Classroom, SubDepartment } from "@/types/cir"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Calendar, CalendarCheck, Plus, Trash2, Edit, FileDown, AlertTriangle, AlertCircle, RefreshCw, FolderOpen, UserCheck } from "lucide-react"
+import { toast } from "sonner"
+import * as ExcelJS from 'exceljs'
+import { format } from "date-fns"
+
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+export default function AdminTimetablePage() {
+    const { user } = useAuth()
+    const [timetables, setTimetables] = useState<Timetable[]>([])
+    const [selectedTimetable, setSelectedTimetable] = useState<Timetable | null>(null)
+    const [classrooms, setClassrooms] = useState<Classroom[]>([])
+    const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
+    const [assignableStaff, setAssignableStaff] = useState<{ id: number; name: string; email: string; role: string }[]>([])
+    
+    const [isLoading, setIsLoading] = useState(true)
+    const [isActionLoading, setIsActionLoading] = useState(false)
+
+    // Form State
+    const [isEntryModalOpen, setIsEntryModalOpen] = useState(false)
+    const [isCreateTtModalOpen, setIsCreateTtModalOpen] = useState(false)
+    const [newTtSubDeptId, setNewTtSubDeptId] = useState<string>("")
+    const [semesterDates, setSemesterDates] = useState({ start: "2026-01-05", end: "2026-06-30" })
+
+    const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null)
+    const [formData, setFormData] = useState({
+        day: "",
+        staffId: "",
+        batch: "",
+        topic: "",
+        startTime: "",
+        endTime: "",
+        classroomId: ""
+    })
+
+    useEffect(() => {
+        if (!user) return
+        fetchData()
+    }, [user])
+
+    const fetchData = async () => {
+        setIsLoading(true)
+        try {
+            const [ttData, crData, sdData] = await Promise.all([
+                api.timetables.getAll(),
+                api.classrooms.getAll(),
+                api.subDepartments.getAll()
+            ])
+            setTimetables(ttData)
+            setClassrooms(crData.filter(c => c.isActive))
+            setSubDepartments(sdData)
+            
+            if (ttData.length > 0 && !selectedTimetable) {
+                handleSelectTimetable(ttData[0].id)
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Failed to load data")
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const handleSelectTimetable = async (id: number) => {
+        setIsActionLoading(true)
+        try {
+            const data = await api.timetables.getById(id)
+            setSelectedTimetable(data)
+            
+            // Fetch staff for this timetable's sub-department
+            const staffData = await api.timetables.getAssignableStaff(data.subDepartmentId)
+            setAssignableStaff(staffData)
+        } catch (error: any) {
+            toast.error(error.message || "Failed to load timetable")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleCreateTimetable = async () => {
+        if (!newTtSubDeptId) return toast.error("Please select a sub-department")
+        setIsActionLoading(true)
+        try {
+            const created = await api.timetables.create(Number(newTtSubDeptId), semesterDates.start, semesterDates.end)
+            toast.success("Timetable created successfully")
+            setIsCreateTtModalOpen(false)
+            setNewTtSubDeptId("")
+            fetchData()
+            handleSelectTimetable(created.id)
+        } catch (error: any) {
+            toast.error(error.message || "Failed to create timetable")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleDeleteTimetable = async (id: number) => {
+        if (!confirm("Delete full timetable?")) return
+        setIsActionLoading(true)
+        try {
+            await api.timetables.delete(id)
+            toast.success("Timetable deleted")
+            if (selectedTimetable?.id === id) setSelectedTimetable(null)
+            fetchData()
+        } catch (error: any) {
+            toast.error(error.message || "Failed to delete timetable")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handlePublishToggle = async () => {
+        if (!selectedTimetable) return
+        setIsActionLoading(true)
+        try {
+            if (selectedTimetable.isPublished) {
+                await api.timetables.unpublish(selectedTimetable.id)
+                toast.success("Timetable unpublished")
+            } else {
+                await api.timetables.publish(selectedTimetable.id)
+                toast.success("Timetable published & bookings locked")
+            }
+            handleSelectTimetable(selectedTimetable.id)
+            fetchData()
+        } catch (error: any) {
+            toast.error(error.message || "Action failed")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const openCreateEntryModal = () => {
+        setEditingEntry(null)
+        setFormData({
+            day: "",
+            staffId: "",
+            batch: "",
+            topic: "",
+            startTime: "",
+            endTime: "",
+            classroomId: ""
+        })
+        setIsEntryModalOpen(true)
+    }
+
+    const openEditEntryModal = (entry: TimetableEntry) => {
+        const formatTime = (isoString: string) => {
+            const date = new Date(isoString);
+            return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        }
+        setEditingEntry(entry)
+        setFormData({
+            day: entry.day,
+            staffId: String(entry.staffId),
+            batch: entry.batch,
+            topic: entry.topic,
+            startTime: formatTime(entry.startTime),
+            endTime: formatTime(entry.endTime),
+            classroomId: String(entry.classroomId)
+        })
+        setIsEntryModalOpen(true)
+    }
+
+    const handleSaveEntry = async () => {
+        if (!selectedTimetable) return
+        if (!formData.day || !formData.staffId || !formData.startTime || !formData.endTime || !formData.classroomId) {
+            return toast.error("Please fill all required fields")
+        }
+
+        setIsActionLoading(true)
+        try {
+            const DAY_REFERENCE_DATES: Record<string, string> = {
+                Monday: '2026-01-05',
+                Tuesday: '2026-01-06',
+                Wednesday: '2026-01-07',
+                Thursday: '2026-01-08',
+                Friday: '2026-01-09',
+                Saturday: '2026-01-10',
+            }
+            
+            const refDate = DAY_REFERENCE_DATES[formData.day] || '2026-01-05'
+            const sISO = new Date(`${refDate}T${formData.startTime}:00`).toISOString()
+            const eISO = new Date(`${refDate}T${formData.endTime}:00`).toISOString()
+
+            const payload = {
+                day: formData.day,
+                staffId: Number(formData.staffId),
+                batch: formData.batch,
+                topic: formData.topic,
+                startTime: sISO,
+                endTime: eISO,
+                classroomId: Number(formData.classroomId)
+            }
+
+            if (editingEntry) {
+                await api.timetables.updateEntry(selectedTimetable.id, editingEntry.id, payload)
+                toast.success("Entry updated")
+            } else {
+                await api.timetables.addEntry(selectedTimetable.id, payload)
+                toast.success("Entry added")
+            }
+            
+            setIsEntryModalOpen(false)
+            handleSelectTimetable(selectedTimetable.id)
+        } catch (error: any) {
+            toast.error(error.message || "Conflict or validation error")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleDeleteEntry = async (entryId: number) => {
+        if (!selectedTimetable) return
+        if (!confirm("Remove this entry?")) return
+        setIsActionLoading(true)
+        try {
+            await api.timetables.removeEntry(selectedTimetable.id, entryId)
+            toast.success("Entry removed")
+            handleSelectTimetable(selectedTimetable.id)
+        } catch (error: any) {
+             toast.error(error.message || "Failed to remove entry")
+        } finally {
+            setIsActionLoading(false)
+        }
+    }
+
+    const handleExport = async () => {
+        if (!selectedTimetable || !selectedTimetable.entries) return
+        
+        try {
+            const { exportTimetableToExcel } = await import('@/lib/timetable-export')
+            await exportTimetableToExcel({
+                entries: selectedTimetable.entries,
+                subDepartmentName: selectedTimetable.subDepartment?.name || 'Unknown',
+                timetableId: selectedTimetable.id,
+                departmentName: selectedTimetable.subDepartment?.department?.name,
+                semesterStartDate: selectedTimetable.semesterStartDate,
+                semesterEndDate: selectedTimetable.semesterEndDate,
+            })
+            
+            toast.success("Excel file generated")
+        } catch (error) {
+            console.error("Export error", error)
+            toast.error("Failed to generate Excel file")
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="p-6 space-y-6">
+                <Skeleton className="h-10 w-64" />
+                <Skeleton className="h-[400px]" />
+            </div>
+        )
+    }
+
+    return (
+        <div className="p-6 space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                        <CalendarCheck className="h-8 w-8 text-primary" />
+                        Master Timetable Admin
+                    </h1>
+                    <p className="text-muted-foreground">Manage timetables across all sub-departments</p>
+                </div>
+                <Button onClick={() => setIsCreateTtModalOpen(true)} disabled={isActionLoading}>
+                    <Plus className="mr-2 h-4 w-4" /> Create Timetable
+                </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Sidebar: List of Timetables */}
+                <Card className="lg:col-span-1">
+                    <CardHeader>
+                        <CardTitle>All Timetables</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {timetables.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">No timetables found</p>
+                        ) : (
+                            <div className="space-y-2">
+                                {timetables.map(tt => (
+                                    <div 
+                                        key={tt.id}
+                                        onClick={() => handleSelectTimetable(tt.id)}
+                                        className={`p-3 rounded-lg border cursor-pointer transition-colors flex items-center justify-between ${selectedTimetable?.id === tt.id ? 'bg-primary/10 border-primary' : 'hover:bg-muted'}`}
+                                    >
+                                        <div>
+                                            <p className="font-medium text-sm">Version {tt.id}</p>
+                                            <p className="font-semibold text-xs text-primary max-w-full truncate">{tt.subDepartment?.name}</p>
+                                            <p className="text-xs text-muted-foreground">{format(new Date(tt.createdAt), 'dd MMM yyyy')}</p>
+                                        </div>
+                                        <Badge variant={tt.isPublished ? "default" : "secondary"} className="text-xs shrink-0">
+                                            {tt.isPublished ? "Published" : "Draft"}
+                                        </Badge>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Main Content: Timetable Details */}
+                <div className="lg:col-span-3">
+                    {selectedTimetable ? (
+                        <Card className="h-full border-t-4 border-t-primary shadow-sm">
+                            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <CardTitle className="text-2xl">Timetable v{selectedTimetable.id}</CardTitle>
+                                        <Badge variant={selectedTimetable.isPublished ? "default" : "secondary"}>
+                                            {selectedTimetable.isPublished ? "Published (Locked)" : "Draft Mode"}
+                                        </Badge>
+                                    </div>
+                                    <CardDescription>
+                                        Department: <span className="font-medium">{selectedTimetable.subDepartment?.department?.name}</span>
+                                        <br />
+                                        Sub-Department: <span className="font-medium">{selectedTimetable.subDepartment?.name}</span>
+                                    </CardDescription>
+                                    {!selectedTimetable.isPublished && (
+                                        <div className="flex items-center text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/50 p-2 rounded-md mt-2 border border-amber-200 dark:border-amber-900">
+                                            <AlertTriangle className="h-3 w-3 mr-1.5" />
+                                            Changes won't lock classrooms until published
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {selectedTimetable.isPublished ? (
+                                        <Button 
+                                            variant="outline" 
+                                            onClick={handlePublishToggle} 
+                                            disabled={isActionLoading}
+                                            className="bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-200"
+                                        >
+                                            <RefreshCw className="mr-2 h-4 w-4" /> Unpublish
+                                        </Button>
+                                    ) : (
+                                        <Button 
+                                            variant="default" 
+                                            onClick={handlePublishToggle} 
+                                            disabled={isActionLoading || (selectedTimetable.entries?.length === 0)}
+                                            className="bg-green-600 hover:bg-green-700 text-white"
+                                        >
+                                            <CalendarCheck className="mr-2 h-4 w-4" /> Publish & Lock
+                                        </Button>
+                                    )}
+                                    <Button variant="outline" onClick={handleExport} disabled={isActionLoading || !selectedTimetable.entries?.length}>
+                                        <FileDown className="mr-2 h-4 w-4" /> Export
+                                    </Button>
+                                    <Button variant="destructive" size="icon" onClick={() => handleDeleteTimetable(selectedTimetable.id)} disabled={isActionLoading}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-6">
+                                <div className="mb-6 flex justify-between items-center bg-muted/30 p-3 rounded-lg border">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="text-sm">
+                                            <span className="font-semibold text-primary">{selectedTimetable.entries?.length || 0}</span> scheduled sessions total
+                                        </div>
+                                        {selectedTimetable.semesterStartDate && selectedTimetable.semesterEndDate && (
+                                            <div className="text-xs text-muted-foreground flex items-center">
+                                                <Calendar className="mr-1 h-3 w-3 inline" />
+                                                {format(new Date(selectedTimetable.semesterStartDate), "MMM d, yyyy")} - {format(new Date(selectedTimetable.semesterEndDate), "MMM d, yyyy")}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {!selectedTimetable.isPublished && (
+                                        <Button size="sm" onClick={openCreateEntryModal} disabled={isActionLoading}>
+                                            <Plus className="h-4 w-4 mr-1" /> Add Session
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <Tabs defaultValue={DAYS[0]}>
+                                    <TabsList className="mb-4 flex flex-wrap h-auto">
+                                        {DAYS.map(day => (
+                                            <TabsTrigger key={day} value={day} className="flex-1 min-w-[100px]">
+                                                {day.substring(0,3)}
+                                                <Badge variant="secondary" className="ml-2 text-[10px]">
+                                                    {selectedTimetable.entries?.filter(e => e.day === day).length || 0}
+                                                </Badge>
+                                            </TabsTrigger>
+                                        ))}
+                                    </TabsList>
+
+                                    {DAYS.map(day => {
+                                        const entries = selectedTimetable.entries?.filter(e => e.day === day) || [];
+                                        entries.sort((a,b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+
+                                        return (
+                                            <TabsContent key={day} value={day} className="space-y-4 focus-visible:outline-none">
+                                                {entries.length === 0 ? (
+                                                    <div className="text-center py-12 bg-muted/10 rounded-lg border border-dashed">
+                                                        <CalendarCheck className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                                                        <p className="text-muted-foreground">No sessions scheduled for {day}</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grid gap-3">
+                                                        {entries.map(entry => {
+                                                            const t1 = new Date(entry.startTime);
+                                                            const t2 = new Date(entry.endTime);
+                                                            const tm1 = `${String(t1.getHours()).padStart(2,'0')}:${String(t1.getMinutes()).padStart(2,'0')}`
+                                                            const tm2 = `${String(t2.getHours()).padStart(2,'0')}:${String(t2.getMinutes()).padStart(2,'0')}`
+                                                            
+                                                            return (
+                                                            <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card rounded-xl border shadow-sm hover:shadow transition-shadow group">
+                                                                <div className="flex items-start sm:items-center gap-4">
+                                                                    <div className="bg-primary/10 text-primary font-mono font-semibold px-3 py-1.5 rounded-md min-w-[120px] text-center shrink-0 border border-primary/20">
+                                                                        {tm1} - {tm2}
+                                                                    </div>
+                                                                    <div>
+                                                                        <h4 className="font-bold text-base flex items-center gap-2">
+                                                                            {entry.topic}
+                                                                            <Badge variant="outline" className="font-normal text-xs">{entry.batch}</Badge>
+                                                                        </h4>
+                                                                        <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
+                                                                            <span className="flex items-center"><UserCheck className="h-3 w-3 mr-1 inline" /> {entry.staff?.name}</span>
+                                                                            <span className="flex items-center"><FolderOpen className="h-3 w-3 mr-1 inline" /> {entry.classroom?.name}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {!selectedTimetable.isPublished && (
+                                                                    <div className="flex gap-2 mt-3 sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <Button variant="outline" size="sm" onClick={() => openEditEntryModal(entry)}>
+                                                                            <Edit className="h-4 w-4" />
+                                                                        </Button>
+                                                                        <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )})}
+                                                    </div>
+                                                )}
+                                            </TabsContent>
+                                        )
+                                    })}
+                                </Tabs>
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center p-12 bg-muted/20 rounded-xl border border-dashed">
+                            <CalendarCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                            <h3 className="text-xl font-medium mb-1">No Timetable Selected</h3>
+                            <p className="text-muted-foreground text-center max-w-sm mb-6">Select a timetable from the sidebar to view details, or create a new one to get started.</p>
+                            <Button onClick={() => setIsCreateTtModalOpen(true)} disabled={isActionLoading}>
+                                <Plus className="mr-2 h-4 w-4" /> Create Timetable
+                            </Button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Create Timetable Dialog */}
+            <Dialog open={isCreateTtModalOpen} onOpenChange={setIsCreateTtModalOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create New Timetable</DialogTitle>
+                        <DialogDescription>
+                            Select the sub-department for which you are creating the timetable.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4">
+                        <Label>Sub-Department</Label>
+                        <Select value={newTtSubDeptId} onValueChange={setNewTtSubDeptId}>
+                            <SelectTrigger className="mt-2">
+                                <SelectValue placeholder="Select sub-department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {subDepartments.map(sd => (
+                                    <SelectItem key={sd.id} value={String(sd.id)}>{sd.name} ({sd.department?.name})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 py-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="adminSemStart">Semester Start</Label>
+                            <Input id="adminSemStart" type="date" value={semesterDates.start} onChange={(e) => setSemesterDates({...semesterDates, start: e.target.value})} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="adminSemEnd">Semester End</Label>
+                            <Input id="adminSemEnd" type="date" value={semesterDates.end} onChange={(e) => setSemesterDates({...semesterDates, end: e.target.value})} />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateTtModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateTimetable} disabled={isActionLoading || !newTtSubDeptId}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Add/Edit Entry Dialog */}
+            <Dialog open={isEntryModalOpen} onOpenChange={setIsEntryModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>{editingEntry ? 'Edit Session' : 'Add New Session'}</DialogTitle>
+                        <DialogDescription>
+                            Schedule a class session. Overlapping conflicts will be automatically validated.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Day</Label>
+                                <Select value={formData.day} onValueChange={(v) => setFormData({...formData, day: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Select day" /></SelectTrigger>
+                                    <SelectContent>
+                                        {DAYS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Classroom</Label>
+                                <Select value={formData.classroomId} onValueChange={(v) => setFormData({...formData, classroomId: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Select room" /></SelectTrigger>
+                                    <SelectContent>
+                                        {classrooms.map(c => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Assigned Staff</Label>
+                            <Select value={formData.staffId} onValueChange={(v) => setFormData({...formData, staffId: v})}>
+                                <SelectTrigger><SelectValue placeholder="Select staff member" /></SelectTrigger>
+                                <SelectContent>
+                                    {assignableStaff.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.role})</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="batch">Batch</Label>
+                                <Input id="batch" placeholder="e.g. S5CSE" value={formData.batch} onChange={(e) => setFormData({...formData, batch: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="topic">Topic</Label>
+                                <Input id="topic" placeholder="e.g. Verbal Training" value={formData.topic} onChange={(e) => setFormData({...formData, topic: e.target.value})} />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="start">Start Time</Label>
+                                <Input id="start" type="time" min="09:00" max="16:50" value={formData.startTime} onChange={(e) => setFormData({...formData, startTime: e.target.value})} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="end">End Time</Label>
+                                <Input id="end" type="time" min="09:00" max="16:50" value={formData.endTime} onChange={(e) => setFormData({...formData, endTime: e.target.value})} />
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <AlertCircle className="h-3 w-3" /> Time must be between 09:00 and 16:50
+                        </p>
+                    </div>
+                    
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEntryModalOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSaveEntry} disabled={isActionLoading}>
+                            {isActionLoading ? "Saving..." : "Save Session"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+        </div>
+    )
+}

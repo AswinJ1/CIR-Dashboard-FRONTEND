@@ -54,8 +54,9 @@ export default function ClassroomManagementPage() {
      }
 
     // Booking filter state
-    const [selectedClassroomId, setSelectedClassroomId] = useState<string>("")
+    const [selectedClassroomId, setSelectedClassroomId] = useState<string>("all")
     const [selectedDate, setSelectedDate] = useState<Date>(new Date())
+    const [showAllDates, setShowAllDates] = useState(false)
 
     // Check permissions
     const allowedRoles: Role[] = ["STAFF"]
@@ -95,11 +96,19 @@ export default function ClassroomManagementPage() {
 
         setIsLoadingBookings(true)
         try {
-            const dateStr = format(selectedDate, "yyyy-MM-dd")
-            const data = await bookingApi.getByClassroomAndDate(
-                Number(selectedClassroomId),
-                dateStr
-            )
+            let data;
+            if (showAllDates && selectedClassroomId !== "all") {
+                data = await bookingApi.getAllByClassroom(Number(selectedClassroomId))
+            } else if (selectedClassroomId === "all") {
+                const dateStr = format(selectedDate, "yyyy-MM-dd")
+                data = await bookingApi.getAllByDate(dateStr)
+            } else {
+                const dateStr = format(selectedDate, "yyyy-MM-dd")
+                data = await bookingApi.getByClassroomAndDate(
+                    Number(selectedClassroomId),
+                    dateStr
+                )
+            }
             setBookings(data)
         } catch (error: any) {
             handleApiError(error, "Failed to load bookings")
@@ -108,14 +117,14 @@ export default function ClassroomManagementPage() {
         }
     }
 
-    // Fetch bookings when classroom or date changes
+    // Fetch bookings when classroom, date, or showAllDates changes
     useEffect(() => {
         if (selectedClassroomId) {
             fetchBookings()
         } else {
             setBookings([])
         }
-    }, [selectedClassroomId, selectedDate])
+    }, [selectedClassroomId, selectedDate, showAllDates])
 
     const handleApiError = (error: any, fallback: string) => {
         const status = error?.statusCode
@@ -195,8 +204,19 @@ export default function ClassroomManagementPage() {
         }
     }
 
+    const handleCancelMultiple = async (ids: number[]) => {
+        try {
+            await bookingApi.cancelMultiple(ids)
+            toast.success("Selected bookings cancelled successfully")
+            fetchBookings()
+        } catch (error: any) {
+            handleApiError(error, "Failed to cancel selected bookings")
+            throw error
+        }
+    }
+
     // Filter out disabled classrooms for the booking selector
-    const activeClassrooms = classrooms.filter(c => !c.isActive)
+    const activeClassrooms = classrooms.filter(c => c.isActive !== false)
 
     return (
         <div className="space-y-6 p-6">
@@ -269,6 +289,9 @@ export default function ClassroomManagementPage() {
                                             <SelectValue placeholder="Select a classroom" />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            <SelectItem value="all">
+                                                📋 All Classrooms
+                                            </SelectItem>
                                             {activeClassrooms.map((c) => (
                                                 <SelectItem key={c.id} value={String(c.id)}>
                                                     {c.name}
@@ -299,22 +322,25 @@ export default function ClassroomManagementPage() {
                                         />
                                     </PopoverContent>
                                 </Popover>
+                                {selectedClassroomId !== "all" && (
+                                    <Button
+                                        variant={showAllDates ? "default" : "outline"}
+                                        onClick={() => setShowAllDates(!showAllDates)}
+                                        className="shrink-0"
+                                    >
+                                        {showAllDates ? "📅 Showing All Dates" : "📅 View All Dates"}
+                                    </Button>
+                                )}
                             </div>
 
                             {/* Bookings Table */}
-                            {selectedClassroomId ? (
-                                <BookingTable
-                                    bookings={bookings}
-                                    isLoading={isLoadingBookings}
-                                    userRole={userRole}
-                                    onCancel={handleCancelBooking}
-                                />
-                            ) : (
-                                <div className="text-center py-12 text-muted-foreground">
-                                    <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                    <p>Select a classroom above to view its bookings</p>
-                                </div>
-                            )}
+                            <BookingTable
+                                bookings={bookings}
+                                isLoading={isLoadingBookings}
+                                userRole={userRole}
+                                onCancel={handleCancelBooking}
+                                onCancelMultiple={handleCancelMultiple}
+                            />
                         </CardContent>
                     </Card>
                 </TabsContent>

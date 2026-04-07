@@ -102,6 +102,12 @@ const searchOptions: SearchOption[] = [
     icon: <User className="h-4 w-4" />,
     roles: ["ADMIN"]
   },
+  {
+    label: "Timetable",
+    href: "/admin/timetable",
+    icon: <Calendar className="h-4 w-4" />,
+    roles: ["ADMIN"]
+  },
 
   // ==================== MANAGER Options ====================
   {
@@ -168,6 +174,12 @@ const searchOptions: SearchOption[] = [
     label: "My Responsibilities",
     href: "/manager/my-responsibilities",
     icon: <ClipboardList className="h-4 w-4" />,
+    roles: ["MANAGER"]
+  },
+  {
+    label: "Timetable",
+    href: "/manager/timetable",
+    icon: <Calendar className="h-4 w-4" />,
     roles: ["MANAGER"]
   },
 

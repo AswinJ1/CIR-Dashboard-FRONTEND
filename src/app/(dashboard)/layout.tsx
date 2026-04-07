@@ -87,6 +87,12 @@ const navigation: NavigationItem[] = [
     href: "/admin/classrooms",
     icon: <FolderOpen className="w-5 h-5" />,
     roles: ["ADMIN"]
+  },
+  {
+    name: "Timetable",
+    href: "/admin/timetable",
+    icon: <CalendarCheck className="w-5 h-5" />,
+    roles: ["ADMIN"]
   }
   // {
   //   name: "Analytics",
@@ -153,6 +159,12 @@ const navigation: NavigationItem[] = [
     roles: ["MANAGER"]
   },
   {
+    name: "Timetable",
+    href: "/manager/timetable",
+    icon: <CalendarCheck className="w-5 h-5" />,
+    roles: ["MANAGER"]
+  },
+  {
     name: "My Work Calendar",
     href: "/manager/work-calendar",
     icon: <CalendarRange className="w-5 h-5" />,
@@ -206,6 +218,12 @@ const navigation: NavigationItem[] = [
     name: "Classroom Management",
     href: "/staff/classrooms",
     icon: <FolderOpen className="w-5 h-5" />,
+    roles: ["STAFF"]
+  },
+  {
+    name: "Timetable",
+    href: "/staff/timetable",
+    icon: <CalendarCheck className="w-5 h-5" />,
     roles: ["STAFF"]
   }
   // {
