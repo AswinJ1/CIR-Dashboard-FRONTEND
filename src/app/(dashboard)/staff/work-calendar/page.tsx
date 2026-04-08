@@ -311,6 +311,8 @@ export default function StaffWorkCalendarPage() {
                         cycle,
                         createdBy: { connect: { id: parseInt(user.id) } },
                         subDepartment: { connect: { id: parseInt(user.subDepartmentId) } },
+                        startDate: format(selectedDate, 'yyyy-MM-dd'),
+                        endDate: format(selectedDate, 'yyyy-MM-dd'),
                         isStaffCreated: true,
                     })
 

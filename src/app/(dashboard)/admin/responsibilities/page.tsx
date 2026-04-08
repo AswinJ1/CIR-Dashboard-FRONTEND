@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { api } from "@/lib/api"
 import { useAuth } from "@/components/providers/auth-context"
-import { Responsibility, ResponsibilityGroup, SubDepartment, Department, CreateResponsibilityDto, UpdateResponsibilityDto } from "@/types/cir"
+import { Responsibility, ResponsibilityGroup, SubDepartment, Department, CreateResponsibilityDto, UpdateResponsibilityDto, Employee, Assignment } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,12 +51,24 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 
+function parseLogicalDate(dateStr: string | null | undefined): Date | undefined {
+    if (!dateStr) return undefined;
+    const ymd = typeof dateStr === 'string' ? dateStr.substring(0, 10) : new Date(dateStr).toISOString().substring(0, 10);
+    const [year, month, day] = ymd.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
 export default function AdminResponsibilitiesPage() {
     const { user } = useAuth()
     const [responsibilities, setResponsibilities] = useState<Responsibility[]>([])
     const [responsibilityGroups, setResponsibilityGroups] = useState<ResponsibilityGroup[]>([])
     const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
     const [departments, setDepartments] = useState<Department[]>([])
+    const [employees, setEmployees] = useState<Employee[]>([])
+    const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+    const [assigningResponsibility, setAssigningResponsibility] = useState<Responsibility | null>(null)
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("")
+    const [isAssigning, setIsAssigning] = useState(false)
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedFilterDept, setSelectedFilterDept] = useState<string>("all")
@@ -107,16 +119,18 @@ export default function AdminResponsibilitiesPage() {
                 }
             }
 
-            const [responsibilitiesData, subDepartmentsData, departmentsData, groupsData] = await Promise.all([
+            const [responsibilitiesData, subDepartmentsData, departmentsData, groupsData, employeesData] = await Promise.all([
                 api.responsibilities.getAll({ includeRelations: true }),
                 api.subDepartments.getAll(),
                 api.departments.getAll(),
                 fetchGroupsSafe(),
+                api.employees.getAll()
             ])
             setResponsibilities(responsibilitiesData)
             setSubDepartments(subDepartmentsData)
             setDepartments(departmentsData)
             setResponsibilityGroups(groupsData)
+            setEmployees(employeesData)
         } catch (error) {
             console.error("Failed to fetch data:", error)
         } finally {
@@ -239,8 +253,8 @@ export default function AdminResponsibilitiesPage() {
                 createdBy: { connect: { id: parseInt(user.id) } },
                 subDepartment: { connect: { id: parseInt(selectedSubDepartment) } },
                 description: description.trim() || undefined,
-                startDate: startDate ? startDate.toISOString() : undefined,
-                endDate: endDate ? endDate.toISOString() : undefined,
+                startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+                endDate: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
             }
 
             await api.responsibilities.create(payload)
@@ -286,8 +300,8 @@ export default function AdminResponsibilitiesPage() {
         setDescription(resp.description || "")
         setCycle(resp.cycle || "")
         setSelectedSubDepartment(resp.subDepartmentId || "")
-        setStartDate(resp.startDate ? new Date(resp.startDate) : undefined)
-        setEndDate(resp.endDate ? new Date(resp.endDate) : undefined)
+        setStartDate(parseLogicalDate(resp.startDate))
+        setEndDate(parseLogicalDate(resp.endDate))
         setEditDialogOpen(true)
     }
 
@@ -314,8 +328,8 @@ export default function AdminResponsibilitiesPage() {
                 title: title.trim(),
                 cycle: cycle.trim(),
                 description: description.trim() || undefined,
-                startDate: startDate ? startDate.toISOString() : undefined,
-                endDate: endDate ? endDate.toISOString() : undefined,
+                startDate: startDate ? format(startDate, 'yyyy-MM-dd') : undefined,
+                endDate: endDate ? format(endDate, 'yyyy-MM-dd') : undefined,
             }
 
             await api.responsibilities.update(editingResponsibility.id, payload)
@@ -334,15 +348,45 @@ export default function AdminResponsibilitiesPage() {
 
     // Toggle row expansion
     function toggleRowExpansion(id: string) {
-        setExpandedRows(prev => {
-            const newSet = new Set(prev)
-            if (newSet.has(id)) {
-                newSet.delete(id)
-            } else {
-                newSet.add(id)
-            }
-            return newSet
-        })
+        const newSet = new Set(expandedRows)
+        if (newSet.has(id)) {
+            newSet.delete(id)
+        } else {
+            newSet.add(id)
+        }
+        setExpandedRows(newSet)
+    }
+
+    async function handleAssign() {
+        if (!assigningResponsibility || !selectedEmployeeId) return
+        
+        setIsAssigning(true)
+        try {
+            await api.assignments.create({
+                responsibility: { connect: { id: parseInt(assigningResponsibility.id) } },
+                staff: { connect: { id: parseInt(selectedEmployeeId) } }
+            })
+            toast.success("Responsibility assigned successfully")
+            setAssignDialogOpen(false)
+            setSelectedEmployeeId("")
+            fetchData()
+        } catch (error: any) {
+            console.error("Failed to assign:", error)
+            toast.error(error.message || "Failed to assign responsibility")
+        } finally {
+            setIsAssigning(false)
+        }
+    }
+
+    async function handleUnassign(assignmentId: string) {
+        try {
+            await api.assignments.delete(assignmentId)
+            toast.success("Staff unassigned successfully")
+            fetchData()
+        } catch (error: any) {
+            console.error("Failed to unassign:", error)
+            toast.error(error.message || "Failed to unassign staff")
+        }
     }
 
     // Helper to get sub-department name by ID
@@ -716,7 +760,7 @@ export default function AdminResponsibilitiesPage() {
                                                 <div className="flex items-center gap-2">
                                                     {resp.startDate && resp.endDate ? (
                                                         <Badge variant="secondary" className="text-xs">
-                                                            {format(new Date(resp.startDate), "MMM d")} - {format(new Date(resp.endDate), "MMM d")}
+                                                            {format(parseLogicalDate(resp.startDate)!, "MMM d")} - {format(parseLogicalDate(resp.endDate)!, "MMM d")}
                                                         </Badge>
                                                     ) : null}
                                                     <Button 
@@ -758,13 +802,13 @@ export default function AdminResponsibilitiesPage() {
                                                         <div>
                                                             <h4 className="text-sm font-medium mb-1">Start Date</h4>
                                                             <p className="text-sm text-muted-foreground">
-                                                                {resp.startDate ? format(new Date(resp.startDate), "PPP") : "Not set"}
+                                                                {resp.startDate ? format(parseLogicalDate(resp.startDate)!, "PPP") : "Not set"}
                                                             </p>
                                                         </div>
                                                         <div>
                                                             <h4 className="text-sm font-medium mb-1">End Date</h4>
                                                             <p className="text-sm text-muted-foreground">
-                                                                {resp.endDate ? format(new Date(resp.endDate), "PPP") : "Not set"}
+                                                                {resp.endDate ? format(parseLogicalDate(resp.endDate)!, "PPP") : "Not set"}
                                                             </p>
                                                         </div>
                                                     </div>
@@ -787,18 +831,32 @@ export default function AdminResponsibilitiesPage() {
                                                     )}
 
                                                     {/* Assigned Staff */}
-                                                    {assignments.length > 0 && (
-                                                        <div className="pt-4 border-t">
-                                                            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                                                    <div className="pt-4 border-t">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <h4 className="text-sm font-medium flex items-center gap-2">
                                                                 <Users className="h-4 w-4" />
                                                                 Assigned Staff
                                                             </h4>
+                                                            <Button 
+                                                                variant="outline" 
+                                                                size="sm" 
+                                                                onClick={() => {
+                                                                    setAssigningResponsibility(resp)
+                                                                    setAssignDialogOpen(true)
+                                                                }}
+                                                            >
+                                                                <Plus className="h-4 w-4 mr-1" />
+                                                                Assign Staff
+                                                            </Button>
+                                                        </div>
+                                                        {assignments.length > 0 ? (
                                                             <Table>
                                                                 <TableHeader>
                                                                     <TableRow>
                                                                         <TableHead>Name</TableHead>
                                                                         <TableHead>Status</TableHead>
                                                                         <TableHead>Assigned At</TableHead>
+                                                                        <TableHead className="text-right">Actions</TableHead>
                                                                     </TableRow>
                                                                 </TableHeader>
                                                                 <TableBody>
@@ -827,16 +885,30 @@ export default function AdminResponsibilitiesPage() {
                                                                                     ? format(new Date(assignment.assignedAt), "MMM d, yyyy")
                                                                                     : 'N/A'}
                                                                             </TableCell>
+                                                                            <TableCell className="text-right">
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    onClick={() => handleUnassign(assignment.id)}
+                                                                                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                                                                >
+                                                                                    <Trash2 className="h-4 w-4" />
+                                                                                </Button>
+                                                                            </TableCell>
                                                                         </TableRow>
                                                                     ))}
                                                                 </TableBody>
                                                             </Table>
-                                                        </div>
-                                                    )}
+                                                        ) : (
+                                                            <p className="text-sm text-muted-foreground text-center py-2">
+                                                                No staff assigned yet
+                                                            </p>
+                                                        )}
+                                                    </div>
 
-                                                    {groupNames.length === 0 && assignments.length === 0 && !resp.description && (
-                                                        <p className="text-sm text-muted-foreground text-center py-2">
-                                                            No additional details available
+                                                    {groupNames.length === 0 && !resp.description && (
+                                                        <p className="text-sm text-muted-foreground text-center pt-4">
+                                                            No other details available
                                                         </p>
                                                     )}
                                                 </div>
@@ -1035,6 +1107,54 @@ export default function AdminResponsibilitiesPage() {
                         </Button>
                         <Button onClick={handleEdit} disabled={isEditing}>
                             {isEditing ? "Saving..." : "Save Changes"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Assign Staff Dialog */}
+            <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Assign Responsibility</DialogTitle>
+                        <DialogDescription>
+                            Assign setting this responsibility to an employee. They will need to submit proof of work.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Employee</Label>
+                            <Select 
+                                value={selectedEmployeeId} 
+                                onValueChange={setSelectedEmployeeId}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select an employee..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {employees
+                                        // Optional: filter out already assigned users
+                                        .filter(emp => !assigningResponsibility?.assignments?.some((a: Assignment) => a.staffId === emp.id))
+                                        .map(employee => (
+                                        <SelectItem key={employee.id} value={employee.id}>
+                                            {employee.name} ({employee.email}) - {employee.role}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {employees.length > 0 && employees.filter(emp => !assigningResponsibility?.assignments?.some((a: Assignment) => a.staffId === emp.id)).length === 0 && (
+                                <p className="text-sm text-muted-foreground">All employees are already assigned to this responsibility.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => {
+                            setAssignDialogOpen(false)
+                            setSelectedEmployeeId("")
+                        }}>Cancel</Button>
+                        <Button onClick={handleAssign} disabled={!selectedEmployeeId || isAssigning}>
+                            {isAssigning ? "Assigning..." : "Assign"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
