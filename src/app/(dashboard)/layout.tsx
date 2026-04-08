@@ -165,7 +165,7 @@ const navigation: NavigationItem[] = [
     roles: ["MANAGER"]
   },
   {
-    name: "My Work Calendar",
+    name: "Submit Work",
     href: "/manager/work-calendar",
     icon: <CalendarRange className="w-5 h-5" />,
     roles: ["MANAGER"]

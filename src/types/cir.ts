@@ -140,6 +140,7 @@ export interface Responsibility {
   createdBy?: Employee
   isStaffCreated?: boolean
   isActive?: boolean
+  assignments?: Assignment[]
   createdAt: string
   updatedAt: string
 }

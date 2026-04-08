@@ -33,6 +33,18 @@ import { format } from "date-fns"
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
+const TIME_SLOTS = [
+    { label: 'Period 1 — 9:00 to 9:50', start: '09:00', end: '09:50' },
+    { label: 'Period 2 — 9:50 to 10:40', start: '09:50', end: '10:40' },
+    { label: 'Period 3 — 10:50 to 11:40', start: '10:50', end: '11:40' },
+    { label: 'Period 4 — 11:40 to 12:30', start: '11:40', end: '12:30' },
+    { label: 'Period 5 — 12:30 to 13:20', start: '12:30', end: '13:20' },
+    { label: 'Period 6 — 13:20 to 14:10', start: '13:20', end: '14:10' },
+    { label: 'Period 7 — 14:10 to 15:00', start: '14:10', end: '15:00' },
+    { label: 'Period 8 — 15:10 to 16:00', start: '15:10', end: '16:00' },
+    { label: 'Period 9 — 16:00 to 16:50', start: '16:00', end: '16:50' },
+]
+
 export default function AdminTimetablePage() {
     const { user } = useAuth()
     const [timetables, setTimetables] = useState<Timetable[]>([])
@@ -575,19 +587,23 @@ export default function AdminTimetablePage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="start">Start Time</Label>
-                                <Input id="start" type="time" min="09:00" max="16:50" value={formData.startTime} onChange={(e) => setFormData({...formData, startTime: e.target.value})} />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="end">End Time</Label>
-                                <Input id="end" type="time" min="09:00" max="16:50" value={formData.endTime} onChange={(e) => setFormData({...formData, endTime: e.target.value})} />
-                            </div>
+                        <div className="space-y-2">
+                            <Label>Time Slot</Label>
+                            <Select 
+                                value={formData.startTime && formData.endTime ? `${formData.startTime}-${formData.endTime}` : ''} 
+                                onValueChange={(v) => {
+                                    const slot = TIME_SLOTS.find(s => `${s.start}-${s.end}` === v)
+                                    if (slot) setFormData({...formData, startTime: slot.start, endTime: slot.end})
+                                }}
+                            >
+                                <SelectTrigger><SelectValue placeholder="Select time slot" /></SelectTrigger>
+                                <SelectContent>
+                                    {TIME_SLOTS.map(s => (
+                                        <SelectItem key={`${s.start}-${s.end}`} value={`${s.start}-${s.end}`}>{s.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" /> Time must be between 09:00 and 16:50
-                        </p>
                     </div>
                     
                     <DialogFooter>

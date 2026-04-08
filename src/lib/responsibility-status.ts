@@ -188,16 +188,18 @@ export function getActiveUnsubmittedAssignments(
         if (resp) {
             // Check start date
             if (resp.startDate) {
-                const startDate = new Date(resp.startDate)
-                startDate.setHours(0, 0, 0, 0)
-                if (targetDateObj < startDate) return false
+                const startDateStr = typeof resp.startDate === 'string' 
+                    ? resp.startDate.substring(0, 10) 
+                    : new Date(resp.startDate).toISOString().substring(0, 10)
+                if (targetDateStr < startDateStr) return false
             }
             
             // Check end date
             if (resp.endDate) {
-                const endDate = new Date(resp.endDate)
-                endDate.setHours(23, 59, 59, 999)
-                if (targetDateObj > endDate) return false
+                const endDateStr = typeof resp.endDate === 'string' 
+                    ? resp.endDate.substring(0, 10) 
+                    : new Date(resp.endDate).toISOString().substring(0, 10)
+                if (targetDateStr > endDateStr) return false
             }
         }
         
