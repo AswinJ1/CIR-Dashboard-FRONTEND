@@ -635,7 +635,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back to Staff List
                 </Button>
-                <h1 className="text-3xl font-bold tracking-tight">{staff.name}</h1>
+                <h1 className="text-3xl  tracking-tight">{staff.name}</h1>
                 <p className="text-muted-foreground">Staff member details and submissions</p>
             </div>
 
@@ -1017,7 +1017,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Total Submissions</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.total}</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.total}</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -1026,7 +1026,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Approval Rate</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.approvalRate}%</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.approvalRate}%</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -1035,7 +1035,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Pending Review</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.pending}</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.pending}</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -1044,7 +1044,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.verifiedHours.toFixed(1)}h</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.verifiedHours.toFixed(1)}h</p>
                         </div>
                     </div>
 

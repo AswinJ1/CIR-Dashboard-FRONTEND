@@ -72,11 +72,11 @@ export function LoginForm() {
       </div>
 
       {/* Heading */}
-      <h1 className="text-2xl font-semibold text-foreground">
+      <h1 className="text-2xl  text-foreground">
         Login to your CIR Account
       </h1>
       <p className="mt-1 text-sm text-muted-foreground">
-  Everything you need to manage work, people, and responsibilities — in one place.
+  Everything you need to manage work, people, and responsibilities in one place.
 </p>
 
 
@@ -93,14 +93,14 @@ export function LoginForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-sm  text-foreground">
                   Email
                 </label>
                 <FormControl>
                   <Input
                     {...field}
                     placeholder="mail@abc.com"
-                    className="h-11 mt-1"
+                    className="h-11 mt-1 rounded-none"
                   />
                 </FormControl>
                 <FormMessage />
@@ -114,7 +114,7 @@ export function LoginForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <label className="text-sm font-medium text-foreground">
+                <label className="text-sm  text-foreground">
                   Password
                 </label>
                 <FormControl>
@@ -122,7 +122,7 @@ export function LoginForm() {
                     <Input
                       {...field}
                       type={showPassword ? "text" : "password"}
-                      className="h-11 pr-10"
+                      className="h-11 pr-10 rounded-none"
                     />
                     <button
                       type="button"
@@ -161,7 +161,7 @@ export function LoginForm() {
           <Button
             type="submit"
             disabled={isLoading || authLoading}
-            className="w-full h-11 bg-[#7A1F5C] hover:bg-[#65194B]"
+            className="w-full h-11 bg-[#7A1F5C] hover:bg-[#65194B] rounded-none"
           >
             {isLoading || authLoading ? "Logging in..." : "Login"}
           </Button>

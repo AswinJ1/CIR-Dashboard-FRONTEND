@@ -339,7 +339,7 @@ export default function UserDetailPage() {
                   {getUserAvatar() ? (
                     <AvatarImage src={getUserAvatar()!} alt={getUserDisplayName()} />
                   ) : (
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-3xl font-bold">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white text-3xl ">
                       {getUserInitials()}
                     </AvatarFallback>
                   )}
@@ -351,7 +351,7 @@ export default function UserDetailPage() {
 
               {/* User Info */}
               <div className="text-center sm:text-left flex-1">
-                <h1 className="text-3xl sm:text-4xl font-bold">{getUserDisplayName()}</h1>
+                <h1 className="text-3xl sm:text-4xl ">{getUserDisplayName()}</h1>
                 <p className="text-muted-foreground text-lg mt-1 break-all">{user.email}</p>
                 <div className="flex flex-wrap gap-2 mt-4 justify-center sm:justify-start">
                     {/* <Shield className="h-3 w-3 mr-1" /> */}

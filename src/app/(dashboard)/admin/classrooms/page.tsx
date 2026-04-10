@@ -285,7 +285,7 @@ export default function ClassroomManagementPage() {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <FolderOpen className="w-8 h-8 text-primary" />
-                        <h1 className="text-3xl font-bold tracking-tight">Classroom Management</h1>
+                        <h1 className="text-3xl  tracking-tight">Classroom Management</h1>
                     </div>
                     <p className="text-muted-foreground">
                         {userRole === "ADMIN" && "Manage all classrooms and bookings across departments"}
@@ -359,7 +359,7 @@ export default function ClassroomManagementPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">
-                                                📋 All Classrooms
+                                                 All Classrooms
                                             </SelectItem>
                                             {activeClassrooms.map((c) => (
                                                 <SelectItem key={c.id} value={String(c.id)}>
@@ -397,7 +397,8 @@ export default function ClassroomManagementPage() {
                                         onClick={() => setShowAllDates(!showAllDates)}
                                         className="shrink-0"
                                     >
-                                        {showAllDates ? "📅 Showing All Dates" : "📅 View All Dates"}
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {showAllDates ? "Showing All Dates" : "View All Dates"}
                                     </Button>
                                 )}
                             </div>
@@ -409,7 +410,7 @@ export default function ClassroomManagementPage() {
                                         <Select value={selectedDeptId} onValueChange={(val) => { setSelectedDeptId(val); setSelectedSubDeptId("all"); setSelectedStaffId("all"); }}>
                                             <SelectTrigger><SelectValue placeholder="All Departments" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="all">🏢 All Departments</SelectItem>
+                                                <SelectItem value="all">All Departments</SelectItem>
                                                 {departments.map((d) => (
                                                     <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
                                                 ))}
@@ -420,7 +421,7 @@ export default function ClassroomManagementPage() {
                                         <Select value={selectedSubDeptId} onValueChange={(val) => { setSelectedSubDeptId(val); setSelectedStaffId("all"); }}>
                                             <SelectTrigger><SelectValue placeholder="All Sub-Departments" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="all">🏘️ All Sub-Departments</SelectItem>
+                                                <SelectItem value="all">All Sub-Departments</SelectItem>
                                                 {filteredSubDepts.map((sd) => (
                                                     <SelectItem key={sd.id} value={String(sd.id)}>{sd.name}</SelectItem>
                                                 ))}
@@ -431,7 +432,7 @@ export default function ClassroomManagementPage() {
                                         <Select value={selectedStaffId} onValueChange={setSelectedStaffId}>
                                             <SelectTrigger><SelectValue placeholder="All Staff" /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="all">👥 All Staff</SelectItem>
+                                                <SelectItem value="all"> All Staff</SelectItem>
                                                 {filteredStaff.map((staff) => (
                                                     <SelectItem key={staff.id} value={String(staff.id)}>{staff.name}</SelectItem>
                                                 ))}

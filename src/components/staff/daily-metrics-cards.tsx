@@ -71,7 +71,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
                     <Send className={`h-4 w-4 ${todayDisplay.color}`} />
                 </CardHeader>
                 <CardContent>
-                    <div className={`text-2xl font-bold ${todayDisplay.color}`}>
+                    <div className={`text-2xl  ${todayDisplay.color}`}>
                         {todayDisplay.label}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -89,7 +89,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
                     <Clock className="h-4 w-4 text-blue-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{metrics.todayHours}</div>
+                    <div className="text-2xl ">{metrics.todayHours}</div>
                     <p className="text-xs text-muted-foreground">
                         {metrics.todayVerifiedHours > 0 
                             ? `${metrics.todayVerifiedHours} verified` 
@@ -105,7 +105,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
                     <CheckCircle className="h-4 w-4 text-green-500" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{metrics.verifiedDaysCount}</div>
+                    <div className="text-2xl ">{metrics.verifiedDaysCount}</div>
                     <p className="text-xs text-muted-foreground">
                         Days with approved work
                     </p>
@@ -119,7 +119,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
                     <CalendarX className={`h-4 w-4 ${metrics.missedDaysCount > 0 ? 'text-red-500' : 'text-slate-400'}`} />
                 </CardHeader>
                 <CardContent>
-                    <div className={`text-2xl font-bold ${metrics.missedDaysCount > 0 ? 'text-red-500' : ''}`}>
+                    <div className={`text-2xl  ${metrics.missedDaysCount > 0 ? 'text-red-500' : ''}`}>
                         {metrics.missedDaysCount}
                     </div>
                     <p className="text-xs text-muted-foreground">

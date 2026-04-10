@@ -54,7 +54,7 @@ export default function StaffTimetablePage() {
             <div className="p-6">
                 <div className="flex items-center gap-2 mb-6">
                     <CalendarCheck className="h-8 w-8 text-primary" />
-                    <h1 className="text-3xl font-bold tracking-tight">Active Timetable</h1>
+                    <h1 className="text-3xl  tracking-tight">Active Timetable</h1>
                 </div>
                 <div className="h-[400px] flex flex-col items-center justify-center p-12 bg-muted/20 rounded-xl border border-dashed">
                     <CalendarCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -72,7 +72,7 @@ export default function StaffTimetablePage() {
         <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                    <h1 className="text-3xl  tracking-tight flex items-center gap-2">
                         <CalendarCheck className="h-8 w-8 text-primary" />
                         Department Timetable
                     </h1>
@@ -139,7 +139,7 @@ export default function StaffTimetablePage() {
                                                         </div>
                                                         <div className="flex-1">
                                                             <div className="flex items-center gap-3">
-                                                                <h4 className="font-bold text-lg">{entry.topic}</h4>
+                                                                <h4 className=" text-lg">{entry.topic}</h4>
                                                                 {isMyClass && <Badge variant="default" className="text-[10px]">Your Class</Badge>}
                                                             </div>
                                                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-muted-foreground">

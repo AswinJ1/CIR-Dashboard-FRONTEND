@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto h-16 w-16 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
             <KeyRound className="h-8 w-8 text-blue-600 dark:text-blue-400" />
           </div>
-          <CardTitle className="text-2xl font-bold">Forgot Password?</CardTitle>
+          <CardTitle className="text-2xl ">Forgot Password?</CardTitle>
           <CardDescription className="text-base">
             Please click the button below to mail us
           </CardDescription>

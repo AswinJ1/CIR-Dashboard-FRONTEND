@@ -239,7 +239,7 @@ export default function ClassroomManagementPage() {
                 <div className="space-y-1">
                     <div className="flex items-center gap-2">
                         <FolderOpen className="w-8 h-8 text-primary" />
-                        <h1 className="text-3xl font-bold tracking-tight">Classroom Management</h1>
+                        <h1 className="text-3xl  tracking-tight">Classroom Management</h1>
                     </div>
                     <p className="text-muted-foreground">
                         {userRole === "MANAGER" && "Manage classrooms and bookings for your department"}
@@ -305,7 +305,7 @@ export default function ClassroomManagementPage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="all">
-                                                📋 All Classrooms
+                                                 All Classrooms
                                             </SelectItem>
                                             {activeClassrooms.map((c) => (
                                                 <SelectItem key={c.id} value={String(c.id)}>
@@ -343,7 +343,8 @@ export default function ClassroomManagementPage() {
                                         onClick={() => setShowAllDates(!showAllDates)}
                                         className="shrink-0"
                                     >
-                                        {showAllDates ? "📅 Showing All Dates" : "📅 View All Dates"}
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {showAllDates ? "Showing All Dates" : "View All Dates"}
                                     </Button>
                                 )}
                                 <div className="flex-1 min-w-[200px]">

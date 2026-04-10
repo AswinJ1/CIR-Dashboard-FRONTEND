@@ -627,7 +627,7 @@ export default function ManagerDashboardPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight"> Welcome back{employeeName ? `, ${employeeName}` : ''} 👋</h1>
+                    <h1 className="text-2xl  tracking-tight"> Welcome back{employeeName ? `, ${employeeName}` : ''} 👋</h1>
                     <p className="text-muted-foreground">
                         Manage your team's work here.
                     </p>
@@ -644,7 +644,7 @@ export default function ManagerDashboardPage() {
             {/* Analytics Header with Filters */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 {/* <div>
-                    <h2 className="text-2xl font-bold tracking-tight">Team Analytics</h2>
+                    <h2 className="text-2xl  tracking-tight">Team Analytics</h2>
                     <p className="text-muted-foreground">
                         {subDepartment?.name || 'Sub-Department'} performance metrics and insights
                     </p>
@@ -660,7 +660,7 @@ export default function ManagerDashboardPage() {
                         <Users className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{staffList.length}</div>
+                        <div className="text-2xl  text-blue-600">{staffList.length}</div>
                         <p className="text-xs text-muted-foreground">Active in sub-department</p>
                     </CardContent>
                 </Card>
@@ -670,7 +670,7 @@ export default function ManagerDashboardPage() {
                         <BarChart3 className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-indigo-600">{analyticsStats.total}</div>
+                        <div className="text-2xl  text-indigo-600">{analyticsStats.total}</div>
                         <p className="text-xs text-muted-foreground">{analyticsStats.totalHours.toFixed(1)} hours logged</p>
                     </CardContent>
                 </Card>
@@ -680,7 +680,7 @@ export default function ManagerDashboardPage() {
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{analyticsStats.approvalRate}%</div>
+                        <div className="text-2xl  text-green-600">{analyticsStats.approvalRate}%</div>
                         <p className="text-xs text-muted-foreground">{analyticsStats.verified} verified of {analyticsStats.total}</p>
                     </CardContent>
                 </Card>
@@ -690,7 +690,7 @@ export default function ManagerDashboardPage() {
                         <Clock className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-amber-600">{analyticsStats.pending}</div>
+                        <div className="text-2xl  text-amber-600">{analyticsStats.pending}</div>
                         <p className="text-xs text-muted-foreground">Awaiting verification</p>
                     </CardContent>
                 </Card>
@@ -700,7 +700,7 @@ export default function ManagerDashboardPage() {
                         <FileCheck className="h-4 w-4 text-purple-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">{analyticsStats.verifiedHours.toFixed(1)}h</div>
+                        <div className="text-2xl  text-purple-600">{analyticsStats.verifiedHours.toFixed(1)}h</div>
                         <p className="text-xs text-muted-foreground">Approved work hours</p>
                     </CardContent>
                 </Card>
@@ -868,7 +868,7 @@ export default function ManagerDashboardPage() {
                                 <Award className="h-4 w-4 text-yellow-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-yellow-600">
+                                <div className="text-lg  text-yellow-600">
                                     {staffStats[0]?.name.split(' ')[0] || 'N/A'}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -882,7 +882,7 @@ export default function ManagerDashboardPage() {
                                 <TrendingUp className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-green-600">
+                                <div className="text-lg  text-green-600">
                                     {staffStats.length > 0 ? Math.round(staffStats.reduce((sum, s) => sum + s.approvalRate, 0) / staffStats.length) : 0}%
                                 </div>
                                 <p className="text-xs text-muted-foreground">Team average</p>
@@ -894,7 +894,7 @@ export default function ManagerDashboardPage() {
                                 <Clock className="h-4 w-4 text-purple-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-purple-600">
+                                <div className="text-lg  text-purple-600">
                                     {staffStats.reduce((sum, s) => sum + s.hours, 0).toFixed(1)}h
                                 </div>
                                 <p className="text-xs text-muted-foreground">All staff combined</p>
@@ -906,7 +906,7 @@ export default function ManagerDashboardPage() {
                                 <Users className="h-4 w-4 text-blue-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-blue-600">
+                                <div className="text-lg  text-blue-600">
                                     {staffStats.filter(s => s.total > 0).length}
                                 </div>
                                 <p className="text-xs text-muted-foreground">With submissions</p>
@@ -1045,7 +1045,7 @@ export default function ManagerDashboardPage() {
                                                 )}
                                             </Avatar>
                                                     {index < 3 && (
-                                                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center text-xs font-bold">
+                                                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center text-xs ">
                                                             {index + 1}
                                                         </div>
                                                     )}
@@ -1129,7 +1129,7 @@ export default function ManagerDashboardPage() {
                                 <Target className="h-4 w-4 text-indigo-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-indigo-600">
+                                <div className="text-lg  text-indigo-600">
                                     {responsibilities.filter(r => r.isActive).length}
                                 </div>
                                 <p className="text-xs text-muted-foreground">Active responsibilities</p>
@@ -1141,7 +1141,7 @@ export default function ManagerDashboardPage() {
                                 <Award className="h-4 w-4 text-yellow-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-yellow-600 truncate">
+                                <div className="text-lg  text-yellow-600 truncate">
                                     {responsibilityStats[0]?.title.substring(0, 15) || 'N/A'}
                                 </div>
                                 <p className="text-xs text-muted-foreground">
@@ -1155,7 +1155,7 @@ export default function ManagerDashboardPage() {
                                 <TrendingUp className="h-4 w-4 text-green-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-green-600">
+                                <div className="text-lg  text-green-600">
                                     {responsibilityStats.length > 0 ? Math.round(responsibilityStats.reduce((sum, r) => sum + r.completionRate, 0) / responsibilityStats.length) : 0}%
                                 </div>
                                 <p className="text-xs text-muted-foreground">Overall average</p>
@@ -1167,7 +1167,7 @@ export default function ManagerDashboardPage() {
                                 <Users className="h-4 w-4 text-blue-500" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-lg font-bold text-blue-600">
+                                <div className="text-lg  text-blue-600">
                                     {responsibilityStats.reduce((sum, r) => sum + r.assignedStaff, 0)}
                                 </div>
                                 <p className="text-xs text-muted-foreground">Total assignments</p>
@@ -1280,7 +1280,7 @@ export default function ManagerDashboardPage() {
                                                     <div className="relative">
                                                         <Target className="h-4 w-4 text-indigo-500" />
                                                         {index < 3 && (
-                                                            <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-yellow-400 border border-white flex items-center justify-center text-[10px] font-bold">
+                                                            <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-yellow-400 border border-white flex items-center justify-center text-[10px] ">
                                                                 {index + 1}
                                                             </div>
                                                         )}
@@ -1337,7 +1337,7 @@ export default function ManagerDashboardPage() {
                         <Clock className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{dashboardStats.pendingVerifications}</div>
+                        <div className="text-2xl ">{dashboardStats.pendingVerifications}</div>
                         <p className="text-xs text-muted-foreground">
                             Awaiting verification (Today)
                         </p>
@@ -1350,7 +1350,7 @@ export default function ManagerDashboardPage() {
                         <CheckCircle className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{dashboardStats.verifiedCount}</div>
+                        <div className="text-2xl ">{dashboardStats.verifiedCount}</div>
                         <p className="text-xs text-muted-foreground">
                             Completed verifications
                         </p>

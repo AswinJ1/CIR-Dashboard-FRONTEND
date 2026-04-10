@@ -72,7 +72,7 @@ export default function SubmissionDetailsPage({
         <ArrowLeft className="h-4 w-4 mr-2" /> Back
       </Button>
 
-      <h2 className="font-bold">Submission Details #{submission.id}</h2>
+      <h2 className="">Submission Details #{submission.id}</h2>
 
       <Card>
         <CardHeader>

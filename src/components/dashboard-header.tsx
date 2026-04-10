@@ -435,10 +435,10 @@ export default function DashboardHeader() {
               className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity hidden lg:flex"
               onClick={() => router.push(`/${userRole.toLowerCase()}`)}
             >
-              <span className="text-lg sm:text-xl font-bold">
+              <span className="text-lg sm:text-xl ">
                 <Image src="/logo.png" alt="CIR Logo" width={100} height={100} />
               </span>
-              <span className="text-lg sm:text-xl font-bold">
+              <span className="text-lg sm:text-xl ">
                 CIR DASHBOARD
               </span>
             </div>

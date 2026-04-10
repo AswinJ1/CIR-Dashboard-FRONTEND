@@ -464,7 +464,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                   <CheckCircle2 className="h-4 w-4" />
                   <AlertDescription>
                     <div className="font-medium">Successfully Created</div>
-                    <div className="text-2xl font-bold mt-1">{importResult.success}</div>
+                    <div className="text-2xl  mt-1">{importResult.success}</div>
                   </AlertDescription>
                 </Alert>
 
@@ -473,7 +473,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="font-medium">Failed</div>
-                      <div className="text-2xl font-bold mt-1">{importResult.failed}</div>
+                      <div className="text-2xl  mt-1">{importResult.failed}</div>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -486,7 +486,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                   <AlertDescription>
                     <div className="space-y-3">
                       <div className="space-y-2">
-                        <p className="font-bold text-amber-900 dark:text-amber-100 text-lg">
+                        <p className=" text-amber-900 dark:text-amber-100 text-lg">
                           ⚠️ IMPORTANT: Save These Credentials Now!
                         </p>
                         <p className="text-sm text-amber-800 dark:text-amber-200">
@@ -558,7 +558,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                                 </TableCell>
                                 <TableCell className="font-medium">{user.name}</TableCell>
                                 <TableCell className="text-sm">{user.email}</TableCell>
-                                <TableCell className="font-mono text-sm font-bold text-blue-600">
+                                <TableCell className="font-mono text-sm  text-blue-600">
                                   {user.uid}
                                 </TableCell>
                                 <TableCell className="text-sm">
@@ -717,7 +717,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                   <CheckCircle2 className="h-4 w-4" />
                   <AlertDescription>
                     <div className="font-medium">Successfully Updated</div>
-                    <div className="text-2xl font-bold mt-1">{updateResult.updated}</div>
+                    <div className="text-2xl  mt-1">{updateResult.updated}</div>
                   </AlertDescription>
                 </Alert>
 
@@ -726,7 +726,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="font-medium">Failed</div>
-                      <div className="text-2xl font-bold mt-1">{updateResult.failed}</div>
+                      <div className="text-2xl  mt-1">{updateResult.failed}</div>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -738,7 +738,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription>
                     <div className="space-y-3">
-                      <p className="font-bold text-green-900 dark:text-green-100">
+                      <p className=" text-green-900 dark:text-green-100">
                         Successfully Updated Users:
                       </p>
                       

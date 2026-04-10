@@ -296,7 +296,7 @@ export default function StaffResponsibilitiesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">My Responsibilities</h1>
+                    <h1 className="text-3xl  tracking-tight">My Responsibilities</h1>
                     <p className="text-muted-foreground">
                         View your assigned responsibilities and work submissions
                     </p>
@@ -386,7 +386,7 @@ export default function StaffResponsibilitiesPage() {
                                         <div className="flex items-center justify-between mb-1">
                                             <span className={cn(
                                                 "text-sm font-medium",
-                                                isTodayDate && "text-blue-600 font-bold"
+                                                isTodayDate && "text-blue-600 "
                                             )}>
                                                 {format(date, "d")}
                                             </span>
@@ -490,7 +490,7 @@ export default function StaffResponsibilitiesPage() {
                                                 <span className={cn(
                                                     "text-xs font-medium",
                                                     !isCurrentMonth && "text-muted-foreground",
-                                                    isToday && "text-blue-600 dark:text-blue-400 font-bold"
+                                                    isToday && "text-blue-600 dark:text-blue-400 "
                                                 )}>
                                                     {day.getDate()}
                                                 </span>

@@ -158,7 +158,7 @@ export default function ClassroomTable({
         <div className="space-y-4">
             {/* Search Bar */}
             <div className="flex items-center gap-2">
-                <div className="relative flex-1">
+                <div className="relative w-full max-w-sm">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                         placeholder="Search classrooms by name..."
@@ -181,71 +181,77 @@ export default function ClassroomTable({
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Classroom Name</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                                {userRole === "ADMIN" && <TableHead>Status</TableHead>}
+                                <TableHead>Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredClassrooms.map((classroom) => (
                                 <TableRow key={classroom.id}>
                                     <TableCell className="font-medium">{classroom.name}</TableCell>
-                                    <TableCell>{getStatusBadge(classroom)}</TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuSeparator />
-                                                
-                                                {/* If Active, allow Booking */}
-                                                {classroom.isActive !== false && (
-                                                    <DropdownMenuItem onClick={() => onBook(classroom)}>
-                                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                                        Book Classroom
-                                                    </DropdownMenuItem>
-                                                )}
+                                    {userRole === "ADMIN" && <TableCell>{getStatusBadge(classroom)}</TableCell>}
+                                    <TableCell>
+                                        {userRole === "ADMIN" ? (
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <span className="sr-only">Open menu</span>
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuSeparator />
+                                                    
+                                                    {/* If Active, allow Booking */}
+                                                    {classroom.isActive !== false && (
+                                                        <DropdownMenuItem onClick={() => onBook(classroom)}>
+                                                            <CheckCircle className="w-4 h-4 mr-2" />
+                                                            Book Classroom
+                                                        </DropdownMenuItem>
+                                                    )}
 
-                                                {/* If Active, allow Disabling */}
-                                                {onDisable && classroom.isActive !== false && (
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleDisableClick(classroom)}
-                                                        className="text-destructive focus:text-destructive"
-                                                    >
-                                                        <Ban className="w-4 h-4 mr-2" />
-                                                        Disable
-                                                    </DropdownMenuItem>
-                                                )}
-
-                                                {/* If INACTIVE (false), allow Enabling */}
-                                                {onEnable && classroom.isActive === false && (
-                                                    <DropdownMenuItem 
-                                                        onClick={() => handleEnableClick(classroom)}
-                                                    >
-                                                        {/* <Check className="w-4 h-4 mr-2" /> */}
-                                                        Enable
-                                                    </DropdownMenuItem>
-                                                )}
-
-                                                {/* Both Active and Inactive can be Deleted */}
-                                                {onDelete && (
-                                                    <>
-                                                        <DropdownMenuSeparator />
+                                                    {/* If Active, allow Disabling */}
+                                                    {onDisable && classroom.isActive !== false && (
                                                         <DropdownMenuItem 
-                                                            onClick={() => handleDeleteClick(classroom)}
+                                                            onClick={() => handleDisableClick(classroom)}
                                                             className="text-destructive focus:text-destructive"
                                                         >
-                                                            <Trash2 className="w-4 h-4 mr-2" />
-                                                            Delete
+                                                            <Ban className="w-4 h-4 mr-2" />
+                                                            Disable
                                                         </DropdownMenuItem>
-                                                    </>
-                                                )}
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                    )}
+
+                                                    {/* If INACTIVE (false), allow Enabling */}
+                                                    {onEnable && classroom.isActive === false && (
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleEnableClick(classroom)}
+                                                        >
+                                                            {/* <Check className="w-4 h-4 mr-2" /> */}
+                                                            Enable
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    {/* Both Active and Inactive can be Deleted */}
+                                                    {onDelete && (
+                                                        <>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem 
+                                                                onClick={() => handleDeleteClick(classroom)}
+                                                                className="text-destructive focus:text-destructive"
+                                                            >
+                                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                                Delete
+                                                            </DropdownMenuItem>
+                                                        </>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        ) : (
+                                            <Button size="sm" onClick={() => onBook(classroom)}>
+                                                Book
+                                            </Button>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
