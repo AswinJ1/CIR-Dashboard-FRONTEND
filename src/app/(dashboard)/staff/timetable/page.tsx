@@ -124,8 +124,10 @@ export default function StaffTimetablePage() {
                                             {entries.map(entry => {
                                                 const t1 = new Date(entry.startTime);
                                                 const t2 = new Date(entry.endTime);
-                                                const tm1 = `${String(t1.getUTCHours()).padStart(2,'0')}:${String(t1.getUTCMinutes()).padStart(2,'0')}`
-                                                const tm2 = `${String(t2.getUTCHours()).padStart(2,'0')}:${String(t2.getUTCMinutes()).padStart(2,'0')}`
+                                                // const tm1 = `${String(t1.getUTCHours()).padStart(2,'0')}:${String(t1.getUTCMinutes()).padStart(2,'0')}`
+                                                // const tm2 = `${String(t2.getUTCHours()).padStart(2,'0')}:${String(t2.getUTCMinutes()).padStart(2,'0')}`
+                                                const tm1 = `${String(t1.getHours()).padStart(2,'0')}:${String(t1.getMinutes()).padStart(2,'0')}`
+                                                const tm2 = `${String(t2.getHours()).padStart(2,'0')}:${String(t2.getMinutes()).padStart(2,'0')}`
                                                 
                                                 const isMyClass = String(entry.staffId) === String(user?.id);
                                                 

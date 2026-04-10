@@ -1,40 +1,71 @@
 "use client"
 
+import * as React from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useState, useEffect } from "react"
 import Link from "next/link"
-import {
-  LayoutDashboard,
-  Users,
-  FileText,
-  CheckCircle,
-  ClipboardList,
-  LogOut,
-  Menu,
-  ChevronRight,
-  User,
-  ChevronLeft,
-  Building2,
-  BarChart3,
-  UserCheck,
-  FileCheck,
-  Briefcase,
-  CalendarCheck,
-  Save,
-  CalendarRange,
-  FolderOpen,
-  Calendar1,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import Image from "next/image"
+import { useTheme } from "next-themes"
+
+// Icons
+import {
+  Search, LogOut, Home, Users, FileText, User, BarChart,
+  Building2, ClipboardList, Calendar, CheckSquare, FolderKanban,
+  FolderOpen, Sun, Moon, Bell, Globe, ChevronDown, ChevronsUpDown,
+  LayoutDashboard, FileCheck, Briefcase, CalendarCheck, CalendarRange,
+  Calendar1, UserCheck, Menu, Settings
+} from "lucide-react"
+
+// Core UI Components
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  CommandDialog, CommandEmpty, CommandGroup, CommandInput,
+  CommandItem, CommandList, CommandSeparator,
+} from "@/components/ui/command"
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
+// Radix Sidebar Components
+import {
+  SidebarProvider, SidebarInset, SidebarTrigger, Sidebar, SidebarHeader,
+  SidebarContent, SidebarFooter, SidebarRail, SidebarGroup, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuItem, SidebarMenuButton,
+} from "@/components/animate-ui/components/radix/sidebar"
+
+// Utilities & Providers
 import { cn } from "@/lib/utils"
+import { api } from "@/lib/api"
 import { useAuth, getDashboardUrl } from "@/components/providers/auth-context"
-import { RoleBadge } from "@/components/ui/status-badge"
 import { Role } from "@/types/cir"
-import DashboardHeader from "@/components/dashboard-header"
+import { useTranslation } from "react-i18next"
+import "@/lib/i18n"
+
+// --- Types & Constants ---
+
+interface SearchOption {
+  label: string
+  href: string
+  icon: React.ReactNode
+  roles: string[]
+}
+
+interface Notification {
+  id: string
+  title: string
+  message: string
+  type: string
+  priority: string
+  isRead: boolean
+  createdAt: string
+  actionUrl: string | null
+}
 
 interface NavigationItem {
   name: string
@@ -43,268 +74,129 @@ interface NavigationItem {
   roles: Role[]
 }
 
-// CIR Navigation structure based on role requirements
-const navigation: NavigationItem[] = [
-  // Admin Navigation
-  {
-    name: "Dashboard",
-    href: "/admin",
-    icon: <LayoutDashboard className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "Manage Users",
-    href: "/admin/users",
-    icon: <Users className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "Manage Departments",
-    href: "/admin/departments",
-    icon: <Building2 className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "ManageResponsibilities",
-    href: "/admin/responsibilities",
-    icon: <Briefcase className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "Manage Work Submissions",
-    href: "/admin/work-submissions",
-    icon: <FileCheck className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "Sem Reports",
-    href: "/admin/sem-reports",
-    icon: <FileText className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name:"Classroom Management",
-    href: "/admin/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  },
-  {
-    name: "Timetable",
-    href: "/admin/timetable",
-    icon: <CalendarCheck className="w-5 h-5" />,
-    roles: ["ADMIN"]
-  }
-  // {
-  //   name: "Analytics",
-  //   href: "/admin/analytics",
-  //   icon: <BarChart3 className="w-5 h-5" />,
-  //   roles: ["ADMIN"]
-  // },
-  // {
-  //   name: "Profile",
-  //   href: "/admin/profile",
-  //   icon: <User className="w-5 h-5" />,
-  //   roles: ["ADMIN"]
-  // },
-
-  // Manager Navigation
-  ,
-  {
-    name: "Dashboard",
-    href: "/manager",
-    icon: <LayoutDashboard className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
+const searchOptions: SearchOption[] = [
+  // ADMIN Options
+  { label: "dashboard", href: "/admin", icon: <Home className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "manageUsers", href: "/admin/users", icon: <Users className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "manageDepartments", href: "/admin/departments", icon: <Building2 className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "manageResponsibilities", href: "/admin/responsibilities", icon: <ClipboardList className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "manageWorkSubmissions", href: "/admin/work-submissions", icon: <FileText className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "accountProfile", href: "/admin/profile", icon: <User className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "timetable", href: "/admin/timetable", icon: <Calendar className="h-4 w-4" />, roles: ["ADMIN"] },
   
-  // {
-  //   name: "Review Submissions",
-  //   href: "/manager/submissions",
-  //   icon: <FileCheck className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // },
-  // {
-  //   name: "Calender",
-  //   href: "/manager/responsibilities",
-  //   icon: <Calendar1 className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // },
-  {
-    name: "Manage Duty",
-    href: "/manager/assignments",
-    icon: <ClipboardList className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  // {
-  //   name: "Classroom Management",
-  //   href: "/manager/classrooms",
-  //   icon: <FolderOpen className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // }
-  // {
-  //   name: " Manage Group Responsibilities",
-  //   href: "/manager/responsibility-groups",
-  //   icon: <FolderOpen className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // },
-  {
-    name: "Staff",
-    href: "/manager/staff",
-    icon: <UserCheck className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "Classroom Management",
-    href: "/manager/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "Timetable",
-    href: "/manager/timetable",
-    icon: <CalendarCheck className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "Submit Work",
-    href: "/manager/work-calendar",
-    icon: <CalendarRange className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "My Work Submissions",
-    href: "/manager/work-submissions",
-    icon: <FileCheck className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  {
-    name: "My Responsibilities",
-    href: "/manager/my-responsibilities",
-    icon: <Calendar1 className="w-5 h-5" />,
-    roles: ["MANAGER"]
-  },
-  // {
-  //   name: "Profile",
-  //   href: "/manager/profile",
-  //   icon: <User className="w-5 h-5" />,
-  //   roles: ["MANAGER"]
-  // },
-
-  // Staff Navigation
-  {
-    name: "Dashboard",
-    href: "/staff",
-    icon: <LayoutDashboard className="w-5 h-5" />,
-    roles: ["STAFF"]
-  },
-  // {
-  //   name: "Submit Work",
-  //   href: "/staff/work-calendar",
-  //   icon: <Save className="w-5 h-5" />,
-  //   roles: ["STAFF"]
-  // },
-  {
-    name: "Work Calendar",
-    href: "/staff/responsibilities",
-    icon: <CalendarRange className="w-5 h-5" />,
-    roles: ["STAFF"]
-  },
-  {
-    name: "Work Submissions",
-    href: "/staff/work-submissions",
-    icon: <FileCheck className="w-5 h-5" />,
-    roles: ["STAFF"]
-  },
-  {
-    name: "Classroom Management",
-    href: "/staff/classrooms",
-    icon: <FolderOpen className="w-5 h-5" />,
-    roles: ["STAFF"]
-  },
-  {
-    name: "Timetable",
-    href: "/staff/timetable",
-    icon: <CalendarCheck className="w-5 h-5" />,
-    roles: ["STAFF"]
-  }
-  // {
-  //   name: "Analytics",
-  //   href: "/staff/analytics",
-  //   icon: <BarChart3 className="w-5 h-5" />,
-  //   roles: ["STAFF"]
-  // },
-  // {
-  //   name: "Profile",
-  //   href: "/staff/profile",
-  //   icon: <User className="w-5 h-5" />,
-  //   roles: ["STAFF"]
-  // },
+  // MANAGER Options
+  { label: "dashboard", href: "/manager", icon: <Home className="h-4 w-4" />, roles: ["MANAGER"] },
+  { label: "staff", href: "/manager/staff", icon: <Users className="h-4 w-4" />, roles: ["MANAGER"] },
+  { label: "manageDuty", href: "/manager/assignments", icon: <FolderKanban className="h-4 w-4" />, roles: ["MANAGER"] },
+  { label: "accountProfile", href: "/manager/profile", icon: <User className="h-4 w-4" />, roles: ["MANAGER"] },
+  
+  // STAFF Options
+  { label: "dashboard", href: "/staff", icon: <Home className="h-4 w-4" />, roles: ["STAFF"] },
+  { label: "workCalendar", href: "/staff/responsibilities", icon: <CalendarRange className="h-4 w-4" />, roles: ["STAFF"] },
+  { label: "accountProfile", href: "/staff/profile", icon: <User className="h-4 w-4" />, roles: ["STAFF"] },
 ]
 
-function NavItem({
-  item,
-  isActive,
-  isCollapsed,
-  onClick
-}: {
-  item: NavigationItem
-  isActive: boolean
-  isCollapsed: boolean
-  onClick?: () => void
-}) {
-  return (
-    <Link
-      href={item.href}
-      onClick={onClick}
-      className={cn(
-        "group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
-        isActive
-          ? "bg-primary text-primary-foreground shadow-lg"
-          : "hover:bg-accent hover:text-accent-foreground hover:shadow-md",
-        isCollapsed && "justify-center"
-      )}
-    >
-      <div className={cn(
-        "transition-transform duration-200",
-        isActive && "scale-110"
-      )}>
-        {item.icon}
-      </div>
-      {!isCollapsed && (
-        <>
-          <span className="flex-1">{item.name}</span>
-          {isActive && (
-            <ChevronRight className="h-4 w-4 animate-pulse" />
-          )}
-        </>
-      )}
-      {isCollapsed && (
-        <div className="absolute left-full ml-2 hidden group-hover:block z-50">
-          <div className="bg-popover text-popover-foreground px-3 py-2 rounded-lg text-sm whitespace-nowrap shadow-xl border">
-            {item.name}
-          </div>
-        </div>
-      )}
-    </Link>
-  )
-}
+const navigation: NavigationItem[] = [
+  // Admin Navigation
+  { name: "dashboard", href: "/admin", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "manageUsers", href: "/admin/users", icon: <Users className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "manageDepartments", href: "/admin/departments", icon: <Building2 className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "manageResponsibilities", href: "/admin/responsibilities", icon: <Briefcase className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "manageWorkSubmissions", href: "/admin/work-submissions", icon: <FileCheck className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "semReports", href: "/admin/sem-reports", icon: <FileText className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "classroomManagement", href: "/admin/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "timetable", href: "/admin/timetable", icon: <CalendarCheck className="w-4 h-4" />, roles: ["ADMIN"] },
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+  // Manager Navigation
+  { name: "dashboard", href: "/manager", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "manageDuty", href: "/manager/assignments", icon: <ClipboardList className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "staff", href: "/manager/staff", icon: <UserCheck className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "classroomManagement", href: "/manager/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "timetable", href: "/manager/timetable", icon: <CalendarCheck className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "submitWork", href: "/manager/work-calendar", icon: <CalendarRange className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "myWorkSubmissions", href: "/manager/work-submissions", icon: <FileCheck className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "myResponsibilities", href: "/manager/my-responsibilities", icon: <Calendar1 className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "semReports", href: "/manager/sem-reports", icon: <FileText className="w-4 h-4" />, roles: ["MANAGER"] },
+
+  // Staff Navigation
+  { name: "dashboard", href: "/staff", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "workCalendar", href: "/staff/responsibilities", icon: <CalendarRange className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "manageWorkSubmissions", href: "/staff/work-submissions", icon: <FileCheck className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "classroomManagement", href: "/staff/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "timetable", href: "/staff/timetable", icon: <CalendarCheck className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "semReports", href: "/staff/sem-reports", icon: <FileText className="w-4 h-4" />, roles: ["STAFF"] }
+]
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { t, i18n } = useTranslation()
+  // Auth & Routing
   const { user, role, isLoading, isAuthenticated, logout } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
 
-  useEffect(() => {
+  // State
+  const { theme, setTheme } = useTheme()
+  const [profile, setProfile] = React.useState<any>(null)
+  const [openSearch, setOpenSearch] = React.useState(false)
+  const [notifications, setNotifications] = React.useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = React.useState(0)
+  const [notificationOpen, setNotificationOpen] = React.useState(false)
+
+  // Auth Redirection
+  React.useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/login")
     }
   }, [isAuthenticated, isLoading, router])
 
+  // Fetch Profile Data
+  React.useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const data = await api.profile.get()
+        setProfile(data)
+      } catch (error) {
+        console.error("Failed to fetch profile:", error)
+      }
+    }
+    if (isAuthenticated) fetchProfile()
+  }, [isAuthenticated])
+
+  // Fetch Notifications
+  React.useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch("/api/notifications")
+        if (response.ok) {
+          const data = await response.json()
+          setNotifications(data.notifications || [])
+          setUnreadCount(data.unreadCount || 0)
+        }
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error)
+      }
+    }
+
+    if (isAuthenticated) {
+      fetchNotifications()
+      const interval = setInterval(fetchNotifications, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [isAuthenticated])
+
+  // Keyboard shortcut for search
+  React.useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault()
+        setOpenSearch((open) => !open)
+      }
+    }
+    document.addEventListener("keydown", down)
+    return () => document.removeEventListener("keydown", down)
+  }, [])
+
+  // Show Loading Spinner
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -318,55 +210,28 @@ export default function DashboardLayout({
 
   if (!isAuthenticated || !role) return null
 
-  // Role-based path access control
+  // Authorization Check
   const rolePathMap: Record<Role, string[]> = {
     'ADMIN': ['/admin', '/dashboard'],
     'MANAGER': ['/manager', '/dashboard'],
     'STAFF': ['/staff', '/dashboard'],
   }
-
   const allowedPaths = rolePathMap[role]
   const isAuthorized = allowedPaths.some(prefix => pathname.startsWith(prefix))
 
-  // Debug logging
-  if (pathname.includes('classrooms')) {
-    console.log('🔐 Layout Auth Check:', {
-      role,
-      pathname,
-      allowedPaths,
-      isAuthorized
-    })
-  }
-
-  // Show 403 Forbidden if user is accessing unauthorized path
   if (!isAuthorized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center max-w-md mx-auto px-6">
           <div className="h-24 w-24 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
-            <svg
-              className="h-12 w-12 text-destructive"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-              />
-            </svg>
+            <CheckSquare className="h-12 w-12 text-destructive" />
           </div>
           <h1 className="text-4xl font-bold text-destructive mb-2">403</h1>
           <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
           <p className="text-muted-foreground mb-6">
-            You don&apos;t have permission to access this page. Please navigate to your authorized dashboard.
+            You don't have permission to access this page. Please navigate to your authorized dashboard.
           </p>
-          <Button
-            onClick={() => router.push(getDashboardUrl(role))}
-            className="w-full sm:w-auto"
-          >
+          <Button onClick={() => router.push(getDashboardUrl(role))} className="w-full sm:w-auto">
             Go to My Dashboard
           </Button>
         </div>
@@ -374,178 +239,349 @@ export default function DashboardLayout({
     )
   }
 
-  // Filter navigation based on user role
-  const filteredNavigation = navigation.filter(item =>
-    item.roles.includes(role)
-  )
-
+  // Helpers
+  const filteredNavigation = navigation.filter(item => item.roles.includes(role))
+  const filteredOptions = searchOptions.filter(option => option.roles.includes(role as string))
+  
   const isCurrentPath = (href: string) => {
     const roleBase = getDashboardUrl(role)
-    if (href === roleBase) {
-      return pathname === href
-    }
+    if (href === roleBase) return pathname === href
     return pathname.startsWith(href)
   }
 
-  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
-    <div className="flex h-full flex-col">
-      <div
-        className={cn(
-          "flex items-center gap-3 px-4 py-5",
-          isCollapsed && !isMobile && "justify-center px-2"
-        )}
-      >
-        {!isCollapsed || isMobile ? (
-          <div className="flex flex-col">
-            <Image
-              src="/logo.png"
-              alt="CIR Management"
-              width={120}
-              height={30}
-            />
-            {/* <span className="text-xs text-muted-foreground mt-1">
-              Work Management System
-            </span> */}
-          </div>
-        ) : (
-          <Image
-            src="/logo.png"
-            alt="CIR"
-            width={40}
-            height={40}
-          />
-        )}
-      </div>
+  const userEmail = user?.email || ""
+  const userInitial = user?.name?.charAt(0).toUpperCase() || userEmail.charAt(0).toUpperCase() || "U"
 
-      <Separator />
+  const getAvatarUrl = () => {
+    if (!profile) return null
+    switch (role) {
+      case "ADMIN": return profile.admin?.avatarUrl || profile.avatarUrl
+      case "MANAGER": return profile.manager?.avatarUrl || profile.avatarUrl
+      case "STAFF": return profile.staff?.avatarUrl || profile.avatarUrl
+      default: return profile.avatarUrl || null
+    }
+  }
 
-      {/* User Info */}
-      {/* {(!isCollapsed || isMobile) && (
-        <div className="px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">
-                {user?.name || user?.email?.split('@')[0]}
-              </p>
-              <RoleBadge role={role} className="mt-1" />
-            </div>
-          </div>
-        </div>
-      )} */}
+  const getUserName = () => {
+    if (!profile) return userEmail
+    switch (role) {
+      case "ADMIN": return profile.admin?.name || profile.name || userEmail
+      case "MANAGER": return profile.manager?.name || profile.name || userEmail
+      case "STAFF": return profile.staff?.name || profile.name || userEmail
+      default: return profile.name || userEmail
+    }
+  }
 
-      <Separator />
+  const formatTimeAgo = (dateString: string) => {
+    const now = new Date()
+    const date = new Date(dateString)
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+    if (seconds < 60) return "Just now"
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`
+    return date.toLocaleDateString()
+  }
 
-      <ScrollArea className="flex-1 px-3">
-        <div className="space-y-1.5 py-4">
-          {filteredNavigation.map((item) => (
-            <NavItem
-              key={item.href}
-              item={item}
-              isActive={isCurrentPath(item.href)}
-              isCollapsed={isCollapsed && !isMobile}
-              onClick={() => setMobileOpen(false)}
-            />
-          ))}
-        </div>
-      </ScrollArea>
-
-      <Separator />
-
-      {/* Logout Button */}
-      <div className={cn(
-        "p-4",
-        isCollapsed && !isMobile && "px-2"
-      )}>
-        <Button
-          variant="ghost"
-          className={cn(
-            "w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10",
-            isCollapsed && !isMobile && "justify-center px-2"
-          )}
-          onClick={logout}
-        >
-          <LogOut className="h-5 w-5" />
-          {(!isCollapsed || isMobile) && <span className="ml-3">Sign out</span>}
-        </Button>
-      </div>
-    </div>
-  )
+  const handleNotificationClick = async (notification: Notification) => {
+    if (!notification.isRead) {
+      try { await fetch(`/api/notifications?id=${notification.id}`, { method: "PATCH" }) } 
+      catch (error) { console.error("Failed to mark notification as read:", error) }
+    }
+    setNotificationOpen(false)
+    router.push(notification.actionUrl || (role === "ADMIN" ? "/admin/notifications/manage" : "/participant/notification"))
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile Sidebar */}
-      <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent
-          side="left"
-          className="w-72 p-0"
-        >
-          <SidebarContent isMobile />
-        </SheetContent>
-      </Sheet>
+    <SidebarProvider>
+      {/* ---------------- SIDEBAR NAVIGATION ---------------- */}
+      <Sidebar collapsible="icon">
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent cursor-pointer">
+                <Link href={getDashboardUrl(role)}>
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Image src="/logo.png" alt="CIR" width={24} height={24} className="rounded-sm" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-bold">{t('cirDashboard')}</span>
+                    <span className="truncate text-xs capitalize">{t(role.toLowerCase() + 'Portal')}</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-      {/* Desktop Sidebar */}
-      <aside className={cn(
-        "hidden lg:fixed lg:inset-y-0 lg:flex lg:flex-col transition-all duration-300 z-40",
-        "bg-card border-r shadow-sm",
-        isCollapsed ? "lg:w-20" : "lg:w-72"
-      )}>
-        <SidebarContent />
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupLabel>{t('menu')}</SidebarGroupLabel>
+            <SidebarMenu>
+              {filteredNavigation.map((item) => (
+                <SidebarMenuItem key={item.name}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={isCurrentPath(item.href)} 
+                    tooltip={t(item.name)}
+                  >
+                    <Link href={item.href}>
+                      {item.icon}
+                      <span>{t(item.name)}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
 
-        {/* Collapse Toggle Button */}
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className={cn(
-            "absolute -right-3 top-8 h-6 w-6 rounded-full",
-            "bg-background border-2 shadow-lg",
-            "flex items-center justify-center",
-            "hover:bg-accent transition-all duration-200",
-            "hover:scale-110"
-          )}
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
-      </aside>
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
+                    <Avatar className="h-8 w-8 rounded-lg border">
+                      {getAvatarUrl() ? (
+                        <AvatarImage src={getAvatarUrl()!} alt={getUserName()} />
+                      ) : (
+                        <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                          {userInitial}
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{getUserName()}</span>
+                      <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                    </div>
+                    <ChevronsUpDown className="ml-auto size-4" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                
+                <DropdownMenuContent
+                  className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                      <Avatar className="h-8 w-8 rounded-lg border">
+                        {getAvatarUrl() ? (
+                          <AvatarImage src={getAvatarUrl()!} alt={getUserName()} />
+                        ) : (
+                          <AvatarFallback className="rounded-lg bg-primary/10 text-primary text-xs font-semibold">
+                            {userInitial}
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-semibold">{getUserName()}</span>
+                        <span className="truncate text-xs text-muted-foreground">{userEmail}</span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuGroup>
+                    {/* Fixed Dropdown Navigation */}
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={`/${role.toLowerCase()}/profile`}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>{t('accountProfile')}</span>
+                      </Link>
+                    </DropdownMenuItem>
 
-      {/* Main Content */}
-      <div className={cn(
-        "transition-all duration-300 flex flex-col min-h-screen",
-        isCollapsed ? "lg:pl-20" : "lg:pl-72"
-      )}>
-        {/* Desktop Dashboard Header */}
-        <div className="hidden lg:block sticky top-0 z-30">
-          <DashboardHeader />
-        </div>
+                    <DropdownMenuItem asChild className="cursor-pointer">
+                      <Link href={getDashboardUrl(role)}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>{t('dashboard')}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+                  
+                  <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      logout();
+                    }} 
+                    className="text-destructive focus:text-destructive cursor-pointer"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>{t('signOut')}</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
 
-        {/* Mobile Header - Full DashboardHeader on mobile */}
-        <div className="lg:hidden sticky top-0 z-30">
-          <div className="flex items-center gap-2 bg-background border-b px-3 py-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => setMobileOpen(true)}
+      {/* ---------------- MAIN LAYOUT ---------------- */}
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 z-30 sticky top-0">
+          
+          {/* Left: Sidebar Trigger & Search */}
+          <div className="flex items-center gap-2">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
+            
+            {/* Desktop Search Bar */}
+            <div
+              className="relative w-64 cursor-pointer hidden md:block"
+              onClick={() => setOpenSearch(true)}
             >
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-            <div className="flex-1">
-              <DashboardHeader />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder={t('search')}
+                className="pl-9 h-9 rounded-full bg-muted/40 cursor-pointer border-none shadow-none focus-visible:ring-1"
+                readOnly
+              />
             </div>
           </div>
-        </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Mobile Search Icon */}
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setOpenSearch(true)}>
+              <Search className="h-5 w-5" />
+            </Button>
+
+            {/* Language Selection */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Globe className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('en')}>English</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ml')}>Malayalam (മലയാളം)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('hi')}>Hindi (हिन्दी)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ta')}>Tamil (தமிழ்)</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Theme Toggle */}
+            <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+              <Sun className="h-5 w-5 dark:hidden" />
+              <Moon className="h-5 w-5 hidden dark:block" />
+            </Button>
+
+            {/* Notifications Popover */}
+            <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-[10px] animate-pulse">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h3 className="font-semibold text-sm">{t('notifications')}</h3>
+                  {unreadCount > 0 && <Badge variant="secondary">{unreadCount} new</Badge>}
+                </div>
+                <ScrollArea className="h-[350px]">
+                  {notifications.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <Bell className="h-10 w-10 mb-2 opacity-20" />
+                      <p className="text-sm">{t('noNotifications')}</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y">
+                      {notifications.slice(0, 5).map((notification) => (
+                        <div
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={cn(
+                            "p-4 hover:bg-muted/50 cursor-pointer transition-colors",
+                            !notification.isRead && "bg-primary/5"
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn("mt-1.5 h-2 w-2 rounded-full flex-shrink-0", !notification.isRead ? "bg-primary" : "bg-transparent")} />
+                            <div className="flex-1 space-y-1">
+                              <p className={cn("text-sm font-medium leading-none", !notification.isRead && "text-primary")}>
+                                {notification.title}
+                              </p>
+                              <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                {notification.message}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-2">
+                                {formatTimeAgo(notification.createdAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+                {notifications.length > 0 && (
+                  <div className="p-2 border-t">
+                    <Button variant="ghost" className="w-full text-xs" onClick={() => {
+                      setNotificationOpen(false)
+                      router.push(role === "ADMIN" ? "/admin/notifications/manage" : "/participant/notification")
+                    }}>
+                      {t('viewAllNotifications')}
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        </header>
 
         {/* Page Content */}
-        <main className="flex-1">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {children}
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+
+      {/* ---------------- COMMAND DIALOG (Global Search) ---------------- */}
+      <CommandDialog open={openSearch} onOpenChange={setOpenSearch}>
+        <CommandInput placeholder={t('search')} />
+        <CommandList>
+          <CommandEmpty>No results found.</CommandEmpty>
+          <CommandGroup heading="Navigation">
+            {filteredOptions.map((option) => (
+              <CommandItem
+                key={option.href}
+                onSelect={() => {
+                  router.push(option.href)
+                  setOpenSearch(false)
+                }}
+                className="cursor-pointer"
+              >
+                {option.icon}
+                <span className="ml-2">{t(option.label)}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+          <CommandSeparator />
+          <CommandGroup heading="Quick Actions">
+            <CommandItem onSelect={() => { router.push(`/${role.toLowerCase()}/profile`); setOpenSearch(false) }} className="cursor-pointer">
+              <User className="h-4 w-4 mr-2" />
+              {t('accountProfile')}
+            </CommandItem>
+            <CommandItem onSelect={() => { logout(); setOpenSearch(false) }} className="cursor-pointer text-destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              {t('signOut')}
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+    </SidebarProvider>
   )
 }
