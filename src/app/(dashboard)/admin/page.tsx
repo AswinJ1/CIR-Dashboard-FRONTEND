@@ -698,7 +698,7 @@ export default function AdminDashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+          <h1 className="text-3xl  tracking-tight">Admin Dashboard</h1>
           <p className="text-muted-foreground">
             Welcome back{employeeName ? `, ${employeeName}` : ''}. Here's an overview of the system.
           </p>
@@ -717,7 +717,7 @@ export default function AdminDashboardPage() {
    
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 {/* <div>
-                    <h1 className="text-3xl font-bold tracking-tight">System Analytics</h1>
+                    <h1 className="text-3xl  tracking-tight">System Analytics</h1>
                     <p className="text-muted-foreground">
                         Organization-wide performance metrics and insights
                     </p>

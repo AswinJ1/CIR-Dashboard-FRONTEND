@@ -123,7 +123,7 @@ export function ProfilePage({ roleKey }: ProfilePageProps) {
         <div className="p-4 sm:p-6 space-y-6 max-w-3xl mx-auto">
             {/* Page header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Profile</h1>
+                <h1 className="text-2xl sm:text-3xl  tracking-tight">Profile</h1>
                 <p className="text-sm sm:text-base text-muted-foreground">
                     Manage your account settings and preferences
                 </p>
@@ -148,7 +148,7 @@ export function ProfilePage({ roleKey }: ProfilePageProps) {
                             />
                         </div>
                         <div className="flex-1 text-center sm:text-left sm:pb-1">
-                            <h2 className="text-xl sm:text-2xl font-bold">{displayName}</h2>
+                            <h2 className="text-xl sm:text-2xl ">{displayName}</h2>
                             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1.5">
                                 {role} |
                                 {jobTitle && (

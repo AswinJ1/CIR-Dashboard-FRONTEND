@@ -411,7 +411,7 @@ export default function AdminAnalyticsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">System Analytics</h1>
+                    <h1 className="text-3xl  tracking-tight">System Analytics</h1>
                     <p className="text-muted-foreground">
                         Organization-wide performance metrics and insights
                     </p>
@@ -506,7 +506,7 @@ export default function AdminAnalyticsPage() {
                         <Building2 className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{departments.length}</div>
+                        <div className="text-2xl  text-blue-600">{departments.length}</div>
                         <p className="text-xs text-muted-foreground">{subDepartments.length} sub-departments</p>
                     </CardContent>
                 </Card>
@@ -516,7 +516,7 @@ export default function AdminAnalyticsPage() {
                         <Users className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-indigo-600">{stats.totalStaff}</div>
+                        <div className="text-2xl  text-indigo-600">{stats.totalStaff}</div>
                         <p className="text-xs text-muted-foreground">{stats.totalManagers} managers</p>
                     </CardContent>
                 </Card>
@@ -526,7 +526,7 @@ export default function AdminAnalyticsPage() {
                         <BarChart3 className="h-4 w-4 text-cyan-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-cyan-600">{stats.total}</div>
+                        <div className="text-2xl  text-cyan-600">{stats.total}</div>
                         <p className="text-xs text-muted-foreground">{stats.totalHours.toFixed(1)} hours logged</p>
                     </CardContent>
                 </Card>
@@ -536,7 +536,7 @@ export default function AdminAnalyticsPage() {
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{stats.approvalRate}%</div>
+                        <div className="text-2xl  text-green-600">{stats.approvalRate}%</div>
                         <p className="text-xs text-muted-foreground">{stats.verified} verified</p>
                     </CardContent>
                 </Card>
@@ -546,7 +546,7 @@ export default function AdminAnalyticsPage() {
                         <Clock className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+                        <div className="text-2xl  text-amber-600">{stats.pending}</div>
                         <p className="text-xs text-muted-foreground">Awaiting review</p>
                     </CardContent>
                 </Card>
@@ -556,7 +556,7 @@ export default function AdminAnalyticsPage() {
                         <FileCheck className="h-4 w-4 text-purple-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
+                        <div className="text-2xl  text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
                         <p className="text-xs text-muted-foreground">Approved work</p>
                     </CardContent>
                 </Card>

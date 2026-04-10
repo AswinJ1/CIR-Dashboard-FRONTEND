@@ -201,7 +201,7 @@ export default function UsersTable({
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs  text-primary">
                         {user.name?.charAt(0).toUpperCase()}
                       </div>
                       <span>{user.name}</span>

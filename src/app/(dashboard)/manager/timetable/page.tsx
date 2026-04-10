@@ -309,7 +309,7 @@ export default function ManagerTimetablePage() {
         <div className="p-6 space-y-6">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                    <h1 className="text-3xl  tracking-tight flex items-center gap-2">
                         <CalendarCheck className="h-8 w-8 text-primary" />
                         Timetable Management
                     </h1>
@@ -461,7 +461,7 @@ export default function ManagerTimetablePage() {
                                                                         {tm1} - {tm2}
                                                                     </div>
                                                                     <div>
-                                                                        <h4 className="font-bold text-base flex items-center gap-2">
+                                                                        <h4 className=" text-base flex items-center gap-2">
                                                                             {entry.topic}
                                                                             <Badge variant="outline" className="font-normal text-xs">{entry.batch}</Badge>
                                                                         </h4>

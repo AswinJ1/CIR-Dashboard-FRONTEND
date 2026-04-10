@@ -505,7 +505,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Staff Profile</h1>
+                    <h1 className="text-3xl  tracking-tight">Staff Profile</h1>
                     <p className="text-muted-foreground">
                         View staff member details and history
                     </p>
@@ -526,7 +526,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </Avatar>
                         <div className="flex-1 space-y-4">
                             <div>
-                                <h2 className="text-2xl font-bold">{staff.name}</h2>
+                                <h2 className="text-2xl ">{staff.name}</h2>
                                 <div className="flex items-center gap-2 text-muted-foreground mt-1">
                                     <Mail className="h-4 w-4" />
                                     {staff.email}
@@ -569,7 +569,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.total}</div>
+                        <div className="text-2xl ">{stats.total}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -580,7 +580,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.pending}</div>
+                        <div className="text-2xl ">{stats.pending}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -591,7 +591,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.verified}</div>
+                        <div className="text-2xl ">{stats.verified}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -602,7 +602,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{stats.rejected}</div>
+                        <div className="text-2xl ">{stats.rejected}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -678,7 +678,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Period Submissions</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.total}</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.total}</p>
                         </div>
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -687,7 +687,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Approval Rate</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.approvalRate}%</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.approvalRate}%</p>
                         </div>
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -696,7 +696,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Pending Review</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.pending}</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.pending}</p>
                         </div>
                         <div className=" border bg-card p-4">
                             <div className="flex items-center gap-2">
@@ -705,7 +705,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>
                             </div>
-                            <p className="text-2xl font-bold mt-2">{analyticsStats.hours.toFixed(1)}h</p>
+                            <p className="text-2xl  mt-2">{analyticsStats.hours.toFixed(1)}h</p>
                         </div>
                     </div>
 

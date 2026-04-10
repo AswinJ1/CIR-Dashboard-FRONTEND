@@ -191,7 +191,7 @@ export function DailyWorkCalendar({
                                     "p-2 rounded-lg border transition-all text-center min-h-[60px] flex flex-col items-center justify-center gap-1",
                                     getStatusColor(status),
                                     isSelected && "ring-2 ring-primary ring-offset-2",
-                                    isTodayCalendar && "font-bold",
+                                    isTodayCalendar && "",
                                     disabled && "opacity-50 cursor-not-allowed",
                                     !disabled && "hover:opacity-80 cursor-pointer"
                                 )}

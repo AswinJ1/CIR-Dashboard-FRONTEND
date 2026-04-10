@@ -160,7 +160,7 @@ function StaffListContent() {
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Staff Members</h1>
+                    <h1 className="text-3xl  tracking-tight">Staff Members</h1>
                     <p className="text-muted-foreground">
                         Staff in {subDepartment?.name}
                     </p>

@@ -637,7 +637,7 @@ export default function StaffDashboardPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                    <div>
-                    <h1 className="text-2xl font-bold tracking-tight"> Welcome back{employeeName ? `, ${employeeName}` : ''} 👋</h1>
+                    <h1 className="text-2xl  tracking-tight"> Welcome back{employeeName ? `, ${employeeName}` : ''} 👋</h1>
                     <p className="text-muted-foreground">
                         Here's a summary of your work activity and metrics.
                     </p>
@@ -809,7 +809,7 @@ export default function StaffDashboardPage() {
                 {/* Analytics Header with Date Range */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight">My Analytics</h2>
+                        <h2 className="text-2xl  tracking-tight">My Analytics</h2>
                         <p className="text-muted-foreground">Your personal performance metrics and insights</p>
                     </div>
 
@@ -868,7 +868,7 @@ export default function StaffDashboardPage() {
                             <BarChart3 className="h-4 w-4 text-blue-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-blue-600">{analyticsStats.total}</div>
+                            <div className="text-3xl  text-blue-600">{analyticsStats.total}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {analyticsStats.totalHours.toFixed(1)} hours logged
                             </p>
@@ -881,7 +881,7 @@ export default function StaffDashboardPage() {
                             <TrendingUp className="h-4 w-4 text-green-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-green-600">{analyticsStats.approvalRate}%</div>
+                            <div className="text-3xl  text-green-600">{analyticsStats.approvalRate}%</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {analyticsStats.verified} verified of {analyticsStats.total}
                             </p>
@@ -894,7 +894,7 @@ export default function StaffDashboardPage() {
                             <Clock className="h-4 w-4 text-amber-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-amber-600">{analyticsStats.pending}</div>
+                            <div className="text-3xl  text-amber-600">{analyticsStats.pending}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Awaiting manager verification
                             </p>
@@ -907,7 +907,7 @@ export default function StaffDashboardPage() {
                             <FileCheck className="h-4 w-4 text-purple-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-purple-600">{analyticsStats.totalHours.toFixed(1)}h</div>
+                            <div className="text-3xl  text-purple-600">{analyticsStats.totalHours.toFixed(1)}h</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 total work hours
                             </p>
@@ -920,7 +920,7 @@ export default function StaffDashboardPage() {
                             <FileCheck className="h-4 w-4 text-purple-600" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl font-bold text-purple-600">{analyticsStats.verifiedHours.toFixed(1)}h</div>
+                            <div className="text-3xl  text-purple-600">{analyticsStats.verifiedHours.toFixed(1)}h</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Approved work hours
                             </p>
@@ -1046,7 +1046,7 @@ export default function StaffDashboardPage() {
                                     <CardTitle className="text-sm font-medium">Average Daily Hours</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">
+                                    <div className="text-2xl ">
                                         {dailyData.filter(d => d.hours > 0).length > 0
                                             ? (analyticsStats.totalHours / dailyData.filter(d => d.hours > 0).length).toFixed(1)
                                             : '0'}h
@@ -1058,7 +1058,7 @@ export default function StaffDashboardPage() {
                                     <CardTitle className="text-sm font-medium">Most Productive Day</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">
+                                    <div className="text-2xl ">
                                         {(() => {
                                             if (dailyData.length === 0) return 'N/A'
                                             const max = dailyData.reduce((prev, current) => (prev.hours > current.hours) ? prev : current)
@@ -1079,7 +1079,7 @@ export default function StaffDashboardPage() {
                                     <CardTitle className="text-sm font-medium">Days with Submissions</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">
+                                    <div className="text-2xl ">
                                         {dailyData.filter(d => d.submissions > 0).length}
                                     </div>
                                 </CardContent>
@@ -1119,7 +1119,7 @@ export default function StaffDashboardPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-3xl font-bold text-green-600">{analyticsStats.verified}</div>
+                                    <div className="text-3xl  text-green-600">{analyticsStats.verified}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {analyticsStats.total > 0 ? Math.round((analyticsStats.verified / analyticsStats.total) * 100) : 0}% of total
                                     </p>
@@ -1133,7 +1133,7 @@ export default function StaffDashboardPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-3xl font-bold text-amber-600">{analyticsStats.pending}</div>
+                                    <div className="text-3xl  text-amber-600">{analyticsStats.pending}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {analyticsStats.total > 0 ? Math.round((analyticsStats.pending / analyticsStats.total) * 100) : 0}% of total
                                     </p>
@@ -1147,7 +1147,7 @@ export default function StaffDashboardPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-3xl font-bold text-red-600">{analyticsStats.rejected}</div>
+                                    <div className="text-3xl  text-red-600">{analyticsStats.rejected}</div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {analyticsStats.total > 0 ? Math.round((analyticsStats.rejected / analyticsStats.total) * 100) : 0}% of total
                                     </p>
@@ -1167,7 +1167,7 @@ export default function StaffDashboardPage() {
                         <CardDescription>Your current responsibility assignments</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-blue-600">{assignments.length}</div>
+                        <div className="text-3xl  text-blue-600">{assignments.length}</div>
                         <p className="text-sm text-muted-foreground mt-1">
                             {assignments.filter(a => a.status === 'PENDING').length} pending, {' '}
                             {assignments.filter(a => a.status === 'IN_PROGRESS').length} in progress

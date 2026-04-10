@@ -323,7 +323,7 @@ export default function ManagerAnalyticsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Team Analytics</h1>
+                    <h1 className="text-3xl  tracking-tight">Team Analytics</h1>
                     <p className="text-muted-foreground">
                         {subDepartment?.name || 'Sub-Department'} performance metrics and insights
                     </p>
@@ -386,7 +386,7 @@ export default function ManagerAnalyticsPage() {
                         <Users className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-600">{staffList.length}</div>
+                        <div className="text-2xl  text-blue-600">{staffList.length}</div>
                         <p className="text-xs text-muted-foreground">Active in sub-department</p>
                     </CardContent>
                 </Card>
@@ -396,7 +396,7 @@ export default function ManagerAnalyticsPage() {
                         <BarChart3 className="h-4 w-4 text-indigo-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-indigo-600">{stats.total}</div>
+                        <div className="text-2xl  text-indigo-600">{stats.total}</div>
                         <p className="text-xs text-muted-foreground">{stats.totalHours.toFixed(1)} hours logged</p>
                     </CardContent>
                 </Card>
@@ -406,7 +406,7 @@ export default function ManagerAnalyticsPage() {
                         <TrendingUp className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{stats.approvalRate}%</div>
+                        <div className="text-2xl  text-green-600">{stats.approvalRate}%</div>
                         <p className="text-xs text-muted-foreground">{stats.verified} verified of {stats.total}</p>
                     </CardContent>
                 </Card>
@@ -416,7 +416,7 @@ export default function ManagerAnalyticsPage() {
                         <Clock className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-amber-600">{stats.pending}</div>
+                        <div className="text-2xl  text-amber-600">{stats.pending}</div>
                         <p className="text-xs text-muted-foreground">Awaiting verification</p>
                     </CardContent>
                 </Card>
@@ -426,7 +426,7 @@ export default function ManagerAnalyticsPage() {
                         <FileCheck className="h-4 w-4 text-purple-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
+                        <div className="text-2xl  text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
                         <p className="text-xs text-muted-foreground">Approved work hours</p>
                     </CardContent>
                 </Card>

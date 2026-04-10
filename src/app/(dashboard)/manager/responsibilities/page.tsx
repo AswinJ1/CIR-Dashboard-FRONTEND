@@ -272,7 +272,7 @@ export default function ManagerResponsibilitiesPage() {
             {/* <DashboardHeader/> */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Calendar</h1>
+                    <h1 className="text-3xl  tracking-tight">Calendar</h1>
                     <p className="text-muted-foreground">
                         View and manage responsibilities on a calendar
                     </p>

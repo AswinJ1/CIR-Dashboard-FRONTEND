@@ -226,7 +226,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="h-24 w-24 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
             <CheckSquare className="h-12 w-12 text-destructive" />
           </div>
-          <h1 className="text-4xl font-bold text-destructive mb-2">403</h1>
+          <h1 className="text-4xl  text-destructive mb-2">403</h1>
           <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
           <p className="text-muted-foreground mb-6">
             You don't have permission to access this page. Please navigate to your authorized dashboard.
@@ -305,7 +305,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <Image src="/logo.png" alt="CIR" width={24} height={24} className="rounded-sm" />
                   </div>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-bold">{t('cirDashboard')}</span>
+                    <span className="truncate ">{t('cirDashboard')}</span>
                     <span className="truncate text-xs capitalize">{t(role.toLowerCase() + 'Portal')}</span>
                   </div>
                 </Link>

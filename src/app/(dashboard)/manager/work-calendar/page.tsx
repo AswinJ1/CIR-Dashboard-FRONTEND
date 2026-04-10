@@ -412,7 +412,7 @@ export default function ManagerWorkCalendarPage() {
             {/* <DashboardHeader/> */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Submit Work </h1>
+                    <h1 className="text-3xl  tracking-tight">Submit Work </h1>
                     <p className="text-muted-foreground">
                         Submit daily work and track your responsibilities
                     </p>

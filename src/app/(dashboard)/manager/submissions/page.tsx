@@ -315,7 +315,7 @@ export default function ManagerSubmissionsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Submissions Review</h1>
+                    <h1 className="text-3xl  tracking-tight">Submissions Review</h1>
                     <p className="text-muted-foreground">
                         Review and verify work submissions from your team
                     </p>
@@ -364,7 +364,7 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">VERIFICATION PENDING</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalCounts.pending}</div>
+                        <div className="text-2xl ">{totalCounts.pending}</div>
                         <p className="text-xs text-muted-foreground">Awaiting review</p>
                     </CardContent>
                 </Card>
@@ -373,7 +373,7 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">VERIFIED TODAY</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalCounts.approved}</div>
+                        <div className="text-2xl ">{totalCounts.approved}</div>
                         <p className="text-xs text-muted-foreground">Verified submissions</p>
                     </CardContent>
                 </Card>
@@ -382,7 +382,7 @@ export default function ManagerSubmissionsPage() {
                         <CardTitle className="text-sm font-medium">REJECTED RESPONSIBILITIES</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{totalCounts.rejected}</div>
+                        <div className="text-2xl ">{totalCounts.rejected}</div>
                         <p className="text-xs text-muted-foreground">Need revision</p>
                     </CardContent>
                 </Card>

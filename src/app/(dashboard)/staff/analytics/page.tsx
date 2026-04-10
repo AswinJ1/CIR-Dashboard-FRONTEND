@@ -391,7 +391,7 @@ export default function StaffAnalyticsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">My Analytics</h1>
+                    <h1 className="text-3xl  tracking-tight">My Analytics</h1>
                     <p className="text-muted-foreground">Your personal performance metrics and insights</p>
                 </div>
                 
@@ -456,7 +456,7 @@ export default function StaffAnalyticsPage() {
                         <BarChart3 className="h-4 w-4 text-blue-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-blue-600">{stats.total}</div>
+                        <div className="text-3xl  text-blue-600">{stats.total}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {stats.totalHours.toFixed(1)} hours logged
                         </p>
@@ -469,7 +469,7 @@ export default function StaffAnalyticsPage() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-green-600">{stats.approvalRate}%</div>
+                        <div className="text-3xl  text-green-600">{stats.approvalRate}%</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             {stats.verified} verified of {stats.total}
                         </p>
@@ -482,7 +482,7 @@ export default function StaffAnalyticsPage() {
                         <Clock className="h-4 w-4 text-amber-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-amber-600">{stats.pending}</div>
+                        <div className="text-3xl  text-amber-600">{stats.pending}</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Awaiting manager verification
                         </p>
@@ -495,7 +495,7 @@ export default function StaffAnalyticsPage() {
                         <FileCheck className="h-4 w-4 text-purple-600" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-3xl font-bold text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
+                        <div className="text-3xl  text-purple-600">{stats.verifiedHours.toFixed(1)}h</div>
                         <p className="text-xs text-muted-foreground mt-1">
                             Approved work hours
                         </p>
@@ -587,7 +587,7 @@ export default function StaffAnalyticsPage() {
                                 <CardTitle className="text-sm font-medium">Average Daily Hours</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-2xl ">
                                     {dailyData.filter(d => d.hours > 0).length > 0 
                                         ? (stats.totalHours / dailyData.filter(d => d.hours > 0).length).toFixed(1)
                                         : '0'}h
@@ -599,7 +599,7 @@ export default function StaffAnalyticsPage() {
                                 <CardTitle className="text-sm font-medium">Most Productive Day</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-2xl ">
                                     {dailyData.length > 0 ? Math.max(...dailyData.map(d => d.hours)).toFixed(1) : '0'}h
                                 </div>
                             </CardContent>
@@ -609,7 +609,7 @@ export default function StaffAnalyticsPage() {
                                 <CardTitle className="text-sm font-medium">Days with Submissions</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">
+                                <div className="text-2xl ">
                                     {dailyData.filter(d => d.submissions > 0).length}
                                 </div>
                             </CardContent>
@@ -642,7 +642,7 @@ export default function StaffAnalyticsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-green-600">{stats.verified}</div>
+                                <div className="text-3xl  text-green-600">{stats.verified}</div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0}% of total
                                 </p>
@@ -656,7 +656,7 @@ export default function StaffAnalyticsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-amber-600">{stats.pending}</div>
+                                <div className="text-3xl  text-amber-600">{stats.pending}</div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}% of total
                                 </p>
@@ -670,7 +670,7 @@ export default function StaffAnalyticsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-3xl font-bold text-red-600">{stats.rejected}</div>
+                                <div className="text-3xl  text-red-600">{stats.rejected}</div>
                                 <p className="text-xs text-muted-foreground mt-1">
                                     {stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0}% of total
                                 </p>
@@ -690,7 +690,7 @@ export default function StaffAnalyticsPage() {
                     <CardDescription>Your current responsibility assignments</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-3xl font-bold text-blue-600">{assignments.length}</div>
+                    <div className="text-3xl  text-blue-600">{assignments.length}</div>
                     <p className="text-sm text-muted-foreground mt-1">
                         {assignments.filter(a => a.status === 'PENDING').length} pending, {' '}
                         {assignments.filter(a => a.status === 'IN_PROGRESS').length} in progress

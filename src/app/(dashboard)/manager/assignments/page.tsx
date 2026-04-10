@@ -743,7 +743,7 @@ export default function ManagerAssignmentsPage() {
         <div className="p-6 space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Manage Duty</h1>
+                    <h1 className="text-3xl  tracking-tight">Manage Duty</h1>
                     <p className="text-muted-foreground">
                         Create and manage work assignments for your team
                     </p>

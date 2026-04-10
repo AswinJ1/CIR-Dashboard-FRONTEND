@@ -320,7 +320,7 @@ export default function StaffSemReportsPage() {
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
-          <h1 className="text-xl font-bold">
+          <h1 className="text-xl ">
             {viewMode === "edit" ? "Edit Semester Report" : "Create Semester Report"}
           </h1>
         </div>
@@ -547,7 +547,7 @@ export default function StaffSemReportsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Semester Reports</h1>
+          <h1 className="text-2xl ">Semester Reports</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Create, manage, and track your semester reports.
           </p>

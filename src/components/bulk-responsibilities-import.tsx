@@ -379,7 +379,7 @@ Documentation,Update project documentation,${currentCycle},,`
                             <CheckCircle2 className="h-4 w-4" />
                             <AlertDescription>
                                 <div className="font-medium">Successfully Created</div>
-                                <div className="text-2xl font-bold mt-1">{importResult.success}</div>
+                                <div className="text-2xl  mt-1">{importResult.success}</div>
                             </AlertDescription>
                         </Alert>
 
@@ -388,7 +388,7 @@ Documentation,Update project documentation,${currentCycle},,`
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
                                     <div className="font-medium">Failed</div>
-                                    <div className="text-2xl font-bold mt-1">{importResult.failed}</div>
+                                    <div className="text-2xl  mt-1">{importResult.failed}</div>
                                 </AlertDescription>
                             </Alert>
                         )}
@@ -400,7 +400,7 @@ Documentation,Update project documentation,${currentCycle},,`
                             <CheckCircle2 className="h-4 w-4 text-green-600" />
                             <AlertDescription>
                                 <div className="space-y-3">
-                                    <p className="font-bold text-green-900 dark:text-green-100">
+                                    <p className=" text-green-900 dark:text-green-100">
                                         Created Responsibilities:
                                     </p>
 

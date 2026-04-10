@@ -178,7 +178,7 @@ export default function AdminWorkSubmissionsPage() {
     return (
         <div className="p-6 space-y-6">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Work Submissions</h1>
+                <h1 className="text-3xl  tracking-tight">Work Submissions</h1>
                 <p className="text-muted-foreground">
                     View and verify all work submissions across the system
                 </p>
