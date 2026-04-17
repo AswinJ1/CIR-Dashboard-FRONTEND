@@ -184,7 +184,7 @@ export default function AdminDashboardPage() {
 
     // Filter staff based on selected department/sub-department
     const filteredStaffList = useMemo(() => {
-        let staff = employees.filter(e => e.role === 'STAFF')
+        let staff = employees.filter(e => e.role === 'STAFF' || e.role === 'MANAGER')
         if (selectedDepartmentId !== "all") {
             staff = staff.filter(e => String(e.departmentId) === selectedDepartmentId)
         }

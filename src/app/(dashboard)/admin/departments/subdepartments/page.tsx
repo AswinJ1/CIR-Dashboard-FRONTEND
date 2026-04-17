@@ -122,7 +122,11 @@ function SubDepartmentsContent() {
     )
 
     function getStaffCount(subDeptId: string): number {
-        return employees.filter(e => e.subDepartmentId === subDeptId && e.role === 'STAFF').length
+        return employees.filter(e => String(e.subDepartmentId) === String(subDeptId) && (e.role === 'STAFF' || e.role === 'MANAGER')).length
+    }
+
+    function getManager(subDeptId: string): Employee | undefined {
+        return employees.find(e => String(e.subDepartmentId) === subDeptId && e.role === 'MANAGER')
     }
 
     function openCreateSubDeptDialog() {
@@ -290,7 +294,7 @@ function SubDepartmentsContent() {
                                 <TableRow>
                                     <TableHead>Sub-Department</TableHead>
                                     <TableHead>Description</TableHead>
-                                    <TableHead>Staff</TableHead>
+                                    <TableHead>Members</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>

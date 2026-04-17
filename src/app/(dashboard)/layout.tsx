@@ -83,13 +83,13 @@ const searchOptions: SearchOption[] = [
   { label: "manageWorkSubmissions", href: "/admin/work-submissions", icon: <FileText className="h-4 w-4" />, roles: ["ADMIN"] },
   { label: "accountProfile", href: "/admin/profile", icon: <User className="h-4 w-4" />, roles: ["ADMIN"] },
   { label: "timetable", href: "/admin/timetable", icon: <Calendar className="h-4 w-4" />, roles: ["ADMIN"] },
-  
+
   // MANAGER Options
   { label: "dashboard", href: "/manager", icon: <Home className="h-4 w-4" />, roles: ["MANAGER"] },
   { label: "staff", href: "/manager/staff", icon: <Users className="h-4 w-4" />, roles: ["MANAGER"] },
   { label: "manageDuty", href: "/manager/assignments", icon: <FolderKanban className="h-4 w-4" />, roles: ["MANAGER"] },
   { label: "accountProfile", href: "/manager/profile", icon: <User className="h-4 w-4" />, roles: ["MANAGER"] },
-  
+
   // STAFF Options
   { label: "dashboard", href: "/staff", icon: <Home className="h-4 w-4" />, roles: ["STAFF"] },
   { label: "workCalendar", href: "/staff/responsibilities", icon: <CalendarRange className="h-4 w-4" />, roles: ["STAFF"] },
@@ -166,12 +166,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   React.useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch("/api/notifications")
-        if (response.ok) {
-          const data = await response.json()
-          setNotifications(data.notifications || [])
-          setUnreadCount(data.unreadCount || 0)
-        }
+        const [notifs, count] = await Promise.all([
+          api.notifications.getAll(),
+          api.notifications.getUnreadCount(),
+        ])
+        setNotifications(notifs || [])
+        setUnreadCount(count || 0)
       } catch (error) {
         console.error("Failed to fetch notifications:", error)
       }
@@ -242,7 +242,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Helpers
   const filteredNavigation = navigation.filter(item => item.roles.includes(role))
   const filteredOptions = searchOptions.filter(option => option.roles.includes(role as string))
-  
+
   const isCurrentPath = (href: string) => {
     const roleBase = getDashboardUrl(role)
     if (href === roleBase) return pathname === href
@@ -285,11 +285,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.isRead) {
-      try { await fetch(`/api/notifications?id=${notification.id}`, { method: "PATCH" }) } 
-      catch (error) { console.error("Failed to mark notification as read:", error) }
+      try {
+        await api.notifications.markAsRead(Number(notification.id))
+        setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n))
+        setUnreadCount(prev => Math.max(0, prev - 1))
+      } catch (error) {
+        console.error("Failed to mark notification as read:", error)
+      }
     }
     setNotificationOpen(false)
-    router.push(notification.actionUrl || (role === "ADMIN" ? "/admin/notifications/manage" : "/participant/notification"))
   }
 
   return (
@@ -320,9 +324,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarMenu>
               {filteredNavigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={isCurrentPath(item.href)} 
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isCurrentPath(item.href)}
                     tooltip={t(item.name)}
                   >
                     <Link href={item.href}>
@@ -361,7 +365,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     <ChevronsUpDown className="ml-auto size-4" />
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                
+
                 <DropdownMenuContent
                   className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
                   side="bottom"
@@ -386,7 +390,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  
+
                   <DropdownMenuGroup>
                     {/* Fixed Dropdown Navigation */}
                     <DropdownMenuItem asChild className="cursor-pointer">
@@ -403,14 +407,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </Link>
                     </DropdownMenuItem>
                   </DropdownMenuGroup>
-                  
+
                   <DropdownMenuSeparator />
-                  
-                  <DropdownMenuItem 
+
+                  <DropdownMenuItem
                     onClick={(e) => {
                       e.preventDefault();
                       logout();
-                    }} 
+                    }}
                     className="text-destructive focus:text-destructive cursor-pointer"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
@@ -427,12 +431,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* ---------------- MAIN LAYOUT ---------------- */}
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b bg-background px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 z-30 sticky top-0">
-          
+
           {/* Left: Sidebar Trigger & Search */}
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4 hidden md:block" />
-            
+
             {/* Desktop Search Bar */}
             <div
               className="relative w-64 cursor-pointer hidden md:block"
@@ -530,11 +534,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </ScrollArea>
                 {notifications.length > 0 && (
                   <div className="p-2 border-t">
-                    <Button variant="ghost" className="w-full text-xs" onClick={() => {
-                      setNotificationOpen(false)
-                      router.push(role === "ADMIN" ? "/admin/notifications/manage" : "/participant/notification")
+                    <Button variant="ghost" className="w-full text-xs" onClick={async () => {
+                      try {
+                        await api.notifications.markAllAsRead()
+                        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })))
+                        setUnreadCount(0)
+                      } catch (error) {
+                        console.error("Failed to mark all as read:", error)
+                      }
                     }}>
-                      {t('viewAllNotifications')}
+                      Mark all as read
                     </Button>
                   </div>
                 )}

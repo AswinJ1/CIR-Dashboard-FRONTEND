@@ -64,7 +64,7 @@ function StaffListContent() {
             setDepartment(currentDept)
             setSubDepartment(currentSubDept)
             setStaffMembers(allEmployees.filter(e =>
-                String(e.subDepartmentId) === subDepartmentId && e.role === 'STAFF'
+                String(e.subDepartmentId) === subDepartmentId && (e.role === 'STAFF' || e.role === 'MANAGER')
             ))
         } catch (error) {
             console.error("Failed to fetch data:", error)
@@ -227,7 +227,9 @@ function StaffListContent() {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="outline">{staff.role}</Badge>
+                                            <Badge variant={staff.role === 'MANAGER' ? 'default' : 'outline'}>
+                                                {staff.role === 'MANAGER' ? 'Manager' : staff.role}
+                                            </Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button

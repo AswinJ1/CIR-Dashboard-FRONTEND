@@ -49,13 +49,13 @@ import { de } from 'date-fns/locale';
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
-  const url ="http://localhost:3001/api";
-  if (!url) {
-    throw new Error(
-      "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
-    );
-  }
-  return url;
+    const url = "http://localhost:3001/api";
+    if (!url) {
+        throw new Error(
+            "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
+        );
+    }
+    return url;
 })();
 
 
@@ -667,6 +667,25 @@ export const timetableApi = {
         fetchApi(`/timetables/sub-department/${subDeptId}/staff`),
 }
 
+// ==================== Notifications API ====================
+export const notificationsApi = {
+    getAll: (): Promise<any[]> =>
+        fetchApi('/notifications'),
+
+    getUnreadCount: (): Promise<number> =>
+        fetchApi('/notifications/unread-count'),
+
+    markAsRead: (id: number): Promise<any> =>
+        fetchApi(`/notifications/${id}/read`, {
+            method: 'PATCH',
+        }),
+
+    markAllAsRead: (): Promise<any> =>
+        fetchApi('/notifications/read-all', {
+            method: 'PATCH',
+        }),
+}
+
 // ==================== Unified API Export ====================
 export const api = {
     auth: authApi,
@@ -683,6 +702,7 @@ export const api = {
     bookings: bookingApi,
     semReports: semReportsApi,
     timetables: timetableApi,
+    notifications: notificationsApi,
 }
 
 export default api
