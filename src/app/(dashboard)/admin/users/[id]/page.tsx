@@ -54,7 +54,7 @@ import {
   DoorOpen,
   VerifiedIcon
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn} from "@/lib/utils"
 import { FaBuilding, FaMapMarked, FaPrescription, FaUser, FaUserAlt, FaUserFriends } from "react-icons/fa"
 
 interface User {
@@ -235,13 +235,17 @@ export default function UserDetailPage() {
   }
 
   const getUserAvatar = () => {
+    let url: string | null = null
     if (user?.role === "ADMIN" && user.admin?.avatarUrl) {
-      return user.admin.avatarUrl
+      url = user.admin.avatarUrl
+    } else if (user?.role === "PARTICIPANT" && user.participant?.avatarUrl) {
+      url = user.participant.avatarUrl
+    } else if (user?.role === "STAFF" && (user as any).staff?.avatarUrl) {
+      url = (user as any).staff.avatarUrl
+    } else if (user?.role === "MANAGER" && (user as any).manager?.avatarUrl) {
+      url = (user as any).manager.avatarUrl
     }
-    if (user?.role === "PARTICIPANT" && user.participant?.avatarUrl) {
-      return user.participant.avatarUrl
-    }
-    return null
+    return url
   }
 
   if (isLoading) {

@@ -38,6 +38,7 @@ import {
     AlertCircle,
     Download,
 } from "lucide-react"
+import { cn} from "@/lib/utils"
 import { getSubmissionsForDate, getToday } from "@/lib/responsibility-status"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
