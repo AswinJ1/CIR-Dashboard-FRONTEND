@@ -26,6 +26,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Search, User, ChevronRight, ArrowLeft, Mail } from "lucide-react"
+
 import { toast } from "sonner"
 
 function StaffListContent() {

@@ -17,6 +17,7 @@ import {
     ChevronRight,
 } from "lucide-react"
 
+
 export default function ManagerStaffPage() {
     const router = useRouter()
     const [staff, setStaff] = useState<Employee[]>([])

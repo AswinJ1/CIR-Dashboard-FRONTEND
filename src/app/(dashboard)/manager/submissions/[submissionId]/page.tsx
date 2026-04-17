@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
 import { SubmissionStatusBadge } from "@/components/ui/status-badge"
-import { Clock, ArrowLeft, Link2, FileText } from "lucide-react"
+import { Clock, ArrowLeft, Link2, FileText, Lock } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
 
@@ -24,6 +24,7 @@ export default function SubmissionDetailsPage({
   const [rejectionReason, setRejectionReason] = useState("")
   const [loading, setLoading] = useState(true)
   const [verifying, setVerifying] = useState(false)
+  const [errorStatus, setErrorStatus] = useState<number | null>(null)
 
   useEffect(() => {
     fetchSubmission()
@@ -33,8 +34,12 @@ export default function SubmissionDetailsPage({
     try {
       const data = await api.workSubmissions.getById(submissionId)  // ✅ Use submissionId
       setSubmission(data)
-    } catch {
-      toast.error("Failed to load submission")
+    } catch (e: any) {
+      if (e?.statusCode === 403) {
+        setErrorStatus(403)
+      } else {
+        toast.error("Failed to load submission")
+      }
     } finally {
       setLoading(false)
     }
@@ -64,6 +69,20 @@ export default function SubmissionDetailsPage({
   }
 
   if (loading) return <div className="p-6">Loading...</div>
+  
+  if (errorStatus === 403) {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[50vh] text-center space-y-4">
+        <Lock className="h-12 w-12 text-muted-foreground" />
+        <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+        <p className="text-muted-foreground max-w-md">
+          You do not have permission to view this submission. It may belong to a sub-department you don't manage.
+        </p>
+        <Button onClick={() => router.back()} variant="outline">Go Back</Button>
+      </div>
+    )
+  }
+
   if (!submission) return <div className="p-6">Submission not found</div>
 
   return (

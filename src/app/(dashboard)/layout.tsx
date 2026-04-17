@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
 import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput,
   CommandItem, CommandList, CommandSeparator,
@@ -254,12 +255,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const getAvatarUrl = () => {
     if (!profile) return null
+    let url: string | null = null
     switch (role) {
-      case "ADMIN": return profile.admin?.avatarUrl || profile.avatarUrl
-      case "MANAGER": return profile.manager?.avatarUrl || profile.avatarUrl
-      case "STAFF": return profile.staff?.avatarUrl || profile.avatarUrl
-      default: return profile.avatarUrl || null
+      case "ADMIN": url = profile.admin?.avatarUrl || profile.avatarUrl; break
+      case "MANAGER": url = profile.manager?.avatarUrl || profile.avatarUrl; break
+      case "STAFF": url = profile.staff?.avatarUrl || profile.avatarUrl; break
+      default: url = profile.avatarUrl || null
     }
+    return url
   }
 
   const getUserName = () => {
