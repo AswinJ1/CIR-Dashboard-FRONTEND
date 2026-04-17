@@ -49,13 +49,14 @@ import { de } from 'date-fns/locale';
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
-    const url = "http://localhost:3001/api";
-    if (!url) {
-        throw new Error(
-            "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
-        );
-    }
-    return url;
+
+  const url = process.env.NEXT_PUBLIC_API_URL;
+  if (!url) {
+    throw new Error(
+      "NEXT_PUBLIC_API_URL is missing. This must be defined at build time."
+    );
+  }
+  return url;
 })();
 
 
