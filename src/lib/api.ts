@@ -49,6 +49,7 @@ import { de } from 'date-fns/locale';
 
 // API Base URL - configurable via environment variable
 export const API_BASE_URL = (() => {
+
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url) {
     throw new Error(
@@ -667,6 +668,25 @@ export const timetableApi = {
         fetchApi(`/timetables/sub-department/${subDeptId}/staff`),
 }
 
+// ==================== Notifications API ====================
+export const notificationsApi = {
+    getAll: (): Promise<any[]> =>
+        fetchApi('/notifications'),
+
+    getUnreadCount: (): Promise<number> =>
+        fetchApi('/notifications/unread-count'),
+
+    markAsRead: (id: number): Promise<any> =>
+        fetchApi(`/notifications/${id}/read`, {
+            method: 'PATCH',
+        }),
+
+    markAllAsRead: (): Promise<any> =>
+        fetchApi('/notifications/read-all', {
+            method: 'PATCH',
+        }),
+}
+
 // ==================== Unified API Export ====================
 export const api = {
     auth: authApi,
@@ -683,6 +703,7 @@ export const api = {
     bookings: bookingApi,
     semReports: semReportsApi,
     timetables: timetableApi,
+    notifications: notificationsApi,
 }
 
 export default api
