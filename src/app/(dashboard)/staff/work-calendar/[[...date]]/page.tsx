@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo, useCallback } from "react"
+import { useParams } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
 import { Assignment, WorkSubmission } from "@/types/cir"
@@ -72,8 +73,18 @@ export default function StaffWorkCalendarPage() {
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // selectedDate is now effectively always today for this view
-    const selectedDate = useMemo(() => new Date(), [])
+    const params = useParams()
+
+    // selectedDate is determined from the URL params or defaults to today
+    const selectedDate = useMemo(() => {
+        if (params?.date && Array.isArray(params.date) && params.date.length > 0) {
+            const parsedDate = new Date(params.date[0])
+            if (!isNaN(parsedDate.getTime())) {
+                return parsedDate
+            }
+        }
+        return new Date()
+    }, [params])
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -103,9 +114,9 @@ export default function StaffWorkCalendarPage() {
             setAssignments(assignmentsData)
             setAllSubmissions(submissionsData)
 
-            // Check if today's work was already submitted
-            const todaySubmissions = getSubmissionsForDate(submissionsData, new Date())
-            if (todaySubmissions.length > 0) {
+            // Check if selected date's work was already submitted
+            const dateSubmissions = getSubmissionsForDate(submissionsData, selectedDate)
+            if (dateSubmissions.length > 0) {
                 setTodaySubmitted(true)
             }
         } catch (error) {
@@ -115,18 +126,22 @@ export default function StaffWorkCalendarPage() {
             setIsLoading(false)
         }
     }
-    // Get today's unsubmitted assignments
+    // Get selected date's unsubmitted assignments
     const todayUnsubmittedAssignments = useMemo(() => {
-        return getActiveUnsubmittedAssignments(assignments, today, allSubmissions)
-    }, [assignments, today, allSubmissions])
+        return getActiveUnsubmittedAssignments(assignments, selectedDate, allSubmissions)
+    }, [assignments, selectedDate, allSubmissions])
 
-    // Get today's submitted assignments
+    // Get selected date's submitted assignments
     const todaySubmittedAssignments = useMemo(() => {
-        return getSubmittedAssignmentsForDate(assignments, today, allSubmissions)
-    }, [assignments, today, allSubmissions])
+        return getSubmittedAssignmentsForDate(assignments, selectedDate, allSubmissions)
+    }, [assignments, selectedDate, allSubmissions])
 
-    const isSelectedDateToday = true
-    const isSelectedDateLocked = false
+    const isSelectedDateToday = isToday(selectedDate)
+    const isSelectedDateLocked = useMemo(() => {
+        const diffTime = Math.abs(today.getTime() - selectedDate.getTime());
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return selectedDate < today && diffDays > 7;
+    }, [selectedDate, today])
 
     // Initialize form data for an assignment
     const getFormData = useCallback((assignmentId: string | number): AssignmentFormData => {
@@ -256,6 +271,7 @@ export default function StaffWorkCalendarPage() {
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: formData.workDescription || undefined,
+                            workDate: selectedDate.toISOString(),
                         }
 
                         // Only include proof fields when a real proof type is selected with content
@@ -327,6 +343,7 @@ export default function StaffWorkCalendarPage() {
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: newResp.workDescription || undefined,
+                            workDate: selectedDate.toISOString(),
                         }
 
                         // Only include proof fields when a real proof type is selected with content

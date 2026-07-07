@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
 import { Assignment, WorkSubmission, DayStatus, Responsibility } from "@/types/cir"
@@ -610,12 +611,35 @@ export default function StaffDashboardPage() {
         },
     }
 
+    const router = useRouter()
+
+    const { submittedDates, missingDates } = useMemo(() => {
+        const submitted: Date[] = []
+        const missing: Date[] = []
+        
+        const todayStart = new Date()
+        todayStart.setHours(0,0,0,0)
+
+        // Check past 7 days for indicators
+        for (let i = 0; i <= 7; i++) {
+            const date = new Date(todayStart)
+            date.setDate(date.getDate() - i)
+            const dateSubmissions = getSubmissionsForDate(allSubmissions, date)
+            if (dateSubmissions.length > 0) {
+                submitted.push(date)
+            } else {
+                missing.push(date)
+            }
+        }
+        return { submittedDates: submitted, missingDates: missing }
+    }, [allSubmissions])
+
     if (isLoading) {
         return (
             <div className="p-6 space-y-6">
-                <div className="flex justify-between items-center">
-                    <div>
-                        <Skeleton className="h-8 w-48 mb-2" />
+                <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                        <Skeleton className="h-8 w-48" />
                         <Skeleton className="h-4 w-64" />
                     </div>
                     <Skeleton className="h-10 w-24" />
@@ -659,33 +683,36 @@ export default function StaffDashboardPage() {
             {/* Daily Metrics */}
             <DailyMetricsCards metrics={metrics} />
 
-            {/* CTA Card - Go to Work Calendar */}
-            <Card className="border-primary bg-primary/5">
-                <CardContent className="py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                <CalendarCheck className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-lg">Submit Today's Work</h3>
-                                <p className="text-muted-foreground">
-                                    {pendingCount > 0
-                                        ? `You have ${pendingCount} responsibilit${pendingCount > 1 ? 'ies' : 'y'} pending submission`
-                                        : submittedCount > 0
-                                            ? `All ${submittedCount} responsibilit${submittedCount > 1 ? 'ies' : 'y'} submitted for today`
-                                            : "No responsibilities for today"
-                                    }
-                                </p>
-                            </div>
-                        </div>
-                        <Button asChild size="lg">
-                            <Link href="/staff/work-calendar">
-                                Submit Work
-                                <ArrowRight className="h-4 w-4 ml-2" />
-                            </Link>
-                        </Button>
-                    </div>
+            {/* Work Calendar Selection */}
+            <Card className="border-primary bg-primary/5 max-w-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                        <CalendarCheck className="h-5 w-5 text-primary" />
+                        Submit Work
+                    </CardTitle>
+                    <CardDescription>
+                        Select a date to view and submit your responsibilities.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center py-4">
+                    <CalendarComponent
+                        mode="single"
+                        onSelect={(date) => {
+                            if (date) {
+                                router.push(`/staff/work-calendar/${format(date, 'yyyy-MM-dd')}`)
+                            }
+                        }}
+                        className="rounded-md border bg-background shadow-sm"
+                        disabled={(date) => date > new Date()}
+                        modifiers={{
+                            submitted: submittedDates,
+                            missing: missingDates,
+                        }}
+                        modifiersClassNames={{
+                            submitted: "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-400 font-bold border-green-500",
+                            missing: "bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-400 font-bold border-red-500",
+                        }}
+                    />
                 </CardContent>
             </Card>
 

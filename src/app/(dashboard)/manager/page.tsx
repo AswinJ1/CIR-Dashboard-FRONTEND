@@ -37,6 +37,7 @@ import {
     Award,
     AlertCircle,
     Download,
+    CalendarCheck,
 } from "lucide-react"
 import { cn} from "@/lib/utils"
 import { getSubmissionsForDate, getToday } from "@/lib/responsibility-status"
@@ -611,6 +612,32 @@ export default function ManagerDashboardPage() {
         interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
     }
 
+    const { submittedDates, missingDates } = useMemo(() => {
+        const submitted: Date[] = []
+        const missing: Date[] = []
+        
+        if (!user?.id) return { submittedDates: [], missingDates: [] }
+        
+        // Filter submissions to only the manager's own submissions
+        const mySubmissions = submissions.filter(s => String(s.staffId) === String(user.id))
+        
+        const todayStart = new Date()
+        todayStart.setHours(0,0,0,0)
+
+        // Check past 7 days for indicators
+        for (let i = 0; i <= 7; i++) {
+            const date = new Date(todayStart)
+            date.setDate(date.getDate() - i)
+            const dateSubmissions = getSubmissionsForDate(mySubmissions, date)
+            if (dateSubmissions.length > 0) {
+                submitted.push(date)
+            } else {
+                missing.push(date)
+            }
+        }
+        return { submittedDates: submitted, missingDates: missing }
+    }, [submissions, user?.id])
+
     if (isLoading) {
         return (
             <div className="p-6 space-y-6">
@@ -641,6 +668,39 @@ export default function ManagerDashboardPage() {
                     subDepartmentName={subDepartment?.name || 'Sub-Department'}
                 />
             </div>
+
+            {/* Work Calendar Selection */}
+            <Card className="border-primary bg-primary/5 max-w-sm">
+                <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                        <CalendarCheck className="h-5 w-5 text-primary" />
+                        Submit Work
+                    </CardTitle>
+                    <CardDescription>
+                        Select a date to view and submit your responsibilities.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="flex justify-center py-4">
+                    <CalendarComponent
+                        mode="single"
+                        onSelect={(date) => {
+                            if (date) {
+                                router.push(`/manager/work-calendar/${format(date, 'yyyy-MM-dd')}`)
+                            }
+                        }}
+                        className="rounded-md border bg-background shadow-sm"
+                        disabled={(date) => date > new Date()}
+                        modifiers={{
+                            submitted: submittedDates,
+                            missing: missingDates,
+                        }}
+                        modifiersClassNames={{
+                            submitted: "bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-400 font-bold border-green-500",
+                            missing: "bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-400 font-bold border-red-500",
+                        }}
+                    />
+                </CardContent>
+            </Card>
 
             {/* Analytics Header with Filters */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
