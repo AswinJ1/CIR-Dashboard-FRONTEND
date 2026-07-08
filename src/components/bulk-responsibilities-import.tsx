@@ -28,6 +28,7 @@ import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/components/providers/auth-context"
 import { format } from "date-fns"
+import * as xlsx from "xlsx"
 
 interface ImportedResponsibility {
     title: string
@@ -68,58 +69,28 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
 
     const downloadTemplate = () => {
         const currentCycle = format(new Date(), "yyyy-MM")
-        const csvContent = `title,description,cycle,startDate,endDate
-Morning Briefing,Daily morning team briefing session,${currentCycle},,
-Report Submission,Weekly status report submission,${currentCycle},2024-01-01,2024-12-31
-Client Meetings,Handle client communication and meetings,${currentCycle},,
-Documentation,Update project documentation,${currentCycle},,`
-
-        const blob = new Blob([csvContent], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'responsibilities_import_template.csv'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
-    }
-
-    const parseCSV = (text: string): ImportedResponsibility[] => {
-        const lines = text.trim().split('\n')
-        if (lines.length < 2) return []
-
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-        const responsibilities: ImportedResponsibility[] = []
-
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-            const row: Record<string, string> = {}
-
-            headers.forEach((header, index) => {
-                row[header] = values[index] || ''
-            })
-
-            if (row.title) {
-                responsibilities.push({
-                    title: row.title,
-                    description: row.description || undefined,
-                    cycle: row.cycle || format(new Date(), "yyyy-MM"),
-                    startDate: row.startdate || undefined,
-                    endDate: row.enddate || undefined,
-                })
-            }
-        }
-
-        return responsibilities
+        const data = [
+            { title: "Morning Briefing", description: "Daily morning team briefing session", cycle: currentCycle, startDate: "", endDate: "" },
+            { title: "Report Submission", description: "Weekly status report submission", cycle: currentCycle, startDate: "2024-01-01", endDate: "2024-12-31" },
+            { title: "Client Meetings", description: "Handle client communication and meetings", cycle: currentCycle, startDate: "", endDate: "" },
+            { title: "Documentation", description: "Update project documentation", cycle: currentCycle, startDate: "", endDate: "" }
+        ]
+        
+        const ws = xlsx.utils.json_to_sheet(data)
+        const wb = xlsx.utils.book_new()
+        xlsx.utils.book_append_sheet(wb, ws, "Responsibilities")
+        xlsx.writeFile(wb, "responsibilities_import_template.xlsx")
     }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        if (!file.name.endsWith('.csv')) {
-            setError('Please upload a CSV file')
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+        const isCsv = file.name.endsWith('.csv')
+        
+        if (!isExcel && !isCsv) {
+            setError('Please upload an Excel (.xlsx) or CSV file')
             return
         }
 
@@ -129,19 +100,49 @@ Documentation,Update project documentation,${currentCycle},,`
         setIsParsed(false)
 
         try {
-            const text = await file.text()
-            const parsed = parseCSV(text)
-
-            if (parsed.length === 0) {
-                setError('No valid responsibilities found in CSV. Make sure the file has a header row and data.')
+            const buffer = await file.arrayBuffer()
+            const workbook = xlsx.read(buffer, { type: 'array' })
+            const sheetName = workbook.SheetNames[0]
+            const sheet = workbook.Sheets[sheetName]
+            
+            // raw json data
+            const rawData = xlsx.utils.sheet_to_json<Record<string, any>>(sheet)
+            
+            if (rawData.length === 0) {
+                setError('No valid responsibilities found in file. Make sure it has a header row and data.')
                 return
             }
 
-            setParsedData(parsed)
+            const responsibilities: ImportedResponsibility[] = []
+            
+            // Case-insensitive header matching
+            for (const row of rawData) {
+                const normalizedRow: Record<string, string> = {}
+                for (const key of Object.keys(row)) {
+                    normalizedRow[key.trim().toLowerCase()] = String(row[key] || '').trim()
+                }
+
+                if (normalizedRow.title) {
+                    responsibilities.push({
+                        title: normalizedRow.title,
+                        description: normalizedRow.description || undefined,
+                        cycle: normalizedRow.cycle || format(new Date(), "yyyy-MM"),
+                        startDate: normalizedRow.startdate || undefined,
+                        endDate: normalizedRow.enddate || undefined,
+                    })
+                }
+            }
+
+            if (responsibilities.length === 0) {
+                setError('No valid responsibilities found. The file must have a "title" column.')
+                return
+            }
+
+            setParsedData(responsibilities)
             setIsParsed(true)
         } catch (err) {
-            console.error('Error parsing CSV:', err)
-            setError('Failed to parse CSV file')
+            console.error('Error parsing file:', err)
+            setError('Failed to parse file. Make sure it is a valid Excel or CSV file.')
         }
 
         if (fileInputRef.current) {
@@ -377,8 +378,9 @@ Documentation,Update project documentation,${currentCycle},,`
                 <FileSpreadsheet className="h-4 w-4" />
                 <AlertDescription>
                     <div className="space-y-2">
-                        <p className="font-medium">CSV Import Instructions:</p>
+                        <p className="font-medium">Import Instructions:</p>
                         <ul className="list-disc list-inside text-sm space-y-1">
+                            <li><strong>Supported Formats:</strong> Excel (.xlsx, .xls) and CSV (.csv)</li>
                             <li><strong>Required:</strong> title (responsibility name)</li>
                             <li><strong>Optional:</strong> description, cycle (YYYY-MM), startDate, endDate</li>
                             <li>If cycle is not provided, current month will be used</li>
@@ -397,21 +399,21 @@ Documentation,Update project documentation,${currentCycle},,`
                     className="gap-2"
                 >
                     <Download className="h-4 w-4" />
-                    Download Sample CSV
+                    Download Sample Excel
                 </Button>
             </div>
 
             {/* File Upload */}
             {!isParsed && !importResult && (
                 <div className="space-y-2">
-                    <Label htmlFor="responsibilities-csv-file" className="text-base font-medium">
-                        Upload CSV File
+                    <Label htmlFor="responsibilities-upload-file" className="text-base font-medium">
+                        Upload Excel or CSV File
                     </Label>
                     <Input
                         ref={fileInputRef}
-                        id="responsibilities-csv-file"
+                        id="responsibilities-upload-file"
                         type="file"
-                        accept=".csv"
+                        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                         onChange={handleFileChange}
                         disabled={isUploading}
                         className="cursor-pointer"
