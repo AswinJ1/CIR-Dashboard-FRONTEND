@@ -101,7 +101,8 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
 
         try {
             const buffer = await file.arrayBuffer()
-            const workbook = xlsx.read(buffer, { type: 'array' })
+            // cellDates: true converts Excel serial dates to JS Date objects
+            const workbook = xlsx.read(buffer, { type: 'array', cellDates: true })
             const sheetName = workbook.SheetNames[0]
             const sheet = workbook.Sheets[sheetName]
             
@@ -115,11 +116,20 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
 
             const responsibilities: ImportedResponsibility[] = []
             
+            // Helper to format JS Dates back to YYYY-MM-DD
+            const formatDate = (val: any) => {
+                if (!val) return ''
+                if (val instanceof Date) {
+                    return format(val, 'yyyy-MM-dd')
+                }
+                return String(val).trim()
+            }
+
             // Case-insensitive header matching
             for (const row of rawData) {
                 const normalizedRow: Record<string, string> = {}
                 for (const key of Object.keys(row)) {
-                    normalizedRow[key.trim().toLowerCase()] = String(row[key] || '').trim()
+                    normalizedRow[key.trim().toLowerCase()] = formatDate(row[key])
                 }
 
                 if (normalizedRow.title) {
