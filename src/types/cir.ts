@@ -619,3 +619,12 @@ export interface UpdateTimetableEntryDto {
   endTime?: string
   classroomId?: number
 }
+
+// ==================== App Settings ====================
+export interface AppSetting {
+  id: number
+  key: string
+  value: string
+  label?: string
+  updatedAt: string
+}

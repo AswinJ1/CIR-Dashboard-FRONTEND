@@ -885,15 +885,15 @@ export default function ManagerAssignmentsPage() {
                                                 </SelectContent>
                                             </Select>
                                             {selectedGroup && (
-                                                <div className="mt-2 p-3 bg-muted rounded-md">
+                                                <div className="mt-2 p-3 bg-muted rounded-md max-h-60 overflow-y-auto">
                                                     <p className="text-sm font-medium mb-2">Responsibilities in this group:</p>
                                                     <ul className="text-sm text-muted-foreground space-y-1">
                                                         {responsibilityGroups
                                                             .find(g => g.id === selectedGroup)
                                                             ?.items?.map(item => (
                                                                 <li key={item.id} className="flex items-center gap-2">
-                                                                    <span className="w-1.5 h-1.5 rounded-full bg-foreground/50" />
-                                                                    {item.responsibility?.title}
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-foreground/50 shrink-0" />
+                                                                    <span>{item.responsibility?.title}</span>
                                                                 </li>
                                                             ))}
                                                     </ul>

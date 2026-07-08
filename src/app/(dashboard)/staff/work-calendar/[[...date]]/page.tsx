@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo, useCallback } from "react"
+import { useParams } from "next/navigation"
 import { useAuth } from "@/components/providers/auth-context"
 import { api } from "@/lib/api"
 import { Assignment, WorkSubmission } from "@/types/cir"
@@ -65,15 +66,25 @@ interface AssignmentFormData {
     workProofUrl: string
 }
 
-export default function ManagerWorkCalendarPage() {
+export default function StaffWorkCalendarPage() {
     const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(true)
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    // selectedDate is now effectively always today for this view
-    const selectedDate = useMemo(() => new Date(), [])
+    const params = useParams()
+
+    // selectedDate is determined from the URL params or defaults to today
+    const selectedDate = useMemo(() => {
+        if (params?.date && Array.isArray(params.date) && params.date.length > 0) {
+            const parsedDate = new Date(params.date[0])
+            if (!isNaN(parsedDate.getTime())) {
+                return parsedDate
+            }
+        }
+        return new Date()
+    }, [params])
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -90,25 +101,28 @@ export default function ManagerWorkCalendarPage() {
     const today = useMemo(() => startOfToday(), [])
 
     useEffect(() => {
-        if (user?.id) {
-            fetchData()
-        }
-    }, [user?.id])
+        fetchData()
+    }, [])
 
     async function fetchData() {
-        if (!user?.id) return
         setIsLoading(true)
         try {
-            const [assignmentsData, submissionsData] = await Promise.all([
-                api.assignments.getAll({ staffId: String(user.id) }),
-                api.workSubmissions.getAll({ staffId: String(user.id) }),
+            const [assignmentsData, submissionsData, settingsData] = await Promise.all([
+                api.assignments.getAll(),
+                api.workSubmissions.getAll(),
+                api.settings.getAll(),
             ])
+            
+            const lookbackSetting = settingsData.find(s => s.key === 'work_submission_lookback_days')
+            if (lookbackSetting && !isNaN(Number(lookbackSetting.value))) {
+                setLookbackDays(Number(lookbackSetting.value))
+            }
             setAssignments(assignmentsData)
             setAllSubmissions(submissionsData)
 
-            // Check if today's work was already submitted
-            const todaySubmissions = getSubmissionsForDate(submissionsData, new Date())
-            if (todaySubmissions.length > 0) {
+            // Check if selected date's work was already submitted
+            const dateSubmissions = getSubmissionsForDate(submissionsData, selectedDate)
+            if (dateSubmissions.length > 0) {
                 setTodaySubmitted(true)
             }
         } catch (error) {
@@ -118,18 +132,27 @@ export default function ManagerWorkCalendarPage() {
             setIsLoading(false)
         }
     }
-    // Get today's unsubmitted assignments
+    // Get selected date's unsubmitted assignments
     const todayUnsubmittedAssignments = useMemo(() => {
-        return getActiveUnsubmittedAssignments(assignments, today, allSubmissions)
-    }, [assignments, today, allSubmissions])
+        return getActiveUnsubmittedAssignments(assignments, selectedDate, allSubmissions)
+    }, [assignments, selectedDate, allSubmissions])
 
-    // Get today's submitted assignments
+    // Get selected date's submitted assignments
     const todaySubmittedAssignments = useMemo(() => {
-        return getSubmittedAssignmentsForDate(assignments, today, allSubmissions)
-    }, [assignments, today, allSubmissions])
+        return getSubmittedAssignmentsForDate(assignments, selectedDate, allSubmissions)
+    }, [assignments, selectedDate, allSubmissions])
 
-    const isSelectedDateToday = true
-    const isSelectedDateLocked = false
+    const isSelectedDateToday = isToday(selectedDate)
+    const isSelectedDateLocked = useMemo(() => {
+        const diffTime = Math.abs(today.getTime() - selectedDate.getTime());
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        return selectedDate < today && diffDays > lookbackDays;
+    }, [selectedDate, today, lookbackDays])
+
+    // Past date but still within the submission window - submittable
+    const isPastDateSubmittable = useMemo(() => {
+        return isPastDate(selectedDate) && !isSelectedDateLocked
+    }, [selectedDate, isSelectedDateLocked])
 
     // Initialize form data for an assignment
     const getFormData = useCallback((assignmentId: string | number): AssignmentFormData => {
@@ -197,7 +220,7 @@ export default function ManagerWorkCalendarPage() {
             const hours = parseFloat(formData.hoursWorked)
             const title = assignment.responsibility?.title || 'Untitled'
 
-            if (!isNaN(hours) && hours > 0) {
+            if (!isNaN(hours) && hours >= 0) {
                 if (hours > 24) {
                     validationErrors.push(`${title}: Hours cannot exceed 24`)
                 }
@@ -243,7 +266,7 @@ export default function ManagerWorkCalendarPage() {
                 const formData = getFormData(assignment.id)
                 const hours = parseFloat(formData.hoursWorked)
 
-                if (!isNaN(hours) && hours > 0) {
+                if (!isNaN(hours) && hours >= 0) {
                     if (hours > 24) {
                         errors.push(`${assignment.responsibility?.title}: Hours cannot exceed 24`)
                         continue
@@ -259,6 +282,7 @@ export default function ManagerWorkCalendarPage() {
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: formData.workDescription || undefined,
+                            workDate: selectedDate.toISOString(),
                         }
 
                         // Only include proof fields when a real proof type is selected with content
@@ -330,6 +354,7 @@ export default function ManagerWorkCalendarPage() {
                             staff: { connect: { id: parseInt(user.id) } },
                             hoursWorked: hours,
                             staffComment: newResp.workDescription || undefined,
+                            workDate: selectedDate.toISOString(),
                         }
 
                         // Only include proof fields when a real proof type is selected with content
@@ -382,7 +407,7 @@ export default function ManagerWorkCalendarPage() {
         for (const assignment of todayUnsubmittedAssignments) {
             const formData = getFormData(assignment.id)
             const hours = parseFloat(formData.hoursWorked)
-            if (!isNaN(hours) && hours > 0) return true
+            if (!isNaN(hours) && hours >= 0) return true
         }
 
         // Check new responsibilities
@@ -450,6 +475,11 @@ export default function ManagerWorkCalendarPage() {
                                                 <Clock className="h-4 w-4" />
                                                 Submit work for today's responsibilities
                                             </>
+                                        ) : isPastDateSubmittable ? (
+                                            <>
+                                                <RotateCcw className="h-4 w-4" />
+                                                Past date - you can still submit work (within {lookbackDays}-day window)
+                                            </>
                                         ) : (
                                             <>
                                                 <AlertCircle className="h-4 w-4" />
@@ -462,8 +492,8 @@ export default function ManagerWorkCalendarPage() {
                         </CardHeader>
                     </Card>
 
-                    {/* TODAY'S VIEW */}
-                    {isSelectedDateToday && (
+                    {/* TODAY'S VIEW / PAST-DATE-SUBMITTABLE VIEW */}
+                    {(isSelectedDateToday || isPastDateSubmittable) && (
                         <>
                             {/* Success Message if submitted */}
                             {/* {(hasTodaySubmissions || todaySubmitted) && (
@@ -517,7 +547,9 @@ export default function ManagerWorkCalendarPage() {
                                             <Send className="h-8 w-8 text-foreground" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-xl">Submit Today's Work</h3>
+                                            <h3 className="font-semibold text-xl">
+                                                {isSelectedDateToday ? "Submit Today's Work" : `Submit Work for ${format(selectedDate, 'MMM d, yyyy')}`}
+                                            </h3>
                                             <p className="text-muted-foreground">
                                                 Record your work hours and add new responsibilities
                                             </p>
@@ -528,7 +560,7 @@ export default function ManagerWorkCalendarPage() {
                                             className="bg-foreground text-background hover:bg-foreground/90"
                                         >
                                             <Send className="h-4 w-4 mr-2" />
-                                            Submit Today's Work
+                                            {isSelectedDateToday ? "Submit Today's Work" : "Submit Work"}
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -586,11 +618,15 @@ export default function ManagerWorkCalendarPage() {
 
             {/* Submit Work Modal - Black & White Styling */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-foreground/20">
+                <DialogContent className="max-w-2xl xl:max-w-6xl max-h-[90vh] overflow-y-auto bg-background border-foreground/20">
                     <DialogHeader>
-                        <DialogTitle className="text-foreground">Submit Today's Work</DialogTitle>
+                        <DialogTitle className="text-foreground">
+                            {isSelectedDateToday ? "Submit Today's Work" : `Submit Work for ${format(selectedDate, 'MMM d, yyyy')}`}
+                        </DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Record your work hours for today. Add new responsibilities if needed.
+                            {isSelectedDateToday
+                                ? "Record your work hours for today. Add new responsibilities if needed."
+                                : "Record your work hours for this date. Add new responsibilities if needed."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -601,6 +637,7 @@ export default function ManagerWorkCalendarPage() {
                                 <h3 className="font-medium text-sm text-foreground border-b border-foreground/10 pb-2">
                                     Assigned Responsibilities ({todayUnsubmittedAssignments.length})
                                 </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                                 {todayUnsubmittedAssignments.map(assignment => {
                                     const formData = getFormData(assignment.id)
                                     return (
@@ -621,10 +658,10 @@ export default function ManagerWorkCalendarPage() {
                                                     <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                     <Input
                                                         type="number"
-                                                        min="0.5"
+                                                        min="0"
                                                         max="24"
                                                         step="0.5"
-                                                        placeholder="e.g., 2.5"
+                                                        placeholder="e.g., 2.5 (0 if no work done)"
                                                         value={formData.hoursWorked}
                                                         onChange={(e) => updateFormData(assignment.id, { hoursWorked: e.target.value })}
                                                         className="h-9 border-foreground/20 bg-background"
@@ -689,6 +726,7 @@ export default function ManagerWorkCalendarPage() {
                                         </div>
                                     )
                                 })}
+                                </div>
                             </div>
                         )}
 
@@ -698,6 +736,7 @@ export default function ManagerWorkCalendarPage() {
                                 <h3 className="font-medium text-sm text-foreground border-b border-foreground/10 pb-2">
                                     New Responsibilities ({newResponsibilities.length})
                                 </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                                 {newResponsibilities.map(newResp => (
                                     <div key={newResp.id} className="border border-foreground/20 rounded-lg p-4 space-y-3">
                                         <div className="flex items-start justify-between gap-2">
@@ -803,6 +842,7 @@ export default function ManagerWorkCalendarPage() {
                                         )}
                                     </div>
                                 ))}
+                                </div>
                             </div>
                         )}
 

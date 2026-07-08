@@ -37,10 +37,12 @@ import {
     Award,
     AlertCircle,
     Download,
+    CalendarCheck,
+    ChevronRight,
 } from "lucide-react"
 import { cn} from "@/lib/utils"
 import { getSubmissionsForDate, getToday } from "@/lib/responsibility-status"
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
+import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, addDays } from "date-fns"
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
 import { Bar, Line, Doughnut, Pie } from 'react-chartjs-2'
 import { ManagerExportDialog } from "@/components/export-dialog"
@@ -87,6 +89,7 @@ type DateRange = {
 export default function ManagerDashboardPage() {
     const { user } = useAuth()
     const router = useRouter()
+    const [calendarView, setCalendarView] = useState<'month' | 'week' | 'list'>('month')
     const [pendingSubmissions, setPendingSubmissions] = useState<WorkSubmission[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [submissions, setSubmissions] = useState<WorkSubmission[]>([])
@@ -101,6 +104,7 @@ export default function ManagerDashboardPage() {
         from: subDays(new Date(), 30),
         to: new Date(),
     })
+    const [lookbackDays, setLookbackDays] = useState(7)
 
     const today = useMemo(() => getToday(), [])
 
@@ -111,13 +115,19 @@ export default function ManagerDashboardPage() {
 
             try {
                 setIsLoading(true)
-                const [allSubmissions, allAssignments, allEmployees, allResponsibilities, allSubDepts] = await Promise.all([
+                const [allSubmissions, allAssignments, allEmployees, allResponsibilities, allSubDepts, allSettings] = await Promise.all([
                     api.workSubmissions.getAll(),
                     api.assignments.getAll(),
                     api.employees.getAll(),
                     api.responsibilities.getAll(),
                     api.subDepartments.getAll(),
+                    api.settings.getAll(),
                 ])
+
+                const lookbackSetting = allSettings.find(s => s.key === 'work_submission_lookback_days')
+                if (lookbackSetting && !isNaN(Number(lookbackSetting.value))) {
+                    setLookbackDays(Number(lookbackSetting.value))
+                }
 
                 // Get manager's sub-department
                 const managerSubDept = allSubDepts.find(sd => String(sd.id) === String(user.subDepartmentId))
@@ -611,6 +621,43 @@ export default function ManagerDashboardPage() {
         interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
     }
 
+    const { submittedDates, missingDates } = useMemo(() => {
+        const submitted: Date[] = []
+        const missing: Date[] = []
+        
+        if (!user?.id) return { submittedDates: [], missingDates: [] }
+        
+        // Filter submissions to only the manager's own submissions
+        const mySubmissions = submissions.filter(s => String(s.staffId) === String(user.id))
+        
+        const todayStart = new Date()
+        todayStart.setHours(0,0,0,0)
+
+        // Check past lookbackDays for indicators (today is excluded - it isn't "missed" until the day is over)
+        for (let i = 1; i <= lookbackDays; i++) {
+            const date = new Date(todayStart)
+            date.setDate(date.getDate() - i)
+            const dateSubmissions = getSubmissionsForDate(mySubmissions, date)
+            if (dateSubmissions.length > 0) {
+                submitted.push(date)
+            } else {
+                missing.push(date)
+            }
+        }
+        return { submittedDates: submitted, missingDates: missing }
+    }, [submissions, user?.id, lookbackDays])
+
+    // Week & List View Logic (must be before conditional returns for React hooks rule)
+    const currentWeekDays = useMemo(() => {
+        const start = startOfWeek(today, { weekStartsOn: 0 }); // Sunday
+        return Array.from({ length: 7 }).map((_, i) => addDays(start, i));
+    }, [today]);
+
+    const listDays = useMemo(() => {
+        const start = subDays(today, (lookbackDays * 2) - 1); // Show double the lookback days in list view
+        return eachDayOfInterval({ start, end: today }).reverse();
+    }, [today, lookbackDays]);
+
     if (isLoading) {
         return (
             <div className="p-6 space-y-6">
@@ -621,6 +668,44 @@ export default function ManagerDashboardPage() {
                 <Skeleton className="h-[400px]" />
             </div>
         )
+    }
+    const getDayStatusCategory = (day: Date) => {
+        const todayStart = new Date(today)
+        todayStart.setHours(0,0,0,0)
+        const dayStart = new Date(day)
+        dayStart.setHours(0,0,0,0)
+        
+        if (dayStart > todayStart) return 'future'
+        
+        const mySubmissions = submissions.filter(s => String(s.staffId) === String(user?.id))
+        const daySubmissions = getSubmissionsForDate(mySubmissions, dayStart)
+        
+        if (daySubmissions.length > 0) {
+            const hasVerified = daySubmissions.some(s => s.status === 'VERIFIED')
+            const hasPending = daySubmissions.some(s => s.status === 'SUBMITTED' || s.status === 'PENDING')
+            const hasRejected = daySubmissions.some(s => s.status === 'REJECTED')
+            
+            if (hasVerified) return 'approved'
+            if (hasPending) return 'pending'
+            if (hasRejected) return 'missed' 
+            return 'submitted'
+        }
+        
+        if (dayStart < todayStart) return 'missing'
+        return 'no-data'
+    }
+
+    const renderStatusBadge = (status: string) => {
+        switch (status) {
+            case 'approved': return <div className="px-2 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">Approved</div>;
+            case 'pending': return <div className="px-2 py-1 rounded-md text-xs font-medium bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800">Pending</div>;
+            case 'submitted': return <div className="px-2 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">Submitted</div>;
+            case 'missed':
+            case 'missing': return <div className="px-2 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800">Missed</div>;
+            case 'no-data': return <div className="px-2 py-1 rounded-md text-xs font-medium bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">No Data</div>;
+            case 'future': return <div className="px-2 py-1 rounded-md text-xs font-medium text-muted-foreground">Upcoming</div>;
+            default: return null;
+        }
     }
 
     return (
@@ -640,6 +725,142 @@ export default function ManagerDashboardPage() {
                     assignments={assignments}
                     subDepartmentName={subDepartment?.name || 'Sub-Department'}
                 />
+            </div>
+
+            <div className="my-10 bg-card rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-border/50 p-6 md:p-8 flex flex-col lg:flex-row gap-8 lg:gap-12 w-full max-w-6xl mx-auto">
+                {/* Left Side: Title and Description */}
+                <div className="w-full lg:w-1/3 space-y-4 pt-2">
+                    <div className="flex items-center gap-3">
+                        <CalendarCheck className="h-8 w-8 text-foreground" />
+                        <h2 className="text-2xl  tracking-tight text-foreground">
+                            Submit Work
+                        </h2>
+                    </div>
+                    <p className="text-muted-foreground text-base">
+                        Select a date on the calendar to view or submit your responsibilities.
+                    </p>
+                </div>
+
+                {/* Right Side: Wide Calendar & Legend */}
+                <div className="w-full lg:w-2/3 flex flex-col gap-6">
+                    <div className="w-full border rounded-xl overflow-hidden bg-background relative min-h-[450px]">
+                        {/* Month / Week / List View Toggles Overlay */}
+                        <div className="absolute top-[22px] right-[70px] z-20 hidden md:flex items-center bg-muted/30 p-1 rounded-lg border border-border/50">
+                            <button 
+                                onClick={() => setCalendarView('month')}
+                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'month' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>Month</button>
+                            <button 
+                                onClick={() => setCalendarView('week')}
+                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'week' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>Week</button>
+                            <button 
+                                onClick={() => setCalendarView('list')}
+                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'list' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>List</button>
+                        </div>
+
+                        {calendarView === 'month' && (
+                            <CalendarComponent
+                                mode="single"
+                                onSelect={(date) => {
+                                    if (date) {
+                                        router.push(`/manager/work-calendar/${format(date, 'yyyy-MM-dd')}`)
+                                    }
+                                }}
+                                className="w-full p-6 [&_.rdp]:w-full [&_.rdp-months]:w-full [&_.rdp-month]:w-full [&_.rdp-table]:w-full [&_.rdp-head_row]:flex [&_.rdp-head_row]:w-full [&_.rdp-head_cell]:flex-1 [&_.rdp-row]:flex [&_.rdp-row]:w-full [&_.rdp-cell]:flex-1 [&_.rdp-button]:w-full [&_.rdp-button]:h-12 sm:[&_.rdp-button]:h-14 [&_.rdp-button]:rounded-md [&_.rdp-caption]:w-full [&_.rdp-caption_label]:text-lg [&_.rdp-caption_label]:font-semibold"
+                                disabled={(date) => {
+                                    const todayStart = new Date()
+                                    todayStart.setHours(0,0,0,0)
+                                    const minDate = new Date(todayStart)
+                                    minDate.setDate(minDate.getDate() - lookbackDays)
+                                    return date > todayStart || date < minDate
+                                }}
+                                modifiers={{
+                                    submitted: submittedDates,
+                                    missing: missingDates,
+                                }}
+                                modifiersClassNames={{
+                                    submitted: "bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-medium border border-green-200 dark:border-green-800",
+                                    missing: "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 font-medium border border-amber-200 dark:border-amber-800",
+                                }}
+                            />
+                        )}
+
+                        {calendarView === 'week' && (
+                            <div className="w-full h-full min-h-[400px] p-6 pt-16 md:pt-6">
+                                <div className="grid grid-cols-2 md:grid-cols-7 gap-3 mt-8">
+                                    {currentWeekDays.map((day, i) => {
+                                        const status = getDayStatusCategory(day);
+                                        return (
+                                            <div 
+                                                key={i}
+                                                onClick={() => {
+                                                    if (status !== 'future') {
+                                                        router.push(`/manager/work-calendar/${format(day, 'yyyy-MM-dd')}`)
+                                                    }
+                                                }}
+                                                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${status === 'future' ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 cursor-pointer hover:shadow-md bg-card'}`}
+                                            >
+                                                <span className="text-sm text-muted-foreground uppercase tracking-wider mb-2">{format(day, 'EEE')}</span>
+                                                <span className={`text-3xl font-bold mb-4 ${isSameDay(day, today) ? 'text-primary' : 'text-foreground'}`}>{format(day, 'd')}</span>
+                                                {renderStatusBadge(status)}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {calendarView === 'list' && (
+                            <div className="w-full h-full min-h-[400px] p-6 pt-16 md:pt-6">
+                                <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pr-2 mt-8">
+                                    {listDays.map((day, i) => {
+                                        const status = getDayStatusCategory(day);
+                                        return (
+                                            <div 
+                                                key={i}
+                                                onClick={() => router.push(`/manager/work-calendar/${format(day, 'yyyy-MM-dd')}`)}
+                                                className="flex items-center justify-between p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${isSameDay(day, today) ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                                                        {format(day, 'd')}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-semibold text-foreground">{format(day, 'EEEE')}</h4>
+                                                        <p className="text-sm text-muted-foreground">{format(day, 'MMMM yyyy')}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    {renderStatusBadge(status)}
+                                                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Legend */}
+                    <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground px-2">
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-sm bg-green-50 border border-green-200 dark:bg-green-900/30 dark:border-green-800"></div> 
+                            Approved
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-sm bg-amber-50 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800"></div> 
+                            Pending
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-sm bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-800"></div> 
+                            Missed
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-sm bg-background border border-input"></div> 
+                            No Data
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Analytics Header with Filters */}

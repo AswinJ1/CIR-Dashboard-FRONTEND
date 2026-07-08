@@ -82,29 +82,11 @@ interface WorkSubmission {
 }
 
 // =====================================================
-// work.xlsx FORMAT CONSTANTS
+// work.xlsx FORMAT — DYNAMIC LAYOUT
 // =====================================================
-
-// Column layout per week: [weekIndex][daySlot] => colIndex (1-indexed for ExcelJS)
-// Each week has 7 days + 1 remarks column
-const WEEK_DAY_COLS: number[][] = [
-    [2, 3, 4, 5, 6, 7, 8],
-    [10, 11, 12, 13, 14, 15, 16],
-    [18, 19, 20, 21, 22, 23, 24],
-    [26, 27, 28, 29, 30, 31, 32],
-    [34, 35, 36, 37, 38, 39, 40],
-]
-
-const WEEK_HEADER_RANGES: { s: number; e: number }[] = [
-    { s: 2, e: 8 },  
-    { s: 10, e: 16 }, 
-    { s: 18, e: 24 }, 
-    { s: 26, e: 32 }, 
-    { s: 34, e: 40 }, 
-]
-
-const REMARKS_COLS = [9, 17, 25, 33, 41] 
-const LAST_COL = 42
+// Weeks are split by actual calendar boundaries:
+// each week runs Mon–Sun, and the "Remarks if any"
+// column appears only after Sunday (end of the week).
 
 const MONTH_NAMES = [
     "January", "February", "March", "April", "May", "June",
@@ -114,15 +96,79 @@ const MONTH_NAMES = [
 const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 // =====================================================
-// HELPER FUNCTIONS
+// HELPER: Dynamic month layout
 // =====================================================
 
-/** Map day-of-month (1-31) to column index (1-indexed), returns -1 for skipped days */
-function dayToCol(day: number): number {
-    const weekIndex = Math.floor((day - 1) / 7)
-    const dayInWeek = (day - 1) % 7
-    if (weekIndex >= 5) return -1
-    return WEEK_DAY_COLS[weekIndex][dayInWeek]
+interface WeekLayout {
+    /** Day-of-month numbers in this week */
+    days: number[]
+    /** Column indices (1-indexed) for each day in this week */
+    cols: number[]
+    /** Start column of this week's header merge */
+    headerStart: number
+    /** End column of this week's header merge */
+    headerEnd: number
+    /** Column index of the Remarks column for this week */
+    remarksCol: number
+}
+
+interface MonthLayout {
+    weeks: WeekLayout[]
+    /** Map from day-of-month (1-31) to its column index */
+    dayColMap: Map<number, number>
+    /** Map from day-of-month to its week index */
+    dayWeekMap: Map<number, number>
+    /** Total number of columns used (for merge ranges) */
+    lastCol: number
+}
+
+/**
+ * Compute the column layout for a given month/year.
+ * Weeks end on Sunday. Remarks column appears after Sunday.
+ */
+function computeMonthLayout(month: number, year: number): MonthLayout {
+    const daysInMonth = getDaysInMonth(new Date(year, month))
+    const weeks: WeekLayout[] = []
+    const dayColMap = new Map<number, number>()
+    const dayWeekMap = new Map<number, number>()
+
+    // Split days into calendar weeks ending on Sunday
+    const weekDays: number[][] = []
+    let currentWeek: number[] = []
+
+    for (let d = 1; d <= daysInMonth; d++) {
+        currentWeek.push(d)
+        const dow = getDay(new Date(year, month, d)) // 0=Sun
+        // End the week on Sunday (dow === 0) or on the last day of the month
+        if (dow === 0 || d === daysInMonth) {
+            weekDays.push(currentWeek)
+            currentWeek = []
+        }
+    }
+
+    // Build column layout: col 1 = "Key Responsibilities" label
+    let colCursor = 2 // start from column 2
+
+    for (let w = 0; w < weekDays.length; w++) {
+        const days = weekDays[w]
+        const cols: number[] = []
+        const headerStart = colCursor
+
+        for (const d of days) {
+            cols.push(colCursor)
+            dayColMap.set(d, colCursor)
+            dayWeekMap.set(d, w)
+            colCursor++
+        }
+
+        const headerEnd = colCursor - 1
+        const remarksCol = colCursor
+        colCursor++ // skip remarks column
+
+        weeks.push({ days, cols, headerStart, headerEnd, remarksCol })
+    }
+
+    return { weeks, dayColMap, dayWeekMap, lastCol: colCursor - 1 }
 }
 
 /** Get list of {month, year} pairs covered by a date range */
@@ -162,10 +208,11 @@ function buildStaffSheet(
 ) {
     const ws = workbook.addWorksheet(sheetName)
     const daysInMonth = getDaysInMonth(new Date(year, month))
+    const layout = computeMonthLayout(month, year)
 
     // Column widths: col A wide, day cols narrow
     const colWidths: { width: number }[] = [{ width: 48 }]
-    for (let i = 1; i < LAST_COL; i++) colWidths.push({ width: 7 })
+    for (let i = 1; i < layout.lastCol; i++) colWidths.push({ width: 7 })
     ws.columns = colWidths.map((w: { width: number }) => ({ width: w.width }))
 
     // ---- HEADER ROWS (rows 1-5) ----
@@ -179,7 +226,7 @@ function buildStaffSheet(
         cell.value = headerTexts[r - 1]
         cell.font = { bold: true, size: r <= 2 ? 13 : 11 }
         cell.alignment = { horizontal: 'left', vertical: 'middle' }
-        ws.mergeCells(r, 1, r, LAST_COL)
+        ws.mergeCells(r, 1, r, layout.lastCol)
     }
 
     // ---- ROW 6: Week headers ----
@@ -191,9 +238,10 @@ function buildStaffSheet(
     weekCell.alignment = { horizontal: 'center', vertical: 'middle' }
     weekCell.border = ALL_BORDERS
 
-    for (let w = 0; w < 5; w++) {
-        ws.mergeCells(weekHeaderRow, WEEK_HEADER_RANGES[w].s, weekHeaderRow, WEEK_HEADER_RANGES[w].e)
-        const wCell = ws.getCell(weekHeaderRow, WEEK_HEADER_RANGES[w].s)
+    for (let w = 0; w < layout.weeks.length; w++) {
+        const week = layout.weeks[w]
+        ws.mergeCells(weekHeaderRow, week.headerStart, weekHeaderRow, week.headerEnd)
+        const wCell = ws.getCell(weekHeaderRow, week.headerStart)
         wCell.value = `Week ${w + 1}`
         wCell.font = { bold: true, color: { argb: WHITE }, size: 11 }
         wCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MED_BLUE } }
@@ -201,8 +249,8 @@ function buildStaffSheet(
         wCell.border = ALL_BORDERS
 
         // Remarks column header (merged rows 6-8)
-        ws.mergeCells(weekHeaderRow, REMARKS_COLS[w], weekHeaderRow + 2, REMARKS_COLS[w])
-        const rCell = ws.getCell(weekHeaderRow, REMARKS_COLS[w])
+        ws.mergeCells(weekHeaderRow, week.remarksCol, weekHeaderRow + 2, week.remarksCol)
+        const rCell = ws.getCell(weekHeaderRow, week.remarksCol)
         rCell.value = "Remarks if any"
         rCell.font = { bold: true, color: { argb: WHITE }, size: 10 }
         rCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MED_BLUE } }
@@ -220,8 +268,8 @@ function buildStaffSheet(
     dateLabel.border = ALL_BORDERS
 
     for (let d = 1; d <= daysInMonth; d++) {
-        const col = dayToCol(d)
-        if (col !== -1) {
+        const col = layout.dayColMap.get(d)
+        if (col !== undefined) {
             const c = ws.getCell(dateRow, col)
             c.value = d
             c.font = { bold: true, color: { argb: WHITE }, size: 10 }
@@ -241,8 +289,8 @@ function buildStaffSheet(
     keyRespCell.border = ALL_BORDERS
 
     for (let d = 1; d <= daysInMonth; d++) {
-        const col = dayToCol(d)
-        if (col !== -1) {
+        const col = layout.dayColMap.get(d)
+        if (col !== undefined) {
             const dayOfWeek = getDay(new Date(year, month, d))
             const c = ws.getCell(dayNameRow, col)
             c.value = DAY_NAMES[dayOfWeek]
@@ -255,7 +303,7 @@ function buildStaffSheet(
 
     // ---- DYNAMIC RESPONSIBILITY ROWS ----
     let currentRow = 9
-    const grandWeekTotals = [0, 0, 0, 0, 0]
+    const grandWeekTotals = new Array(layout.weeks.length).fill(0)
     const dailyTotals = new Map<number, number>()
 
     for (const title of responsibilityTitles) {
@@ -269,14 +317,14 @@ function buildStaffSheet(
         const titleHours = hoursMap.get(normalizedTitle)
         if (titleHours) {
             for (const [day, hours] of titleHours) {
-                const col = dayToCol(day)
-                if (col !== -1) {
+                const col = layout.dayColMap.get(day)
+                if (col !== undefined) {
                     const c = ws.getCell(currentRow, col)
                     c.value = hours
                     c.alignment = { horizontal: 'center', vertical: 'middle' }
                     c.border = GRAY_BORDERS
-                    const weekIdx = Math.floor((day - 1) / 7)
-                    if (weekIdx < 5) grandWeekTotals[weekIdx] += hours
+                    const weekIdx = layout.dayWeekMap.get(day)
+                    if (weekIdx !== undefined) grandWeekTotals[weekIdx] += hours
                     dailyTotals.set(day, (dailyTotals.get(day) || 0) + hours)
                 }
             }
@@ -299,8 +347,8 @@ function buildStaffSheet(
     dayTotalLabel.alignment = { horizontal: 'left', vertical: 'middle' }
 
     for (let d = 1; d <= daysInMonth; d++) {
-        const col = dayToCol(d)
-        if (col !== -1) {
+        const col = layout.dayColMap.get(d)
+        if (col !== undefined) {
             const c = ws.getCell(currentRow, col)
             c.value = dailyTotals.get(d) || 0
             applyTotalStyle(c)
@@ -314,9 +362,10 @@ function buildStaffSheet(
     applyTotalStyle(weekTotalLabel)
     weekTotalLabel.alignment = { horizontal: 'left', vertical: 'middle' }
 
-    for (let w = 0; w < 5; w++) {
-        ws.mergeCells(currentRow, WEEK_HEADER_RANGES[w].s, currentRow, WEEK_HEADER_RANGES[w].e)
-        const c = ws.getCell(currentRow, WEEK_HEADER_RANGES[w].s)
+    for (let w = 0; w < layout.weeks.length; w++) {
+        const week = layout.weeks[w]
+        ws.mergeCells(currentRow, week.headerStart, currentRow, week.headerEnd)
+        const c = ws.getCell(currentRow, week.headerStart)
         c.value = grandWeekTotals[w]
         applyTotalStyle(c)
     }
@@ -329,7 +378,7 @@ function buildStaffSheet(
     applyTotalStyle(monthTotalLabel)
     monthTotalLabel.alignment = { horizontal: 'left', vertical: 'middle' }
 
-    ws.mergeCells(currentRow, 2, currentRow, LAST_COL)
+    ws.mergeCells(currentRow, 2, currentRow, layout.lastCol)
     const monthTotalCell = ws.getCell(currentRow, 2)
     monthTotalCell.value = monthTotal
     applyTotalStyle(monthTotalCell)
