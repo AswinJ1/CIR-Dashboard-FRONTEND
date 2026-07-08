@@ -28,6 +28,7 @@ import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/components/providers/auth-context"
 import { format } from "date-fns"
+import * as xlsx from "xlsx"
 
 interface ImportedResponsibility {
     title: string
@@ -68,58 +69,28 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
 
     const downloadTemplate = () => {
         const currentCycle = format(new Date(), "yyyy-MM")
-        const csvContent = `title,description,cycle,startDate,endDate
-Morning Briefing,Daily morning team briefing session,${currentCycle},,
-Report Submission,Weekly status report submission,${currentCycle},2024-01-01,2024-12-31
-Client Meetings,Handle client communication and meetings,${currentCycle},,
-Documentation,Update project documentation,${currentCycle},,`
-
-        const blob = new Blob([csvContent], { type: 'text/csv' })
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'responsibilities_import_template.csv'
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        window.URL.revokeObjectURL(url)
-    }
-
-    const parseCSV = (text: string): ImportedResponsibility[] => {
-        const lines = text.trim().split('\n')
-        if (lines.length < 2) return []
-
-        const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
-        const responsibilities: ImportedResponsibility[] = []
-
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''))
-            const row: Record<string, string> = {}
-
-            headers.forEach((header, index) => {
-                row[header] = values[index] || ''
-            })
-
-            if (row.title) {
-                responsibilities.push({
-                    title: row.title,
-                    description: row.description || undefined,
-                    cycle: row.cycle || format(new Date(), "yyyy-MM"),
-                    startDate: row.startdate || undefined,
-                    endDate: row.enddate || undefined,
-                })
-            }
-        }
-
-        return responsibilities
+        const data = [
+            { title: "Morning Briefing", description: "Daily morning team briefing session", cycle: currentCycle, startDate: "", endDate: "" },
+            { title: "Report Submission", description: "Weekly status report submission", cycle: currentCycle, startDate: "2024-01-01", endDate: "2024-12-31" },
+            { title: "Client Meetings", description: "Handle client communication and meetings", cycle: currentCycle, startDate: "", endDate: "" },
+            { title: "Documentation", description: "Update project documentation", cycle: currentCycle, startDate: "", endDate: "" }
+        ]
+        
+        const ws = xlsx.utils.json_to_sheet(data)
+        const wb = xlsx.utils.book_new()
+        xlsx.utils.book_append_sheet(wb, ws, "Responsibilities")
+        xlsx.writeFile(wb, "responsibilities_import_template.xlsx")
     }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
-        if (!file.name.endsWith('.csv')) {
-            setError('Please upload a CSV file')
+        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+        const isCsv = file.name.endsWith('.csv')
+        
+        if (!isExcel && !isCsv) {
+            setError('Please upload an Excel (.xlsx) or CSV file')
             return
         }
 
@@ -129,24 +100,102 @@ Documentation,Update project documentation,${currentCycle},,`
         setIsParsed(false)
 
         try {
-            const text = await file.text()
-            const parsed = parseCSV(text)
-
-            if (parsed.length === 0) {
-                setError('No valid responsibilities found in CSV. Make sure the file has a header row and data.')
+            const buffer = await file.arrayBuffer()
+            const workbook = xlsx.read(buffer, { type: 'array' })
+            const sheetName = workbook.SheetNames[0]
+            const sheet = workbook.Sheets[sheetName]
+            
+            // raw json data
+            const rawData = xlsx.utils.sheet_to_json<Record<string, any>>(sheet)
+            
+            if (rawData.length === 0) {
+                setError('No valid responsibilities found in file. Make sure it has a header row and data.')
                 return
             }
 
-            setParsedData(parsed)
+            const responsibilities: ImportedResponsibility[] = []
+            
+            // Case-insensitive header matching
+            for (const row of rawData) {
+                const normalizedRow: Record<string, string> = {}
+                for (const key of Object.keys(row)) {
+                    normalizedRow[key.trim().toLowerCase()] = String(row[key] || '').trim()
+                }
+
+                if (normalizedRow.title) {
+                    responsibilities.push({
+                        title: normalizedRow.title,
+                        description: normalizedRow.description || undefined,
+                        cycle: normalizedRow.cycle || format(new Date(), "yyyy-MM"),
+                        startDate: normalizedRow.startdate || undefined,
+                        endDate: normalizedRow.enddate || undefined,
+                    })
+                }
+            }
+
+            if (responsibilities.length === 0) {
+                setError('No valid responsibilities found. The file must have a "title" column.')
+                return
+            }
+
+            setParsedData(responsibilities)
             setIsParsed(true)
         } catch (err) {
-            console.error('Error parsing CSV:', err)
-            setError('Failed to parse CSV file')
+            console.error('Error parsing file:', err)
+            setError('Failed to parse file. Make sure it is a valid Excel or CSV file.')
         }
 
         if (fileInputRef.current) {
             fileInputRef.current.value = ''
         }
+    }
+
+    /**
+     * Retry wrapper: retries a given async operation up to maxRetries times
+     * with exponential backoff. Only retries on network/transient errors.
+     */
+    const withRetry = async <T,>(
+        fn: () => Promise<T>,
+        maxRetries: number = 4,
+    ): Promise<T> => {
+        let lastError: any
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                return await fn()
+            } catch (err: any) {
+                lastError = err
+                const isNetworkError =
+                    err instanceof TypeError || // fetch network failure
+                    err?.statusCode === 0 ||
+                    err?.statusCode >= 500 ||
+                    err?.message?.toLowerCase()?.includes('network') ||
+                    err?.message?.toLowerCase()?.includes('fetch')
+
+                if (!isNetworkError || attempt === maxRetries) {
+                    throw err
+                }
+
+                // Exponential backoff: 500ms, 1s, 2s, 4s
+                const delay = 500 * Math.pow(2, attempt)
+                await new Promise(resolve => setTimeout(resolve, delay))
+            }
+        }
+        throw lastError
+    }
+
+    /**
+     * Build a unique signature for a responsibility row so we can detect
+     * true duplicates (all columns identical) vs. rows that share a title
+     * but differ in other fields.
+     */
+    const getRowSignature = (item: ImportedResponsibility): string => {
+        return [
+            item.title.trim().toLowerCase(),
+            (item.description || '').trim().toLowerCase(),
+            item.cycle.trim(),
+            (item.startDate || '').trim(),
+            (item.endDate || '').trim(),
+        ].join('|||')
     }
 
     const handleImport = async () => {
@@ -163,22 +212,100 @@ Documentation,Update project documentation,${currentCycle},,`
             responsibilities: [],
         }
 
-        const totalItems = parsedData.length
-        let processed = 0
+        // 1. Deduplicate rows within the uploaded file by full-row signature.
+        //    Keep only the first occurrence of each unique row.
+        const seenSignatures = new Set<string>()
+        const uniqueRows: { item: ImportedResponsibility; originalIndex: number }[] = []
+        const skippedFiledupes: { row: number; title: string }[] = []
 
         for (let i = 0; i < parsedData.length; i++) {
-            const item = parsedData[i]
+            const sig = getRowSignature(parsedData[i])
+            if (seenSignatures.has(sig)) {
+                skippedFiledupes.push({ row: i + 2, title: parsedData[i].title })
+            } else {
+                seenSignatures.add(sig)
+                uniqueRows.push({ item: parsedData[i], originalIndex: i })
+            }
+        }
+
+        // 2. Pre-fetch existing responsibilities to detect DB-level duplicates.
+        //    A row is a "DB duplicate" only if ALL columns match an existing record.
+        let existingResponsibilities: Array<{
+            title: string
+            description?: string | null
+            cycle: string
+            startDate?: string | null
+            endDate?: string | null
+        }> = []
+
+        try {
+            const fetched = await withRetry(() => api.responsibilities.getAll())
+            existingResponsibilities = fetched.map(r => ({
+                title: r.title,
+                description: r.description,
+                cycle: r.cycle,
+                startDate: r.startDate ? r.startDate.toString().split('T')[0] : null,
+                endDate: r.endDate ? r.endDate.toString().split('T')[0] : null,
+            }))
+        } catch {
+            // If we can't fetch existing data, proceed without duplicate checking.
+            // The backend will reject true duplicates if there are DB constraints.
+        }
+
+        const existingSignatures = new Set(
+            existingResponsibilities.map(r =>
+                [
+                    r.title.trim().toLowerCase(),
+                    (r.description || '').trim().toLowerCase(),
+                    r.cycle.trim(),
+                    (r.startDate || '').trim(),
+                    (r.endDate || '').trim(),
+                ].join('|||')
+            )
+        )
+
+        // 3. Process each unique row, skipping DB duplicates, retrying on network errors.
+        const totalItems = parsedData.length // Use original count for progress
+        let processed = skippedFiledupes.length // Count file-dupes as already processed
+
+        // Report file-level duplicates as skipped (not errors)
+        for (const dupe of skippedFiledupes) {
+            result.failed++
+            result.errors.push({
+                row: dupe.row,
+                title: dupe.title,
+                error: 'Duplicate row in file (identical to an earlier row) — skipped',
+            })
+        }
+
+        for (const { item, originalIndex } of uniqueRows) {
+            const sig = getRowSignature(item)
+
+            // Skip if an identical responsibility already exists in the DB
+            if (existingSignatures.has(sig)) {
+                result.failed++
+                result.errors.push({
+                    row: originalIndex + 2,
+                    title: item.title,
+                    error: 'Responsibility with identical title, description, cycle, and dates already exists — skipped',
+                })
+                processed++
+                setUploadProgress(Math.round((processed / totalItems) * 100))
+                continue
+            }
 
             try {
-                const created = await api.responsibilities.create({
-                    title: item.title,
-                    description: item.description,
-                    cycle: item.cycle,
-                    startDate: item.startDate,
-                    endDate: item.endDate,
-                    createdBy: { connect: { id: parseInt(user.id) } },
-                    subDepartment: { connect: { id: parseInt(user.subDepartmentId || '0') } },
-                })
+                const created = await withRetry(() =>
+                    api.responsibilities.create({
+                        title: item.title,
+                        description: item.description,
+                        cycle: item.cycle,
+                        startDate: item.startDate,
+                        endDate: item.endDate,
+                        createdBy: { connect: { id: parseInt(user.id) } },
+                        subDepartment: { connect: { id: parseInt(user.subDepartmentId || '0') } },
+                    })
+                )
 
                 result.success++
                 result.responsibilities.push({
@@ -186,10 +313,14 @@ Documentation,Update project documentation,${currentCycle},,`
                     title: created.title,
                     cycle: created.cycle,
                 })
+
+                // Add to existing set so subsequent rows in the same batch
+                // don't create duplicates either
+                existingSignatures.add(sig)
             } catch (err: any) {
                 result.failed++
                 result.errors.push({
-                    row: i + 2, // +2 for header and 0-index
+                    row: originalIndex + 2,
                     title: item.title,
                     error: err.message || 'Failed to create responsibility',
                 })
@@ -247,8 +378,9 @@ Documentation,Update project documentation,${currentCycle},,`
                 <FileSpreadsheet className="h-4 w-4" />
                 <AlertDescription>
                     <div className="space-y-2">
-                        <p className="font-medium">CSV Import Instructions:</p>
+                        <p className="font-medium">Import Instructions:</p>
                         <ul className="list-disc list-inside text-sm space-y-1">
+                            <li><strong>Supported Formats:</strong> Excel (.xlsx, .xls) and CSV (.csv)</li>
                             <li><strong>Required:</strong> title (responsibility name)</li>
                             <li><strong>Optional:</strong> description, cycle (YYYY-MM), startDate, endDate</li>
                             <li>If cycle is not provided, current month will be used</li>
@@ -267,21 +399,21 @@ Documentation,Update project documentation,${currentCycle},,`
                     className="gap-2"
                 >
                     <Download className="h-4 w-4" />
-                    Download Sample CSV
+                    Download Sample Excel
                 </Button>
             </div>
 
             {/* File Upload */}
             {!isParsed && !importResult && (
                 <div className="space-y-2">
-                    <Label htmlFor="responsibilities-csv-file" className="text-base font-medium">
-                        Upload CSV File
+                    <Label htmlFor="responsibilities-upload-file" className="text-base font-medium">
+                        Upload Excel or CSV File
                     </Label>
                     <Input
                         ref={fileInputRef}
-                        id="responsibilities-csv-file"
+                        id="responsibilities-upload-file"
                         type="file"
-                        accept=".csv"
+                        accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
                         onChange={handleFileChange}
                         disabled={isUploading}
                         className="cursor-pointer"
