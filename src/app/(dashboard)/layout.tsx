@@ -84,6 +84,7 @@ const searchOptions: SearchOption[] = [
   { label: "manageWorkSubmissions", href: "/admin/work-submissions", icon: <FileText className="h-4 w-4" />, roles: ["ADMIN"] },
   { label: "accountProfile", href: "/admin/profile", icon: <User className="h-4 w-4" />, roles: ["ADMIN"] },
   { label: "timetable", href: "/admin/timetable", icon: <Calendar className="h-4 w-4" />, roles: ["ADMIN"] },
+  { label: "settings", href: "/admin/settings", icon: <Settings className="h-4 w-4" />, roles: ["ADMIN"] },
 
   // MANAGER Options
   { label: "dashboard", href: "/manager", icon: <Home className="h-4 w-4" />, roles: ["MANAGER"] },
@@ -107,6 +108,7 @@ const navigation: NavigationItem[] = [
   { name: "semReports", href: "/admin/sem-reports", icon: <FileText className="w-4 h-4" />, roles: ["ADMIN"] },
   { name: "classroomManagement", href: "/admin/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["ADMIN"] },
   { name: "timetable", href: "/admin/timetable", icon: <CalendarCheck className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "settings", href: "/admin/settings", icon: <Settings className="w-4 h-4" />, roles: ["ADMIN"] },
 
   // Manager Navigation
   { name: "dashboard", href: "/manager", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["MANAGER"] },

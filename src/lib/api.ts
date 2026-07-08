@@ -44,6 +44,7 @@ import {
     TimetableEntry,
     CreateTimetableEntryDto,
     UpdateTimetableEntryDto,
+    AppSetting,
 } from '@/types/cir'
 import { de } from 'date-fns/locale';
 
@@ -687,6 +688,21 @@ export const notificationsApi = {
         }),
 }
 
+// ==================== Settings API ====================
+const settingsApi = {
+    getAll: (): Promise<AppSetting[]> =>
+        fetchApi('/settings'),
+
+    getByKey: (key: string): Promise<AppSetting> =>
+        fetchApi(`/settings/${key}`),
+
+    update: (key: string, value: string): Promise<AppSetting> =>
+        fetchApi(`/settings/${key}`, {
+            method: 'PUT',
+            body: JSON.stringify({ value }),
+        }),
+}
+
 // ==================== Unified API Export ====================
 export const api = {
     auth: authApi,
@@ -704,6 +720,7 @@ export const api = {
     semReports: semReportsApi,
     timetables: timetableApi,
     notifications: notificationsApi,
+    settings: settingsApi,
 }
 
 export default api

@@ -107,10 +107,16 @@ export default function StaffWorkCalendarPage() {
     async function fetchData() {
         setIsLoading(true)
         try {
-            const [assignmentsData, submissionsData] = await Promise.all([
+            const [assignmentsData, submissionsData, settingsData] = await Promise.all([
                 api.assignments.getAll(),
                 api.workSubmissions.getAll(),
+                api.settings.getAll(),
             ])
+            
+            const lookbackSetting = settingsData.find(s => s.key === 'work_submission_lookback_days')
+            if (lookbackSetting && !isNaN(Number(lookbackSetting.value))) {
+                setLookbackDays(Number(lookbackSetting.value))
+            }
             setAssignments(assignmentsData)
             setAllSubmissions(submissionsData)
 
@@ -140,8 +146,13 @@ export default function StaffWorkCalendarPage() {
     const isSelectedDateLocked = useMemo(() => {
         const diffTime = Math.abs(today.getTime() - selectedDate.getTime());
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        return selectedDate < today && diffDays > 7;
-    }, [selectedDate, today])
+        return selectedDate < today && diffDays > lookbackDays;
+    }, [selectedDate, today, lookbackDays])
+
+    // Past date but still within the submission window - submittable
+    const isPastDateSubmittable = useMemo(() => {
+        return isPastDate(selectedDate) && !isSelectedDateLocked
+    }, [selectedDate, isSelectedDateLocked])
 
     // Initialize form data for an assignment
     const getFormData = useCallback((assignmentId: string | number): AssignmentFormData => {
@@ -209,7 +220,7 @@ export default function StaffWorkCalendarPage() {
             const hours = parseFloat(formData.hoursWorked)
             const title = assignment.responsibility?.title || 'Untitled'
 
-            if (!isNaN(hours) && hours > 0) {
+            if (!isNaN(hours) && hours >= 0) {
                 if (hours > 24) {
                     validationErrors.push(`${title}: Hours cannot exceed 24`)
                 }
@@ -255,7 +266,7 @@ export default function StaffWorkCalendarPage() {
                 const formData = getFormData(assignment.id)
                 const hours = parseFloat(formData.hoursWorked)
 
-                if (!isNaN(hours) && hours > 0) {
+                if (!isNaN(hours) && hours >= 0) {
                     if (hours > 24) {
                         errors.push(`${assignment.responsibility?.title}: Hours cannot exceed 24`)
                         continue
@@ -396,7 +407,7 @@ export default function StaffWorkCalendarPage() {
         for (const assignment of todayUnsubmittedAssignments) {
             const formData = getFormData(assignment.id)
             const hours = parseFloat(formData.hoursWorked)
-            if (!isNaN(hours) && hours > 0) return true
+            if (!isNaN(hours) && hours >= 0) return true
         }
 
         // Check new responsibilities
@@ -464,6 +475,11 @@ export default function StaffWorkCalendarPage() {
                                                 <Clock className="h-4 w-4" />
                                                 Submit work for today's responsibilities
                                             </>
+                                        ) : isPastDateSubmittable ? (
+                                            <>
+                                                <RotateCcw className="h-4 w-4" />
+                                                Past date - you can still submit work (within {lookbackDays}-day window)
+                                            </>
                                         ) : (
                                             <>
                                                 <AlertCircle className="h-4 w-4" />
@@ -476,8 +492,8 @@ export default function StaffWorkCalendarPage() {
                         </CardHeader>
                     </Card>
 
-                    {/* TODAY'S VIEW */}
-                    {isSelectedDateToday && (
+                    {/* TODAY'S VIEW / PAST-DATE-SUBMITTABLE VIEW */}
+                    {(isSelectedDateToday || isPastDateSubmittable) && (
                         <>
                             {/* Success Message if submitted */}
                             {/* {(hasTodaySubmissions || todaySubmitted) && (
@@ -531,7 +547,9 @@ export default function StaffWorkCalendarPage() {
                                             <Send className="h-8 w-8 text-foreground" />
                                         </div>
                                         <div>
-                                            <h3 className="font-semibold text-xl">Submit Today's Work</h3>
+                                            <h3 className="font-semibold text-xl">
+                                                {isSelectedDateToday ? "Submit Today's Work" : `Submit Work for ${format(selectedDate, 'MMM d, yyyy')}`}
+                                            </h3>
                                             <p className="text-muted-foreground">
                                                 Record your work hours and add new responsibilities
                                             </p>
@@ -542,7 +560,7 @@ export default function StaffWorkCalendarPage() {
                                             className="bg-foreground text-background hover:bg-foreground/90"
                                         >
                                             <Send className="h-4 w-4 mr-2" />
-                                            Submit Today's Work
+                                            {isSelectedDateToday ? "Submit Today's Work" : "Submit Work"}
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -600,11 +618,15 @@ export default function StaffWorkCalendarPage() {
 
             {/* Submit Work Modal - Black & White Styling */}
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-background border-foreground/20">
+                <DialogContent className="max-w-2xl xl:max-w-6xl max-h-[90vh] overflow-y-auto bg-background border-foreground/20">
                     <DialogHeader>
-                        <DialogTitle className="text-foreground">Submit Today's Work</DialogTitle>
+                        <DialogTitle className="text-foreground">
+                            {isSelectedDateToday ? "Submit Today's Work" : `Submit Work for ${format(selectedDate, 'MMM d, yyyy')}`}
+                        </DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Record your work hours for today. Add new responsibilities if needed.
+                            {isSelectedDateToday
+                                ? "Record your work hours for today. Add new responsibilities if needed."
+                                : "Record your work hours for this date. Add new responsibilities if needed."}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -615,6 +637,7 @@ export default function StaffWorkCalendarPage() {
                                 <h3 className="font-medium text-sm text-foreground border-b border-foreground/10 pb-2">
                                     Assigned Responsibilities ({todayUnsubmittedAssignments.length})
                                 </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                                 {todayUnsubmittedAssignments.map(assignment => {
                                     const formData = getFormData(assignment.id)
                                     return (
@@ -635,10 +658,10 @@ export default function StaffWorkCalendarPage() {
                                                     <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
                                                     <Input
                                                         type="number"
-                                                        min="0.5"
+                                                        min="0"
                                                         max="24"
                                                         step="0.5"
-                                                        placeholder="e.g., 2.5"
+                                                        placeholder="e.g., 2.5 (0 if no work done)"
                                                         value={formData.hoursWorked}
                                                         onChange={(e) => updateFormData(assignment.id, { hoursWorked: e.target.value })}
                                                         className="h-9 border-foreground/20 bg-background"
@@ -703,6 +726,7 @@ export default function StaffWorkCalendarPage() {
                                         </div>
                                     )
                                 })}
+                                </div>
                             </div>
                         )}
 
@@ -712,6 +736,7 @@ export default function StaffWorkCalendarPage() {
                                 <h3 className="font-medium text-sm text-foreground border-b border-foreground/10 pb-2">
                                     New Responsibilities ({newResponsibilities.length})
                                 </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                                 {newResponsibilities.map(newResp => (
                                     <div key={newResp.id} className="border border-foreground/20 rounded-lg p-4 space-y-3">
                                         <div className="flex items-start justify-between gap-2">
@@ -817,6 +842,7 @@ export default function StaffWorkCalendarPage() {
                                         )}
                                     </div>
                                 ))}
+                                </div>
                             </div>
                         )}
 
