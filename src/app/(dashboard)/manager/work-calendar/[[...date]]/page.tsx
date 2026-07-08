@@ -72,6 +72,7 @@ export default function ManagerWorkCalendarPage() {
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isSubmitting, setIsSubmitting] = useState(false)
+    const [lookbackDays, setLookbackDays] = useState(7)
 
     const params = useParams()
 
