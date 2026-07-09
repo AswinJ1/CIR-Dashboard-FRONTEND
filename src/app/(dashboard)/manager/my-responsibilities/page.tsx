@@ -34,16 +34,10 @@ import { Badge } from "@/components/ui/badge"
 import DashboardHeader from "@/components/dashboard-header"
 import { getSubmissionsForDate } from "@/lib/responsibility-status"
 
-// Color palette for responsibilities
 const COLORS = [
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-purple-500",
-    "bg-orange-500",
-    "bg-pink-500",
-    "bg-cyan-500",
-    "bg-indigo-500",
-    "bg-teal-500",
+    "bg-primary text-primary-foreground",
+    "bg-secondary text-secondary-foreground",
+    "bg-accent text-accent-foreground border",
 ]
 
 interface DayData {
@@ -253,33 +247,31 @@ export default function ManagerMyResponsibilitiesPage() {
         setSubmissionsModalOpen(true)
     }
 
-    // Get status color for submission items
     function getSubmissionStatusColor(status: string) {
         switch (status) {
             case 'VERIFIED':
-                return 'bg-purple-600'  // Purple for verified (not green to avoid confusion)
+                return 'bg-primary text-primary-foreground'
             case 'SUBMITTED':
-                return 'bg-blue-600'    // Blue for submitted
+                return 'bg-secondary text-secondary-foreground border'
             case 'REJECTED':
-                return 'bg-red-600'     // Red for rejected
+                return 'bg-muted text-muted-foreground border'
             default:
-                return 'bg-gray-600'
+                return 'bg-accent text-accent-foreground'
         }
     }
 
-    // Get day background color based on status
     function getDayBackgroundColor(dayData: DayData | undefined, isCurrentMonth: boolean): string {
         if (!isCurrentMonth) return 'bg-muted/50'
         if (!dayData) return ''
 
-        // Missed day (past with no submissions) = red background
+        // Missed day
         if (dayData.isMissed) {
-            return 'bg-red-100 dark:bg-red-950/50'
+            return 'bg-secondary/40'
         }
 
-        // Has submissions = green background
+        // Has submissions
         if (dayData.submissions.length > 0) {
-            return 'bg-green-100 dark:bg-green-950/50'
+            return 'bg-primary/5'
         }
 
         return ''
@@ -340,18 +332,18 @@ export default function ManagerMyResponsibilitiesPage() {
 
                             <div className="flex items-center gap-3 text-xs">
                                 <div className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded bg-green-500" />
-                                    <span>Submitted</span>
+                                    <div className="w-3 h-3 rounded bg-primary" />
+                                    <span>Verified</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <div className="w-3 h-3 rounded bg-red-500" />
-                                    <span>Missed</span>
+                                    <div className="w-3 h-3 rounded bg-secondary border" />
+                                    <span>Submitted</span>
                                 </div>
                             </div>
                         </div>
 
                         {/* Day Headers */}
-                        <div className="grid grid-cols-7 bg-black text-white text-sm font-medium">
+                        <div className="grid grid-cols-7 bg-muted text-muted-foreground text-sm font-medium">
                             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(day => (
                                 <div key={day} className="py-2 text-center">
                                     {day}
@@ -380,17 +372,17 @@ export default function ManagerMyResponsibilitiesPage() {
                                         key={dateStr}
                                         onClick={() => dayData && openSubmissionsModal(date, dayData.submissions)}
                                         className={cn(
-                                            "border border-foreground/10 p-2 cursor-pointer transition hover:opacity-80",
+                                            "border border-foreground/10 p-2 cursor-pointer transition hover:bg-foreground/[0.04]",
                                             "min-h-[100px]",
                                             bgColor,
-                                            isTodayDate && "ring-2 ring-blue-500 ring-inset"
+                                            isTodayDate && "ring-2 ring-foreground/40 ring-inset"
                                         )}
                                     >
                                         {/* Date and Hours */}
                                         <div className="flex items-center justify-between mb-1">
                                             <span className={cn(
                                                 "text-sm font-medium",
-                                                isTodayDate && "text-blue-600 "
+                                                isTodayDate && "text-foreground font-bold"
                                             )}>
                                                 {format(date, "d")}
                                             </span>
@@ -408,7 +400,7 @@ export default function ManagerMyResponsibilitiesPage() {
                                                 <div
                                                     key={submission.id}
                                                     className={cn(
-                                                        "text-[10px] px-2 py-0.5 rounded truncate text-white",
+                                                        "text-[10px] px-2 py-0.5 rounded truncate",
                                                         getSubmissionStatusColor(submission.status || 'SUBMITTED')
                                                     )}
                                                     title={submission.assignment?.responsibility?.title}
@@ -425,7 +417,7 @@ export default function ManagerMyResponsibilitiesPage() {
 
                                             {/* Show missed indicator */}
                                             {dayData?.isMissed && (
-                                                <div className="text-[10px] text-red-600 dark:text-red-400 font-medium">
+                                                <div className="text-[10px] text-muted-foreground font-medium">
                                                     No submission
                                                 </div>
                                             )}
@@ -463,7 +455,7 @@ export default function ManagerMyResponsibilitiesPage() {
                         </div>
 
                         {/* Days of Week Header */}
-                        <div className="grid grid-cols-7 bg-primary text-primary-foreground">
+                        <div className="grid grid-cols-7 bg-muted text-muted-foreground">
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
                                 <div key={day} className="p-2 text-center font-medium text-xs">
                                     {day}
@@ -487,14 +479,14 @@ export default function ManagerMyResponsibilitiesPage() {
                                                 className={cn(
                                                     "p-1.5 relative",
                                                     !isCurrentMonth && "bg-muted/50",
-                                                    isToday && "bg-blue-50 dark:bg-blue-950"
+                                                    isToday && "bg-foreground/[0.04] dark:bg-foreground/[0.08]"
                                                 )}
                                             >
                                                 {/* Day Number */}
                                                 <span className={cn(
                                                     "text-xs font-medium",
                                                     !isCurrentMonth && "text-muted-foreground",
-                                                    isToday && "text-blue-600 dark:text-blue-400 "
+                                                    isToday && "text-foreground font-bold"
                                                 )}>
                                                     {day.getDate()}
                                                 </span>
@@ -506,7 +498,7 @@ export default function ManagerMyResponsibilitiesPage() {
                                                             key={`${assignment.id}-${idx}`}
                                                             onClick={() => openDetails(resp)}
                                                             className={cn(
-                                                                "w-full text-left text-[9px] text-white px-1 py-0.5 truncate hover:opacity-80 transition-opacity",
+                                                                "w-full text-left text-[9px] px-1 py-0.5 truncate hover:opacity-80 transition-opacity",
                                                                 color,
                                                                 isStart && "rounded-l",
                                                                 isEnd && "rounded-r",
@@ -538,27 +530,27 @@ export default function ManagerMyResponsibilitiesPage() {
             </div>
 
             {/* Status Legend */}
-            <Card>
+            <Card className="border-border">
                 <CardContent className="py-4">
                     <div className="flex flex-wrap items-center gap-6 justify-center">
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-purple-600" />
+                            <div className="w-4 h-4 rounded bg-primary" />
                             <span className="text-sm">Verified</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-blue-600" />
+                            <div className="w-4 h-4 rounded bg-secondary border" />
                             <span className="text-sm">Submitted</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-red-600" />
+                            <div className="w-4 h-4 rounded bg-muted border" />
                             <span className="text-sm">Rejected</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-green-100 dark:bg-green-950 border" />
+                            <div className="w-4 h-4 rounded bg-primary/5 border" />
                             <span className="text-sm">Day with Submissions</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded bg-red-100 dark:bg-red-950 border" />
+                            <div className="w-4 h-4 rounded bg-secondary/40 border" />
                             <span className="text-sm">Missed Day</span>
                         </div>
                     </div>

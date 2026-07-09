@@ -177,7 +177,7 @@ export default function AdminSettingsPage() {
                         )}
                     </Button>
                     {saveSuccess && (
-                        <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 animate-in fade-in">
+                        <span className="flex items-center gap-1.5 text-sm text-foreground dark:text-green-400 animate-in fade-in">
                             <CheckCircle2 className="h-4 w-4" />
                             Settings saved successfully!
                         </span>

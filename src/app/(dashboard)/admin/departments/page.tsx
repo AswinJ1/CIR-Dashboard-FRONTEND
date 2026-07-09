@@ -258,7 +258,7 @@ export default function AdminDepartmentsPage() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Name <span className="text-red-500">*</span></Label>
+                            <Label>Name <span className="text-foreground">*</span></Label>
                             <Input
                                 placeholder="Enter department name"
                                 value={deptName}

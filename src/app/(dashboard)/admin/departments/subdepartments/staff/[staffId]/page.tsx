@@ -62,11 +62,8 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
-import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend as ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2'
-
-// Register ChartJS components
-ChartJS.register(ArcElement, ChartTooltip, ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
+import ReactECharts from 'echarts-for-react'
+import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 
 type DateRange = { from: Date; to: Date }
 
@@ -232,205 +229,110 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
         })
     }, [filteredSubmissions, dateRange])
 
-    // Status distribution for pie chart
-    const statusDistribution = useMemo(() => {
-        return [
-            { name: 'Verified', value: analyticsStats.verified, color: '#22c55e' },
-            { name: 'Pending', value: analyticsStats.pending, color: '#f59e0b' },
-            { name: 'Rejected', value: analyticsStats.rejected, color: '#ef4444' },
-        ].filter(item => item.value > 0)
-    }, [analyticsStats])
-
-    // Chart.js Data Configurations
-    const statusPieData = useMemo(() => ({
-        labels: ['Verified', 'Pending', 'Rejected'],
-        datasets: [{
-            data: [analyticsStats.verified, analyticsStats.pending, analyticsStats.rejected],
-            backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
-            borderColor: ['#16a34a', '#d97706', '#dc2626'],
-            borderWidth: 2,
-            hoverOffset: 8,
-        }]
-    }), [analyticsStats])
-
-    // Responsibility Hours (Bar Chart) - grouped by responsibility
+    // Responsibility hours data
     const responsibilityHoursData = useMemo(() => {
         const respMap = new Map<string, number>()
-        submissions.forEach(s => {
+        filteredSubmissions.forEach(s => {
             const title = s.assignment?.responsibility?.title || 'Unknown'
-            const hours = s.hoursWorked || 0
+            const hours = (s as any).hoursWorked || 0
             respMap.set(title, (respMap.get(title) || 0) + hours)
         })
         const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
-        const colors = [
-            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
-            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
-            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
-        ]
         return {
-            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
-            datasets: [{
-                label: 'Hours Worked',
-                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
-                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
-                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
-                borderWidth: 2,
-                borderRadius: 6,
-            }],
-            _fullTitles: entries.map(([title]) => title),
+            _fullTitles: entries.map(([t]) => t),
+            labels: entries.map(([t]) => t.length > 20 ? t.substring(0, 18) + '...' : t),
+            values: entries.map(([, h]) => Math.round(h * 10) / 10),
         }
-    }, [submissions])
+    }, [filteredSubmissions])
 
-    const respBarChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    title: function (context: any) {
-                        const index = context[0]?.dataIndex
-                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
-                    },
-                    label: function (context: any) {
-                        return `Hours: ${context.raw}h`
-                    }
-                }
-            },
+    // ECharts: Responsibility Hours Bar Chart
+    const responsibilityHoursOption = useMemo(() => ({
+        color: ECHARTS_PALETTE,
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' },
+            formatter: function (params: any) {
+                const dataIndex = params[0].dataIndex
+                const fullTitle = responsibilityHoursData._fullTitles[dataIndex]
+                return `${fullTitle}<br/>${params[0].marker} Hours: ${params[0].value}h`
+            }
         },
-        scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
-        },
-    }
-
-    const hoursTrendChartData = useMemo(() => ({
-        labels: dailyChartData.map(d => d.date),
-        datasets: [{
-            label: 'Hours Worked',
-            data: dailyChartData.map(d => d.hours),
-            borderColor: '#8b5cf6',
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointBackgroundColor: '#8b5cf6',
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', data: responsibilityHoursData.labels },
+        yAxis: { type: 'value', name: 'Hours' },
+        series: [{
+            name: 'Hours Worked',
+            type: 'bar',
+            data: responsibilityHoursData.values,
+            itemStyle: {
+                color: (params: any) => ECHARTS_PALETTE[params.dataIndex % ECHARTS_PALETTE.length]
+            }
         }]
-    }), [dailyChartData])
+    }), [responsibilityHoursData])
 
-    const verifiedBarData = useMemo(() => ({
-        labels: dailyChartData.map(d => d.date),
-        datasets: [{
-            label: 'Verified Submissions',
+    // ECharts: Status Donut Chart
+    const statusDonutOption = useMemo(() => ({
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Submissions',
+            type: 'pie',
+            roam: false,
+            breadcrumb: { show: false },
+            radius: ['45%', '70%'],
+            avoidLabelOverlap: true,
+            label: { show: true, formatter: '{b} ({d}%)', color: 'inherit', textBorderWidth: 0, fontSize: 12 },
+            labelLine: { show: true, length: 15, length2: 10, smooth: true },
+            data: [
+                { value: analyticsStats.verified, name: 'Verified' },
+                { value: analyticsStats.pending, name: 'Pending' },
+                { value: analyticsStats.rejected, name: 'Rejected' },
+            ]
+        }]
+    }), [analyticsStats])
+
+    // ECharts: Verified Submissions Bar Chart
+    const verifiedBarOption = useMemo(() => ({
+        color: ['#85C170'],
+        tooltip: { trigger: 'axis' },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', data: dailyChartData.map(d => d.date), axisLabel: { rotate: 45, fontSize: 10 } },
+        yAxis: { type: 'value', minInterval: 1, name: 'Count' },
+        series: [{
+            name: 'Verified',
+            type: 'bar',
             data: dailyChartData.map(d => d.verified),
-            backgroundColor: 'rgba(34, 197, 94, 0.7)',
-            borderColor: '#22c55e',
-            borderWidth: 1,
-            borderRadius: 4,
+            itemStyle: { borderRadius: [4, 4, 0, 0] }
         }]
     }), [dailyChartData])
 
-    // Chart.js Options
-    const pieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'bottom' as const,
-                labels: {
-                    padding: 20,
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    font: { size: 12, weight: 500 as const },
-                },
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                titleFont: { size: 14, weight: 'bold' as const },
-                bodyFont: { size: 13 },
-                callbacks: {
-                    label: function (context: any) {
-                        const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)
-                        const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0
-                        return `${context.label}: ${context.raw} (${percentage}%)`
-                    }
-                }
-            },
-        },
-    }
-
-    const lineChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-                labels: {
-                    padding: 15,
-                    usePointStyle: true,
-                    pointStyle: 'circle',
-                    font: { size: 12, weight: 500 as const },
-                },
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                mode: 'index' as const,
-                intersect: false,
-            },
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                ticks: { font: { size: 11 } },
-            },
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                ticks: { font: { size: 11 } },
-            },
-        },
-        interaction: {
-            mode: 'nearest' as const,
-            axis: 'x' as const,
-            intersect: false,
-        },
-    }
-
-    const barChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-                labels: {
-                    padding: 15,
-                    usePointStyle: true,
-                    pointStyle: 'rectRounded',
-                    font: { size: 12, weight: 500 as const },
-                },
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-            },
-        },
-        scales: {
-            x: {
-                grid: { display: false },
-                ticks: { font: { size: 11 } },
-            },
-            y: {
-                beginAtZero: true,
-                grid: { color: 'rgba(0, 0, 0, 0.05)' },
-                ticks: { font: { size: 11 } },
-            },
-        },
-    }
+    // ECharts: Hours Trend Line Chart
+    const hoursTrendOption = useMemo(() => ({
+        color: ['#9B7ED9'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyChartData.map(d => d.date), axisLabel: { rotate: 45, fontSize: 10 } },
+        yAxis: { type: 'value', name: 'Hours' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
+        ],
+        series: [{
+            name: 'Hours Worked',
+            type: 'line',
+            smooth: false,
+            showSymbol: false,
+            lineStyle: { width: 1.5 },
+            areaStyle: { opacity: 0.1 },
+            data: dailyChartData.map(d => d.hours)
+        }]
+    }), [dailyChartData])
 
     if (isLoading) {
         return (
@@ -714,14 +616,13 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         {/* Hours by Responsibility Bar Chart */}
                         <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
-                                <Activity className="h-5 w-5 text-indigo-500" />
                                 <h3 className="font-semibold">Hours by Responsibility</h3>
                             </div>
-                            <div className="h-[250px]">
+                            <div className="w-full min-h-[350px]">
                                 {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
-                                    <Bar data={responsibilityHoursData} options={respBarChartOptions} />
+                                    <ReactECharts option={responsibilityHoursOption} style={{ height: '350px', width: '100%' }} />
                                 ) : (
-                                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                                    <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm">
                                         No submission data available
                                     </div>
                                 )}
@@ -731,33 +632,30 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         {/* Status Distribution Doughnut Chart */}
                         <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
-                                <BarChart3 className="h-5 w-5 text-green-500" />
                                 <h3 className="font-semibold">Status Distribution</h3>
                             </div>
-                            <div className="h-[250px]">
-                                <Doughnut data={statusPieData} options={pieChartOptions} />
+                            <div className="w-full min-h-[350px]">
+                                <ReactECharts option={statusDonutOption} style={{ height: '350px', width: '100%' }} />
                             </div>
                         </div>
 
                         {/* Verified Submissions Bar Chart */}
                         <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
-                                <BarChart3 className="h-5 w-5 text-emerald-500" />
                                 <h3 className="font-semibold">Verified Submissions</h3>
                             </div>
-                            <div className="h-[250px]">
-                                <Bar data={verifiedBarData} options={barChartOptions} />
+                            <div className="w-full min-h-[350px]">
+                                <ReactECharts option={verifiedBarOption} style={{ height: '350px', width: '100%' }} />
                             </div>
                         </div>
 
                         {/* Hours Trend Line Chart */}
                         <div className="border p-4">
                             <div className="flex items-center gap-2 mb-4">
-                                <Clock className="h-5 w-5 text-purple-500" />
                                 <h3 className="font-semibold">Hours Trend</h3>
                             </div>
-                            <div className="h-[250px]">
-                                <Line data={hoursTrendChartData} options={lineChartOptions} />
+                            <div className="w-full min-h-[250px]">
+                                <ReactECharts option={hoursTrendOption} style={{ height: '250px', width: '100%' }} />
                             </div>
                         </div>
                     </div>

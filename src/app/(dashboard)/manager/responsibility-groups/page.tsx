@@ -364,7 +364,7 @@ export default function ManagerResponsibilityGroupsPage() {
                             {/* Group Name */}
                             <div className="space-y-2">
                                 <Label htmlFor="groupName">
-                                    Group Name <span className="text-red-500">*</span>
+                                    Group Name <span className="text-foreground">*</span>
                                 </Label>
                                 <Input
                                     id="groupName"
@@ -643,7 +643,7 @@ export default function ManagerResponsibilityGroupsPage() {
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
                             <Label htmlFor="editGroupName">
-                                Group Name <span className="text-red-500">*</span>
+                                Group Name <span className="text-foreground">*</span>
                             </Label>
                             <Input
                                 id="editGroupName"

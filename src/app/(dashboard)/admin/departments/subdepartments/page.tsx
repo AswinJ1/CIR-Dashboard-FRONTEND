@@ -304,7 +304,7 @@ function SubDepartmentsContent() {
                                         <TableCell>
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-blue-500/10 rounded-lg">
-                                                    <Users className="h-4 w-4 text-blue-500" />
+                                                    <Users className="h-4 w-4 text-foreground" />
                                                 </div>
                                                 <span className="font-medium">{subDept.name}</span>
                                             </div>
@@ -363,7 +363,7 @@ function SubDepartmentsContent() {
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">
-                            <Label>Name <span className="text-red-500">*</span></Label>
+                            <Label>Name <span className="text-foreground">*</span></Label>
                             <Input
                                 placeholder="Enter sub-department name"
                                 value={subDeptName}

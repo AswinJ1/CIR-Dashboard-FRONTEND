@@ -269,7 +269,7 @@ export default function UserForm({ editingUser, onSuccess }: UserFormProps) {
         {/* Show "Editing Own Account" badge */}
         {isOwnAccount && (
           <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
-            <Info className="h-4 w-4 text-blue-600" />
+            <Info className="h-4 w-4 text-foreground" />
               You are editing your own account information.
         
           </Alert>
@@ -596,7 +596,7 @@ export default function UserForm({ editingUser, onSuccess }: UserFormProps) {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-blue-600" />
+              <MapPin className="h-5 w-5 text-foreground" />
               Verify Site Location
             </DialogTitle>
             <DialogDescription>
@@ -659,7 +659,7 @@ export default function UserForm({ editingUser, onSuccess }: UserFormProps) {
             {selectedVerificationSite && 
              selectedVerificationSite === lockedSiteName && (
               <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                <CheckCircle2 className="h-4 w-4 text-foreground" />
                 <AlertDescription className="text-sm text-green-800 dark:text-green-200">
                   ✓ Site verified successfully! You can proceed with the update.
                 </AlertDescription>

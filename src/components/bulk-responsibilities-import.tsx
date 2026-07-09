@@ -443,7 +443,7 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
             {isParsed && parsedData.length > 0 && !importResult && (
                 <div className="space-y-4">
                     <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800">
-                        <FileSpreadsheet className="h-4 w-4 text-blue-600" />
+                        <FileSpreadsheet className="h-4 w-4 text-foreground" />
                         <AlertDescription>
                             <div className="font-medium text-blue-900 dark:text-blue-100">
                                 Found {parsedData.length} responsibilities to import
@@ -539,7 +539,7 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
                     {/* Created Responsibilities */}
                     {importResult.responsibilities.length > 0 && (
                         <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <CheckCircle2 className="h-4 w-4 text-foreground" />
                             <AlertDescription>
                                 <div className="space-y-3">
                                     <p className=" text-green-900 dark:text-green-100">
@@ -584,7 +584,7 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
                                         {importResult.errors.map((err, index) => (
                                             <div key={index} className="text-sm border-l-2 border-red-500 pl-2">
                                                 <div className="font-medium">Row {err.row}: {err.title}</div>
-                                                <div className="text-red-600 dark:text-red-400">{err.error}</div>
+                                                <div className="text-foreground dark:text-red-400">{err.error}</div>
                                             </div>
                                         ))}
                                     </div>

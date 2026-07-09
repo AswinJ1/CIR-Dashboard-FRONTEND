@@ -141,7 +141,7 @@ export default function ManagerStaffPage() {
                                                 {pendingCount > 0 && (
                                                     <Badge
                                                         variant="secondary"
-                                                        className="mt-2 bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                                        className="mt-2 bg-secondary text-secondary-foreground border border-border shadow-sm hover:bg-amber-200"
                                                     >
                                                         <Clock className="h-3 w-3 mr-1" />
                                                         {pendingCount} pending

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DailyMetricsCards } from "@/components/staff/daily-metrics-cards"
 import { toast } from "sonner"
@@ -44,12 +45,9 @@ import {
     getToday,
     getAssignmentStatusForDate,
 } from "@/lib/responsibility-status"
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2'
-import { StaffExportDialog } from "@/components/export-dialog"
-
-// Register ChartJS components
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
+import ReactECharts from 'echarts-for-react'
+import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
+import { StaffExportDialog } from '@/components/export-dialog'
 
 // CSV Export utility function
 const exportToCSV = (data: Record<string, any>[], filename: string) => {
@@ -355,157 +353,121 @@ export default function StaffDashboardPage() {
             weekNum++
         }
 
+
         return weeks
     }, [filteredSubmissions, dateRange])
 
-    // Chart.js Data - Status Distribution (Pie)
-    const statusPieData = {
-        labels: ['Verified', 'Pending', 'Rejected'],
-        datasets: [
-            {
-                label: 'Submissions',
-                data: [analyticsStats.verified, analyticsStats.pending, analyticsStats.rejected],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',   // Green
-                    'rgba(251, 191, 36, 0.8)',  // Yellow/Amber
-                    'rgba(239, 68, 68, 0.8)',   // Red
-                ],
-                borderColor: [
-                    'rgba(34, 197, 94, 1)',
-                    'rgba(251, 191, 36, 1)',
-                    'rgba(239, 68, 68, 1)',
-                ],
-                borderWidth: 2,
+    // ECharts Configurations
+    const statusDonutOption = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '10%', top: '5%', bottom: '5%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'value', show: false },
+        yAxis: { 
+            type: 'category', 
+            data: ['Verified', 'Pending', 'Rejected'],
+            axisTick: { show: false },
+            axisLine: { show: false },
+            axisLabel: { fontWeight: '500' }
+        },
+        series: [{
+            name: 'Submissions',
+            type: 'bar',
+            barWidth: '50%',
+            data: [
+                { value: analyticsStats.verified, itemStyle: { color: '#85C170' } },
+                { value: analyticsStats.pending, itemStyle: { color: '#F5C242' } },
+                { value: analyticsStats.rejected, itemStyle: { color: '#F2846B' } }
+            ],
+            label: { 
+                show: true, 
+                position: 'right', 
+                formatter: '{c}', 
+                color: 'inherit', 
+                fontWeight: 'bold',
+                fontSize: 14
             },
-        ],
-    }
+            itemStyle: { borderRadius: [0, 4, 4, 0] }
+        }]
+    };
 
-    // Responsibility Hours (Bar Chart) - grouped by responsibility, filtered by date range
-    const responsibilityHoursData = useMemo(() => {
-        const respMap = new Map<string, number>()
-        filteredSubmissions.forEach(s => {
-            const title = s.assignment?.responsibility?.title || 'Unknown'
-            const hours = (s as any).hoursWorked || 0
-            respMap.set(title, (respMap.get(title) || 0) + hours)
-        })
-        const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
-        const colors = [
-            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
-            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
-            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
+    const respMap = new Map<string, number>();
+    filteredSubmissions.forEach(s => {
+        const title = s.assignment?.responsibility?.title || 'Unknown';
+        const hours = (s as any).hoursWorked || 0;
+        respMap.set(title, (respMap.get(title) || 0) + hours);
+    });
+    const respEntries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1]);
+    
+    const responsibilityHoursOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { trigger: 'item', formatter: '{b}: {c}h' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Hours Worked',
+            type: 'sunburst',
+            radius: ['20%', '90%'],
+            data: respEntries.map(([t, h]) => ({
+                name: t.length > 20 ? t.substring(0, 18) + '...' : t,
+                value: Math.round(h * 10) / 10
+            })),
+            label: { show: true, formatter: '{b}' }
+        }]
+    };
+
+    const weeklyBarOption = {
+        color: ['#4A90D9', '#85C170'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { bottom: 0, left: 'center' },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: weeklyData.map(d => d.week) },
+        yAxis: { type: 'value' },
+        series: [
+            { name: 'Responsibilities', type: 'line', smooth: true, lineStyle: { width: 2 }, data: weeklyData.map(d => d.submissions) },
+            { name: 'Hours', type: 'line', smooth: true, lineStyle: { width: 2 }, data: weeklyData.map(d => d.hours) }
         ]
-        return {
-            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
-            datasets: [{
-                label: 'Hours Worked',
-                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
-                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
-                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
-                borderWidth: 2,
-                borderRadius: 6,
-            }],
-            _fullTitles: entries.map(([title]) => title),
-        }
-    }, [filteredSubmissions])
+    };
 
-    const respBarChartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                titleFont: { size: 14 },
-                bodyFont: { size: 13 },
-                callbacks: {
-                    title: function (context: any) {
-                        const index = context[0]?.dataIndex
-                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
-                    },
-                    label: function (context: any) {
-                        return `Hours: ${context.raw}h`
-                    }
-                }
-            },
-        },
-        scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
-        },
-    }
-
-    // Weekly Comparison (Bar Chart)
-    const weeklyBarData = {
-        labels: weeklyData.map(d => d.week),
-        datasets: [
-            {
-                label: 'Responsibilities',
-                data: weeklyData.map(d => d.submissions),
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                borderColor: 'rgba(99, 102, 241, 1)',
-                borderWidth: 2,
-                borderRadius: 6,
-            },
-            {
-                label: 'Hours',
-                data: weeklyData.map(d => d.hours),
-                backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                borderColor: 'rgba(34, 197, 94, 1)',
-                borderWidth: 2,
-                borderRadius: 6,
-            },
+    const hoursTrendOption = {
+        color: ['#85C170'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyData.map(d => d.date) },
+        yAxis: { type: 'value', name: 'Hours' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
         ],
-    }
+        series: [
+            { name: 'Hours Worked', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.1 }, data: dailyData.map(d => d.hours) }
+        ]
+    };
 
-    // Hours Trend (Line Chart)
-    const hoursTrendData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [
-            {
-                label: 'Hours Worked',
-                data: dailyData.map(d => d.hours),
-                borderColor: 'rgba(34, 197, 94, 1)',
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                fill: true,
-                tension: 0.4,
-                pointRadius: 0,
-                pointHoverRadius: 0,
-            },
+    const dailyStatusOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', data: dailyData.map(d => d.date) },
+        yAxis: { type: 'value' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
         ],
-    }
-
-    // Daily Status Breakdown (Stacked Bar Chart)
-    const dailyStatusData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [
-            {
-                label: 'Verified',
-                data: dailyData.map(d => d.verified),
-                backgroundColor: 'rgba(34, 197, 94, 0.8)',
-                borderColor: 'rgba(34, 197, 94, 1)',
-                borderWidth: 1,
-            },
-            {
-                label: 'Pending',
-                data: dailyData.map(d => d.pending),
-                backgroundColor: 'rgba(251, 191, 36, 0.8)',
-                borderColor: 'rgba(251, 191, 36, 1)',
-                borderWidth: 1,
-            },
-            {
-                label: 'Rejected',
-                data: dailyData.map(d => d.rejected),
-                backgroundColor: 'rgba(239, 68, 68, 0.8)',
-                borderColor: 'rgba(239, 68, 68, 1)',
-                borderWidth: 1,
-            },
-        ],
-    }
+        series: [
+            { name: 'Verified', type: 'bar', stack: 'total', data: dailyData.map(d => d.verified) },
+            { name: 'Pending', type: 'bar', stack: 'total', data: dailyData.map(d => d.pending) },
+            { name: 'Rejected', type: 'bar', stack: 'total', data: dailyData.map(d => d.rejected) }
+        ]
+    };
 
     // Chart Options
     const pieChartOptions = {
-        responsive: true,
+
         maintainAspectRatio: true,
         plugins: {
             legend: {
@@ -822,31 +784,43 @@ export default function StaffDashboardPage() {
 
                         {calendarView === 'list' && (
                             <div className="w-full h-full min-h-[400px] p-6 pt-16 md:pt-6">
-                                <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pr-2 mt-8">
-                                    {listDays.map((day, i) => {
-                                        const status = getDayStatusCategory(day);
-                                        return (
-                                            <div 
-                                                key={i}
-                                                onClick={() => router.push(`/staff/work-calendar/${format(day, 'yyyy-MM-dd')}`)}
-                                                className="flex items-center justify-between p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
-                                            >
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${isSameDay(day, today) ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-                                                        {format(day, 'd')}
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="font-semibold text-foreground">{format(day, 'EEEE')}</h4>
-                                                        <p className="text-sm text-muted-foreground">{format(day, 'MMMM yyyy')}</p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    {renderStatusBadge(status)}
-                                                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
+                                <div className="mt-8 overflow-hidden rounded-md border">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="w-[100px]">Date</TableHead>
+                                                <TableHead>Day</TableHead>
+                                                <TableHead>Status</TableHead>
+                                                <TableHead className="w-[50px]"></TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {listDays.map((day, i) => {
+                                                const status = getDayStatusCategory(day);
+                                                return (
+                                                    <TableRow 
+                                                        key={i}
+                                                        onClick={() => router.push(`/staff/work-calendar/${format(day, 'yyyy-MM-dd')}`)}
+                                                        className="cursor-pointer hover:bg-muted/50"
+                                                    >
+                                                        <TableCell className="font-medium">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isSameDay(day, today) ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                                                                {format(day, 'd')}
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <div className="font-medium">{format(day, 'EEEE')}</div>
+                                                            <div className="text-xs text-muted-foreground">{format(day, 'MMMM yyyy')}</div>
+                                                        </TableCell>
+                                                        <TableCell>{renderStatusBadge(status)}</TableCell>
+                                                        <TableCell>
+                                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            })}
+                                        </TableBody>
+                                    </Table>
                                 </div>
                             </div>
                         )}
@@ -1126,7 +1100,7 @@ export default function StaffDashboardPage() {
                             {/* Status Distribution Pie */}
                             <Card>
                                 <CardHeader>
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <CardTitle className="flex items-center gap-2">
                                                 <Activity className="h-5 w-5 text-blue-600" />
@@ -1134,17 +1108,14 @@ export default function StaffDashboardPage() {
                                             </CardTitle>
                                             <CardDescription>Breakdown by submission status</CardDescription>
                                         </div>
-                                        <Button variant="outline" size="sm" onClick={() => exportToCSV([{ Status: 'Verified', Count: analyticsStats.verified }, { Status: 'Pending', Count: analyticsStats.pending }, { Status: 'Rejected', Count: analyticsStats.rejected }], 'status_distribution')}>
-                                            <Download className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent className="flex justify-center">
-                                    <div className="w-full max-w-[280px]">
+                                    <div className="w-full min-h-[300px]">
                                         {analyticsStats.total > 0 ? (
-                                            <Doughnut data={statusPieData} options={pieChartOptions} />
+                                            <ReactECharts option={statusDonutOption} style={{ height: '300px', width: '100%' }} />
                                         ) : (
-                                            <div className="h-[280px] flex items-center justify-center text-muted-foreground">
+                                            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                                                 No submissions in selected period
                                             </div>
                                         )}
@@ -1155,7 +1126,7 @@ export default function StaffDashboardPage() {
                             {/* Hours by Responsibility Bar Chart */}
                             <Card className="lg:col-span-2">
                                 <CardHeader>
-                                    <div className="flex items-center justify-between">
+                                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <CardTitle className="flex items-center gap-2">
                                                 <TrendingUp className="h-5 w-5 text-indigo-600" />
@@ -1163,16 +1134,13 @@ export default function StaffDashboardPage() {
                                             </CardTitle>
                                             <CardDescription>Total hours worked per responsibility</CardDescription>
                                         </div>
-                                        <Button variant="outline" size="sm" onClick={() => exportToCSV((responsibilityHoursData as any)._fullTitles?.map((title: string, i: number) => ({ Responsibility: title, Hours: responsibilityHoursData.datasets[0].data[i] })) || [], 'hours_by_responsibility')}>
-                                            <Download className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
-                                    {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
-                                        <Bar data={responsibilityHoursData} options={respBarChartOptions} />
+                                    {respEntries.length > 0 ? (
+                                        <ReactECharts option={responsibilityHoursOption} style={{ height: '300px', width: '100%' }} />
                                     ) : (
-                                        <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
+                                        <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
                                             No submission data in selected period
                                         </div>
                                     )}
@@ -1183,7 +1151,7 @@ export default function StaffDashboardPage() {
                         {/* Weekly Comparison */}
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <BarChart3 className="h-5 w-5 text-purple-600" />
@@ -1191,13 +1159,10 @@ export default function StaffDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Responsibilities and hours by week</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(weeklyData.map(w => ({ Week: w.week, Submissions: w.submissions, Hours: w.hours })), 'weekly_comparison')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <Bar data={weeklyBarData} options={barChartOptions} />
+                                <ReactECharts option={weeklyBarOption} style={{ height: '100%', width: '100%' }} />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -1205,7 +1170,7 @@ export default function StaffDashboardPage() {
                     <TabsContent value="hours" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <Clock className="h-5 w-5 text-green-600" />
@@ -1213,14 +1178,11 @@ export default function StaffDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Daily hours worked trend</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(dailyData.map(d => ({ Date: d.date, Hours: d.hours })), 'hours_trend')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[400px]">
-                                    <Line data={hoursTrendData} options={{ ...lineChartOptions, maintainAspectRatio: false }} />
+                                <div className="w-full min-h-[400px]">
+                                    <ReactECharts option={hoursTrendOption} style={{ height: '400px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -1275,7 +1237,7 @@ export default function StaffDashboardPage() {
                     <TabsContent value="status" className="space-y-4">
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <BarChart3 className="h-5 w-5 text-indigo-600" />
@@ -1283,14 +1245,11 @@ export default function StaffDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Verified, pending, and rejected by day</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(dailyData.map(d => ({ Date: d.date, Verified: d.verified, Pending: d.pending, Rejected: d.rejected })), 'daily_status_breakdown')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[400px]">
-                                    <Bar data={dailyStatusData} options={{ ...stackedBarOptions, maintainAspectRatio: false }} />
+                                <div className="w-full min-h-[400px]">
+                                    <ReactECharts option={dailyStatusOption} style={{ height: '400px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>

@@ -452,7 +452,7 @@ export default function UserDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <div className="h-10 w-10  flex items-center justify-center">
-                  <FaUserFriends className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <FaUserFriends className="h-5 w-5 text-foreground dark:text-blue-400" />
                 </div>
                 Account Information
               </CardTitle>
@@ -532,7 +532,7 @@ export default function UserDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <div className="h-10 w-10  flex items-center justify-center">
-                      <FaBuilding className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <FaBuilding className="h-5 w-5 text-foreground dark:text-green-400" />
                     </div>
                     Hostel Information
                   </CardTitle>
@@ -558,7 +558,7 @@ export default function UserDetailPage() {
                         href={user.participant.hostelLocation}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                        className="text-sm text-foreground hover:underline flex items-center gap-1"
                       >
                         View on Google Maps
                         <ExternalLink className="h-3 w-3" />
@@ -619,7 +619,7 @@ export default function UserDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <div className="h-10 w-10  flex items-center justify-center">
-                    <FaUser className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    <FaUser className="h-5 w-5 text-foreground dark:text-red-400" />
                   </div>
                   Administrator Details
                 </CardTitle>
@@ -640,7 +640,7 @@ export default function UserDetailPage() {
                 {/* {user.admin.isSuperAdmin && (
                   <div className="pt-2">
                     <Alert className="bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
-                      <Shield className="h-4 w-4 text-red-600" />
+                      <Shield className="h-4 w-4 text-foreground" />
                       <AlertDescription className="text-sm text-red-800 dark:text-red-200">
                         This user has Super Administrator privileges with full system access.
                       </AlertDescription>

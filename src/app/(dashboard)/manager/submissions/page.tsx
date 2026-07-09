@@ -435,7 +435,7 @@ export default function ManagerSubmissionsPage() {
                                                         </Badge>
                                                     )}
                                                     {summary.approved.length > 0 && (
-                                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                                        <Badge variant="outline" className="bg-secondary text-secondary-foreground border-border shadow-sm">
                                                             {summary.approved.length} approved
                                                         </Badge>
                                                     )}
@@ -494,7 +494,7 @@ export default function ManagerSubmissionsPage() {
                                     <TabsTrigger value="pending" className="gap-2">
                                         Pending
                                         {selectedStaff.pending.length > 0 && (
-                                            <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-xs">
+                                            <span className="bg-secondary text-secondary-foreground border border-border shadow-sm px-2 py-0.5 rounded-full text-xs">
                                                 {selectedStaff.pending.length}
                                             </span>
                                         )}
@@ -502,7 +502,7 @@ export default function ManagerSubmissionsPage() {
                                     <TabsTrigger value="approved" className="gap-2">
                                         Approved
                                         {selectedStaff.approved.length > 0 && (
-                                            <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                            <span className="bg-secondary text-secondary-foreground border border-border shadow-sm px-2 py-0.5 rounded-full text-xs">
                                                 {selectedStaff.approved.length}
                                             </span>
                                         )}
@@ -510,7 +510,7 @@ export default function ManagerSubmissionsPage() {
                                     <TabsTrigger value="rejected" className="gap-2">
                                         Rejected
                                         {selectedStaff.rejected.length > 0 && (
-                                            <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">
+                                            <span className="bg-secondary text-secondary-foreground border border-border shadow-sm px-2 py-0.5 rounded-full text-xs">
                                                 {selectedStaff.rejected.length}
                                             </span>
                                         )}

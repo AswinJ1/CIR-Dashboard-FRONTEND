@@ -7,6 +7,7 @@ import { api } from "@/lib/api"
 import { Employee, WorkSubmission, SemReport } from "@/types/cir"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { RoleBadge, SubmissionStatusBadge } from "@/components/ui/status-badge"
 import { Calendar } from "@/components/ui/calendar"
@@ -62,18 +63,11 @@ import {
 
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
-import { Chart as ChartJS, ArcElement, Tooltip as ChartTooltip, Legend as ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Line, Doughnut, Bar } from 'react-chartjs-2'
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import ReactECharts from 'echarts-for-react'
+import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
-
-// Register ChartJS components
-ChartJS.register(ArcElement, ChartTooltip, ChartLegend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
 
 type DateRange = { from: Date; to: Date }
 
@@ -269,193 +263,78 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
         })
     }, [filteredSubmissions, dateRange])
 
-    // Chart.js Data - Status Distribution (Pie)
-    const statusPieData = useMemo(() => ({
-        labels: ['Verified', 'Pending', 'Rejected'],
-        datasets: [
-            {
-                label: 'Submissions',
-                data: [analyticsStats.verified, analyticsStats.pending, analyticsStats.rejected],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(251, 191, 36, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                ],
-                borderColor: [
-                    'rgba(34, 197, 94, 1)',
-                    'rgba(251, 191, 36, 1)',
-                    'rgba(239, 68, 68, 1)',
-                ],
-                borderWidth: 2,
-            },
+    // ECharts Configurations
+    const statusDonutOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Submissions',
+            type: 'pie',
+            roam: false,
+            breadcrumb: { show: false },
+            radius: ['45%', '70%'],
+            avoidLabelOverlap: true,
+            label: { show: true, formatter: '{b} ({d}%)', color: 'inherit', textBorderWidth: 0, fontSize: 12 },
+            labelLine: { show: true, length: 15, length2: 10, smooth: true },
+            data: [
+                { value: analyticsStats.verified, name: 'Verified' },
+                { value: analyticsStats.pending, name: 'Pending' },
+                { value: analyticsStats.rejected, name: 'Rejected' }
+            ]
+        }]
+    };
+
+    const respMap = new Map<string, number>();
+    filteredSubmissions.forEach(s => {
+        const title = s.assignment?.responsibility?.title || 'Unknown';
+        const hours = (s as any).hoursWorked || 0;
+        respMap.set(title, (respMap.get(title) || 0) + hours);
+    });
+    const respEntries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1]);
+    
+    const responsibilityHoursOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { 
+            trigger: 'axis', 
+            axisPointer: { type: 'shadow' },
+            formatter: function (params: any) {
+                const dataIndex = params[0].dataIndex;
+                const fullTitle = respEntries[dataIndex][0];
+                return `${fullTitle}<br/>${params[0].marker} Hours Worked: ${params[0].value}h`;
+            }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', data: respEntries.map(([t]) => t.length > 20 ? t.substring(0, 18) + '...' : t) },
+        yAxis: { type: 'value', name: 'Hours' },
+        series: [{
+            name: 'Hours Worked',
+            type: 'bar',
+            data: respEntries.map(([, h]) => Math.round(h * 10) / 10),
+            itemStyle: {
+                color: (params: any) => ECHARTS_PALETTE[params.dataIndex % ECHARTS_PALETTE.length]
+            }
+        }]
+    };
+
+    const hoursTrendOption = {
+        color: ['#9B7ED9'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyChartData.map(d => d.date) },
+        yAxis: { type: 'value', name: 'Hours' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
         ],
-    }), [analyticsStats])
-
-    // Responsibility Hours (Bar Chart) - grouped by responsibility for analytics date range
-    const responsibilityHoursData = useMemo(() => {
-        const respMap = new Map<string, number>()
-        filteredSubmissions.forEach(s => {
-            const title = s.assignment?.responsibility?.title || 'Unknown'
-            const hours = (s as any).hoursWorked || 0
-            respMap.set(title, (respMap.get(title) || 0) + hours)
-        })
-        const entries = Array.from(respMap.entries()).sort((a, b) => b[1] - a[1])
-        const colors = [
-            'rgba(139, 92, 246, 0.8)', 'rgba(59, 130, 246, 0.8)', 'rgba(99, 102, 241, 0.8)',
-            'rgba(168, 85, 247, 0.8)', 'rgba(236, 72, 153, 0.8)', 'rgba(34, 197, 94, 0.8)',
-            'rgba(251, 146, 60, 0.8)', 'rgba(244, 63, 94, 0.8)',
+        series: [
+            { name: 'Hours Worked', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.1 }, data: dailyChartData.map(d => d.hours) }
         ]
-        return {
-            labels: entries.map(([title]) => title.length > 20 ? title.substring(0, 18) + '...' : title),
-            datasets: [{
-                label: 'Hours Worked',
-                data: entries.map(([, hours]) => Math.round(hours * 10) / 10),
-                backgroundColor: entries.map((_, i) => colors[i % colors.length]),
-                borderColor: entries.map((_, i) => colors[i % colors.length].replace('0.8', '1')),
-                borderWidth: 2,
-                borderRadius: 6,
-            }],
-            _fullTitles: entries.map(([title]) => title),
-        }
-    }, [filteredSubmissions])
-
-    const respBarChartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    title: function (context: any) {
-                        const index = context[0]?.dataIndex
-                        return (responsibilityHoursData as any)._fullTitles?.[index] || context[0]?.label
-                    },
-                    label: function (context: any) {
-                        return `Hours: ${context.raw}h`
-                    }
-                }
-            },
-        },
-        scales: {
-            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours' } },
-        },
-    }
-
-    // Submissions for selected date, grouped by responsibility
-    const dateSubmissions = useMemo(() => {
-        return staffSubmissions.filter(s =>
-            isSameDay(new Date(s.workDate || s.submittedAt), selectedDate)
-        )
-    }, [staffSubmissions, selectedDate])
-
-    const groupedDateSubmissions = useMemo(() => {
-        const groups = new Map<string, WorkSubmission[]>()
-        dateSubmissions.forEach(s => {
-            const title = s.assignment?.responsibility?.title || 'Unknown'
-            if (!groups.has(title)) groups.set(title, [])
-            groups.get(title)!.push(s)
-        })
-        return Array.from(groups.entries()).map(([title, subs]) => ({
-            title,
-            submissions: subs,
-            totalHours: subs.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
-        }))
-    }, [dateSubmissions])
-
-    // All submissions grouped by day for accordion view
-    const allDaysGrouped = useMemo(() => {
-        const dayMap = new Map<string, WorkSubmission[]>()
-        staffSubmissions.forEach(s => {
-            const dateKey = format(new Date(s.workDate || s.submittedAt), 'yyyy-MM-dd')
-            if (!dayMap.has(dateKey)) dayMap.set(dateKey, [])
-            dayMap.get(dateKey)!.push(s)
-        })
-        return Array.from(dayMap.entries())
-            .sort((a, b) => b[0].localeCompare(a[0]))
-            .map(([dateKey, subs]) => {
-                const respGroups = new Map<string, WorkSubmission[]>()
-                subs.forEach(s => {
-                    const title = s.assignment?.responsibility?.title || 'Unknown'
-                    if (!respGroups.has(title)) respGroups.set(title, [])
-                    respGroups.get(title)!.push(s)
-                })
-                return {
-                    dateKey,
-                    dateLabel: format(new Date(dateKey), 'EEEE, MMM d, yyyy'),
-                    submissions: subs,
-                    totalHours: subs.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
-                    groups: Array.from(respGroups.entries()).map(([title, items]) => ({
-                        title,
-                        submissions: items,
-                        totalHours: items.reduce((sum, s) => sum + ((s as any).hoursWorked || 0), 0),
-                    })),
-                }
-            })
-    }, [staffSubmissions])
-
-    // Hours Trend (Line Chart)
-   const hoursTrendChartData = useMemo(() => ({
-  labels: dailyChartData.map(d => d.date),
-  datasets: [
-    {
-      label: "Hours Worked",
-      data: dailyChartData.map(d => d.hours),
-
-      borderColor: "rgba(139, 92, 246, 1)",
-      backgroundColor: "rgba(139, 92, 246, 0.15)",
-
-      fill: true,
-
-      tension: 0.4,              // smooth curve
-      pointRadius: 0,            // remove dots for clean area look
-      pointHoverRadius: 6,
-
-      borderWidth: 2,
-    },
-  ],
-}), [dailyChartData])
-    // Chart Options
-    const pieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: {
-                position: 'bottom' as const,
-                labels: { padding: 15, font: { size: 12 }, boxWidth: 12, boxHeight: 12 },
-            },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                titleFont: { size: 14 },
-                bodyFont: { size: 13 },
-                callbacks: {
-                    label: function (context: any) {
-                        const label = context.label || '';
-                        const value = context.parsed || 0;
-                        const total = context.dataset.data.reduce((acc: number, val: number) => acc + val, 0);
-                        const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : '0';
-                        return `${label}: ${value} (${percentage}%)`;
-                    }
-                }
-            },
-        },
-    }
-
-    const lineChartOptions = {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-            legend: { position: 'bottom' as const, labels: { padding: 15, font: { size: 12 } } },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, titleFont: { size: 14 }, bodyFont: { size: 13 } },
-        },
-        scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 } },
-        },
-        interaction: { intersect: false, mode: 'index' as const },
-    }
+    };
 
     async function handleVerify(status: 'VERIFIED' | 'REJECTED', submission?: WorkSubmission) {
         const targetSubmission = submission || selectedSubmission
@@ -1055,16 +934,15 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Activity className="h-5 w-5 text-blue-600" />
                                     Status Distribution
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="flex justify-center">
-                                <div className="w-full max-w-[250px]">
+                                <div className="w-full min-h-[350px]">
                                     {analyticsStats.total > 0 ? (
-                                        <Doughnut data={statusPieData} options={pieChartOptions} />
+                                        <ReactECharts option={statusDonutOption} style={{ height: '350px', width: '100%' }} />
                                     ) : (
-                                        <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+                                        <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm">
                                             No submissions in selected period
                                         </div>
                                     )}
@@ -1076,18 +954,19 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         <Card className="lg:col-span-2">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <TrendingUp className="h-5 w-5 text-indigo-600" />
                                     Hours by Responsibility
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {(responsibilityHoursData as any)._fullTitles?.length > 0 ? (
-                                    <Bar data={responsibilityHoursData} options={respBarChartOptions} />
-                                ) : (
-                                    <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">
-                                        No submission data available
-                                    </div>
-                                )}
+                                <div className="w-full min-h-[350px]">
+                                    {respEntries.length > 0 ? (
+                                        <ReactECharts option={responsibilityHoursOption} style={{ height: '350px', width: '100%' }} />
+                                    ) : (
+                                        <div className="h-[350px] flex items-center justify-center text-muted-foreground text-sm">
+                                            No submission data available
+                                        </div>
+                                    )}
+                                </div>
                             </CardContent>
                         </Card>
                     </div>
@@ -1096,12 +975,13 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-base">
-                                <Clock className="h-5 w-5 text-purple-600" />
                                 Hours Trend
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <Line data={hoursTrendChartData} options={lineChartOptions} />
+                            <div className="w-full min-h-[300px]">
+                                <ReactECharts option={hoursTrendOption} style={{ height: '300px', width: '100%' }} />
+                            </div>
                         </CardContent>
                     </Card>
                 </CardContent>

@@ -43,11 +43,9 @@ import {
 import { cn} from "@/lib/utils"
 import { getSubmissionsForDate, getToday } from "@/lib/responsibility-status"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, addDays } from "date-fns"
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Bar, Line, Doughnut, Pie } from 'react-chartjs-2'
-import { ManagerExportDialog } from "@/components/export-dialog"
-
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
+import ReactECharts from 'echarts-for-react'
+import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
+import { ManagerExportDialog } from '@/components/export-dialog'
 
 // CSV Export utility function
 const exportToCSV = (data: Record<string, any>[], filename: string) => {
@@ -99,6 +97,7 @@ export default function ManagerDashboardPage() {
     const [subDepartment, setSubDepartment] = useState<SubDepartment | null>(null)
     const [employeeName, setEmployeeName] = useState<string | null>(null)
     const [selectedStaffId, setSelectedStaffId] = useState<string>("all")
+    const [respPage, setRespPage] = useState(1)
     const [selectedResponsibilityId, setSelectedResponsibilityId] = useState<string>("all")
     const [dateRange, setDateRange] = useState<DateRange>({
         from: subDays(new Date(), 30),
@@ -305,325 +304,194 @@ export default function ManagerDashboardPage() {
         }).sort((a, b) => b.totalSubmissions - a.totalSubmissions)
     }, [responsibilities, assignments, filteredSubmissions, staffList])
 
-    // Chart Data
-    const statusPieData = {
-        labels: ['Verified', 'Pending', 'Rejected'],
-        datasets: [{
-            data: [analyticsStats.verified, analyticsStats.pending, analyticsStats.rejected],
-            backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(251, 191, 36, 0.8)', 'rgba(239, 68, 68, 0.8)'],
-            borderColor: ['rgba(34, 197, 94, 1)', 'rgba(251, 191, 36, 1)', 'rgba(239, 68, 68, 1)'],
-            borderWidth: 2,
-            hoverOffset: 8,
+    // ECharts Configurations
+    const ITEMS_PER_PAGE = 15;
+    const totalRespPages = Math.ceil(responsibilityStats.length / ITEMS_PER_PAGE);
+    const paginatedResponsibilityStats = responsibilityStats.slice((respPage - 1) * ITEMS_PER_PAGE, respPage * ITEMS_PER_PAGE);
+
+    const responsibilityTreemapOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { formatter: '{b}: {c} submissions' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            type: 'treemap',
+            roam: false,
+            nodeClick: false,
+            breadcrumb: { show: false },
+            label: { show: true, formatter: '{b}', color: '#fff', fontSize: 12, overflow: 'truncate' },
+            itemStyle: { borderColor: '#fff', borderWidth: 2, gapWidth: 2 },
+            levels: [{ itemStyle: { borderWidth: 0 } }],
+            data: paginatedResponsibilityStats.map((r, i) => ({
+                name: r.title,
+                value: r.totalSubmissions,
+                itemStyle: { color: ECHARTS_PALETTE[i % ECHARTS_PALETTE.length] }
+            }))
         }]
-    }
+    };
 
-    const dailySubmissionsData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [{
-            label: 'Total Responsibilities',
-            data: dailyData.map(d => d.submissions),
-            borderColor: 'rgba(99, 102, 241, 1)',
-            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-        }, {
-            label: 'Verified',
-            data: dailyData.map(d => d.verified),
-            borderColor: 'rgba(34, 197, 94, 1)',
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 0,
+    const statusDonutOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Submissions',
+            type: 'pie',
+            roam: false,
+            breadcrumb: { show: false },
+            radius: ['45%', '70%'],
+            avoidLabelOverlap: true,
+            label: { show: true, formatter: '{b} ({d}%)', color: 'inherit', textBorderWidth: 0, fontSize: 12 },
+            labelLine: { show: true, length: 15, length2: 10, smooth: true },
+            data: [
+                { value: analyticsStats.verified, name: 'Verified' },
+                { value: analyticsStats.pending, name: 'Pending' },
+                { value: analyticsStats.rejected, name: 'Rejected' }
+            ]
         }]
-    }
+    };
 
-    const staffComparisonData = {
-        labels: staffStats.slice(0, 10).map(s => s.name.split(' ')[0]),
-        datasets: [{
-            label: 'Verified',
-            data: staffStats.slice(0, 10).map(s => s.verified),
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderRadius: 4,
-        }, {
-            label: 'Pending',
-            data: staffStats.slice(0, 10).map(s => s.pending),
-            backgroundColor: 'rgba(251, 191, 36, 0.8)',
-            borderRadius: 4,
-        }, {
-            label: 'Rejected',
-            data: staffStats.slice(0, 10).map(s => s.rejected),
-            backgroundColor: 'rgba(239, 68, 68, 0.8)',
-            borderRadius: 4,
+    const dailySubmissionsOption = {
+        color: ['#4A90D9', '#85C170'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyData.map(d => d.date) },
+        yAxis: { type: 'value' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
+        ],
+        series: [
+            { name: 'Total Responsibilities', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.1 }, data: dailyData.map(d => d.submissions) },
+            { name: 'Verified', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, data: dailyData.map(d => d.verified) }
+        ]
+    };
+
+    const staffComparisonOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', data: staffStats.slice(0, 10).map(s => s.name.split(' ')[0]) },
+        yAxis: { type: 'value' },
+        series: [
+            { name: 'Verified', type: 'bar', stack: 'total', data: staffStats.slice(0, 10).map(s => s.verified) },
+            { name: 'Pending', type: 'bar', stack: 'total', data: staffStats.slice(0, 10).map(s => s.pending) },
+            { name: 'Rejected', type: 'bar', stack: 'total', data: staffStats.slice(0, 10).map(s => s.rejected) }
+        ]
+    };
+
+    const staffHoursOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { trigger: 'item' },
+        legend: { type: 'scroll', bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Hours Worked',
+            type: 'pie',
+            radius: '60%',
+            data: staffStats.map(s => ({
+                value: s.hours, name: s.name.split(' ')[0]
+            }))
         }]
-    }
+    };
 
-    const staffHoursBarData = {
-        labels: staffStats.map(s => s.name.split(' ')[0]),
-        datasets: [{
-            label: 'Hours Worked',
-            data: staffStats.map(s => s.hours),
-            backgroundColor: staffStats.map((_, i) => {
-                const colors = [
-                    'rgba(139, 92, 246, 0.8)',
-                    'rgba(59, 130, 246, 0.8)',
-                    'rgba(99, 102, 241, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
-                    'rgba(236, 72, 153, 0.8)',
-                    'rgba(244, 63, 94, 0.8)',
-                    'rgba(251, 146, 60, 0.8)',
-                    'rgba(34, 197, 94, 0.8)',
-                ]
-                return colors[i % colors.length]
-            }),
-            borderColor: staffStats.map((_, i) => {
-                const colors = [
-                    'rgba(139, 92, 246, 1)',
-                    'rgba(59, 130, 246, 1)',
-                    'rgba(99, 102, 241, 1)',
-                    'rgba(168, 85, 247, 1)',
-                    'rgba(236, 72, 153, 1)',
-                    'rgba(244, 63, 94, 1)',
-                    'rgba(251, 146, 60, 1)',
-                    'rgba(34, 197, 94, 1)',
-                ]
-                return colors[i % colors.length]
-            }),
-            borderWidth: 2,
-            borderRadius: 6,
+    const staffDistributionOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { trigger: 'item' },
+        legend: { type: 'scroll', bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Submissions',
+            type: 'pie',
+            radius: '60%',
+            data: staffStats.slice(0, 8).map(s => ({
+                value: s.total, name: s.name.split(' ')[0]
+            }))
         }]
-    }
+    };
 
-    const staffHoursBarOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    title: function (context: any) {
-                        const index = context[0]?.dataIndex
-                        return staffStats[index]?.name || context[0]?.label
-                    },
-                    label: function (context: any) {
-                        return `Hours: ${context.raw}h`
-                    }
-                }
-            },
+    const staffApprovalOption = {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        visualMap: {
+            show: false,
+            min: 0,
+            max: 100,
+            inRange: {
+                color: ['#F2846B', '#F5C242', '#85C170']
+            }
         },
-        scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' }, title: { display: true, text: 'Hours Worked' } },
-        },
-    }
-
-    // Staff Performance Analytics Charts
-    const staffDistributionData = {
-        labels: staffStats.slice(0, 8).map(s => s.name.split(' ')[0]),
-        datasets: [{
-            label: 'Total Submissions',
-            data: staffStats.slice(0, 8).map(s => s.total),
-            backgroundColor: [
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(99, 102, 241, 0.8)',
-                'rgba(139, 92, 246, 0.8)',
-                'rgba(168, 85, 247, 0.8)',
-                'rgba(236, 72, 153, 0.8)',
-                'rgba(244, 63, 94, 0.8)',
-                'rgba(251, 146, 60, 0.8)',
-                'rgba(34, 197, 94, 0.8)',
-            ],
-            borderWidth: 2,
-            hoverOffset: 8,
+        xAxis: { type: 'category', data: staffStats.map(s => s.name.split(' ')[0]) },
+        yAxis: { type: 'value', max: 100, name: 'Approval Rate (%)' },
+        series: [{
+            name: 'Approval Rate (%)',
+            type: 'bar',
+            data: staffStats.map(s => s.approvalRate)
         }]
-    }
+    };
 
-    const staffHoursData = {
-        labels: staffStats.slice(0, 10).map(s => s.name.split(' ')[0]),
-        datasets: [{
-            label: 'Verified Hours',
-            data: staffStats.slice(0, 10).map(s => s.hours),
-            backgroundColor: 'rgba(139, 92, 246, 0.8)',
-            borderColor: 'rgba(139, 92, 246, 1)',
-            borderWidth: 2,
-            borderRadius: 6,
+    const responsibilityDistributionOption = {
+        color: ECHARTS_PALETTE,
+        tooltip: { trigger: 'item' },
+        legend: { type: 'scroll', bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Submissions',
+            type: 'pie',
+            radius: '60%',
+            data: responsibilityStats.slice(0, 6).map(r => ({
+                value: r.totalSubmissions, name: r.title.length > 15 ? r.title.substring(0, 15) + '...' : r.title
+            }))
         }]
-    }
+    };
 
-    const staffApprovalData = {
-        labels: staffStats.map(s => s.name.split(' ')[0]),
-        datasets: [{
-            label: 'Approval Rate (%)',
-            data: staffStats.map(s => s.approvalRate),
-            borderColor: 'rgba(34, 197, 94, 1)',
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointBackgroundColor: staffStats.map(s =>
-                s.approvalRate >= 80 ? 'rgba(34, 197, 94, 1)' :
-                    s.approvalRate >= 50 ? 'rgba(251, 191, 36, 1)' :
-                        'rgba(239, 68, 68, 1)'
-            ),
+    const responsibilityStatusOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'],
+        tooltip: { trigger: 'item' },
+        legend: { bottom: 0, left: 'center' },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Status',
+            type: 'pie',
+            radius: '60%',
+            data: [
+                { value: responsibilityStats.reduce((sum, r) => sum + r.verified, 0), name: 'Verified' },
+                { value: responsibilityStats.reduce((sum, r) => sum + r.pending, 0), name: 'Pending' },
+                { value: responsibilityStats.reduce((sum, r) => sum + r.rejected, 0), name: 'Rejected' }
+            ]
         }]
-    }
+    };
 
-    // Responsibility Analytics Charts
-    const responsibilityDistributionData = {
-        labels: responsibilityStats.slice(0, 6).map(r => r.title.length > 15 ? r.title.substring(0, 15) + '...' : r.title),
-        datasets: [{
-            label: 'Submissions',
-            data: responsibilityStats.slice(0, 6).map(r => r.totalSubmissions),
-            backgroundColor: [
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(139, 92, 246, 0.8)',
-                'rgba(236, 72, 153, 0.8)',
-                'rgba(34, 197, 94, 0.8)',
-                'rgba(251, 191, 36, 0.8)',
-                'rgba(239, 68, 68, 0.8)',
-            ],
-            borderWidth: 2,
-            hoverOffset: 8,
+    const responsibilityFullTitles = responsibilityStats.map(r => r.title);
+    const responsibilityCompletionOption = {
+        color: ['#4A90D9'],
+        tooltip: { 
+            trigger: 'axis', 
+            axisPointer: { type: 'shadow' },
+            formatter: function (params: any) {
+                const dataIndex = params[0].dataIndex;
+                const fullTitle = responsibilityFullTitles[dataIndex];
+                const value = params[0].value;
+                return `${fullTitle}<br/>${params[0].marker} Completion Rate: ${value}%`;
+            }
+        },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'value', max: 100, name: 'Completion Rate (%)' },
+        yAxis: { type: 'category', data: responsibilityStats.map(r => r.title.length > 25 ? r.title.substring(0, 22) + '...' : r.title) },
+        series: [{
+            name: 'Completion Rate (%)',
+            type: 'bar',
+            data: responsibilityStats.map(r => r.completionRate)
         }]
-    }
-
-    const responsibilityStatusData = {
-        labels: responsibilityStats.slice(0, 8).map(r => r.title.length > 25 ? r.title.substring(0, 22) + '...' : r.title),
-        datasets: [{
-            label: 'Verified',
-            data: responsibilityStats.slice(0, 8).map(r => r.verified),
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderRadius: 4,
-        }, {
-            label: 'Pending',
-            data: responsibilityStats.slice(0, 8).map(r => r.pending),
-            backgroundColor: 'rgba(251, 191, 36, 0.8)',
-            borderRadius: 4,
-        }, {
-            label: 'Rejected',
-            data: responsibilityStats.slice(0, 8).map(r => r.rejected),
-            backgroundColor: 'rgba(239, 68, 68, 0.8)',
-            borderRadius: 4,
-        }]
-    }
-
-    const responsibilityCompletionData = {
-        labels: responsibilityStats.map(r => r.title.length > 25 ? r.title.substring(0, 22) + '...' : r.title),
-        datasets: [{
-            label: 'Completion Rate (%)',
-            data: responsibilityStats.map(r => r.completionRate),
-            borderColor: 'rgba(59, 130, 246, 1)',
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointBackgroundColor: responsibilityStats.map(r =>
-                r.completionRate >= 80 ? 'rgba(34, 197, 94, 1)' :
-                    r.completionRate >= 50 ? 'rgba(251, 191, 36, 1)' :
-                        'rgba(239, 68, 68, 1)'
-            ),
-        }]
-    }
-
-    // Store full titles for tooltip
-    const responsibilityFullTitles = responsibilityStats.map(r => r.title)
-
-    // Chart Options
-    const pieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom' as const, labels: { padding: 20, usePointStyle: true } },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    label: function (context: any) {
-                        const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)
-                        const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0
-                        return `${context.label}: ${context.raw} (${percentage}%)`
-                    }
-                }
-            },
-        },
-    }
-
-    const lineChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' as const, labels: { padding: 15, usePointStyle: true } },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, mode: 'index' as const, intersect: false },
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        },
-        interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
-    }
-
-    const barChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' as const, labels: { padding: 15, usePointStyle: true } },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12 },
-        },
-        scales: {
-            x: { stacked: true, grid: { display: false } },
-            y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        },
-    }
-
-    const horizontalBarOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y' as const,
-        plugins: {
-            legend: { display: false },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12 },
-        },
-        scales: {
-            x: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-            y: { grid: { display: false } },
-        },
-    }
-
-    // Custom options for completion rate chart with full title in tooltip
-    const completionRateChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' as const, labels: { padding: 15, usePointStyle: true } },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                mode: 'index' as const,
-                intersect: false,
-                callbacks: {
-                    title: function(context: any) {
-                        const index = context[0]?.dataIndex
-                        return responsibilityFullTitles[index] || context[0]?.label
-                    }
-                }
-            },
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true, max: 100, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        },
-        interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
-    }
+    };
 
     const { submittedDates, missingDates } = useMemo(() => {
-        const submitted: Date[] = []
-        const missing: Date[] = []
         
         if (!user?.id) return { submittedDates: [], missingDates: [] }
         
@@ -632,6 +500,9 @@ export default function ManagerDashboardPage() {
         
         const todayStart = new Date()
         todayStart.setHours(0,0,0,0)
+        
+        const submitted: Date[] = []
+        const missing: Date[] = []
 
         // Check past lookbackDays for indicators (today is excluded - it isn't "missed" until the day is over)
         for (let i = 1; i <= lookbackDays; i++) {
@@ -1011,7 +882,7 @@ export default function ManagerDashboardPage() {
                     <div className="grid gap-4 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             {/* <Activity className="h-5 w-5 text-indigo-500" /> */}
@@ -1019,20 +890,17 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Responsibilities trend over time</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(dailyData.map(d => ({ Date: d.date, Submissions: d.submissions, Verified: d.verified, Pending: d.pending, Rejected: d.rejected, Hours: d.hours })), 'daily_submissions')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Line data={dailySubmissionsData} options={lineChartOptions} />
+                                <div className="w-full min-h-[300px]">
+                                            <ReactECharts option={dailySubmissionsOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             {/* <Target className="h-5 w-5 text-green-500" /> */}
@@ -1040,15 +908,12 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Breakdown by submission status</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV([{ Status: 'Verified', Count: analyticsStats.verified }, { Status: 'Pending', Count: analyticsStats.pending }, { Status: 'Rejected', Count: analyticsStats.rejected }], 'status_distribution')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
+                                <div className="w-full min-h-[300px]">
                                     {analyticsStats.total > 0 ? (
-                                        <Doughnut data={statusPieData} options={pieChartOptions} />
+                                            <ReactECharts option={statusDonutOption} style={{ height: '300px', width: '100%' }} />
                                     ) : (
                                         <div className="h-full flex items-center justify-center text-muted-foreground">
                                             No submissions in selected period
@@ -1060,21 +925,18 @@ export default function ManagerDashboardPage() {
                     </div>
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div>
                                     <CardTitle className="flex items-center gap-2">
                                         Staff Hours
                                     </CardTitle>
                                     <CardDescription>Hours worked by each employee</CardDescription>
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Hours: s.hours })), 'staff_hours')}>
-                                    <Download className="h-4 w-4" />
-                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="h-[250px]">
-                                <Bar data={staffHoursBarData} options={staffHoursBarOptions} />
+                            <div className="w-full min-h-[250px]">
+                                            <ReactECharts option={staffHoursOption} style={{ height: '250px', width: '100%' }} />
                             </div>
                         </CardContent>
                     </Card>
@@ -1140,23 +1002,19 @@ export default function ManagerDashboardPage() {
                     <div className="grid gap-4 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-blue-500" />
                                             Submission Distribution
                                         </CardTitle>
                                         <CardDescription>Top performers by submission count</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Total: s.total, Verified: s.verified, Pending: s.pending, Rejected: s.rejected, Hours: s.hours, ApprovalRate: s.approvalRate })), 'staff_submissions')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px]">
                                     {staffStats.length > 0 ? (
-                                        <Pie data={staffDistributionData} options={pieChartOptions} />
+                                        <ReactECharts option={staffDistributionOption} style={{ height: '100%', width: '100%' }} />
                                     ) : (
                                         <div className="h-full flex items-center justify-center text-muted-foreground">
                                             No staff data available
@@ -1168,7 +1026,7 @@ export default function ManagerDashboardPage() {
 
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <Activity className="h-5 w-5 text-indigo-500" />
@@ -1176,21 +1034,18 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Verified, pending, and rejected by staff</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Verified: s.verified, Pending: s.pending, Rejected: s.rejected })), 'staff_status_breakdown')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Bar data={staffComparisonData} options={barChartOptions} />
+                                <div className="w-full min-h-[300px]">
+                                            <ReactECharts option={staffComparisonOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <Clock className="h-5 w-5 text-purple-500" />
@@ -1198,21 +1053,18 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Verified hours by staff member</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Hours: s.hours })), 'staff_hours')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Bar data={staffHoursData} options={horizontalBarOptions} />
+                                <div className="w-full min-h-[300px]">
+                                    <ReactECharts option={staffHoursOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <TrendingUp className="h-5 w-5 text-green-500" />
@@ -1220,14 +1072,11 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Approval rate trend across staff</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, ApprovalRate: s.approvalRate })), 'staff_approval_rates')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Line data={staffApprovalData} options={lineChartOptions} />
+                                <div className="w-full min-h-[300px]">
+                                        <ReactECharts option={staffApprovalOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -1236,15 +1085,11 @@ export default function ManagerDashboardPage() {
                     {/* Staff Details Table */}
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div>
                                     <CardTitle>Staff Details</CardTitle>
                                     <CardDescription>Individual performance metrics</CardDescription>
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => exportToCSV(staffStats.map(s => ({ Name: s.name, Email: s.email, TotalSubmissions: s.total, Verified: s.verified, Pending: s.pending, Rejected: s.rejected, Hours: s.hours, ApprovalRate: s.approvalRate })), 'staff_details')}>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Export All
-                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
@@ -1282,29 +1127,23 @@ export default function ManagerDashboardPage() {
                                                     <p className="text-lg font-semibold">{staff.total}</p>
                                                     <p className="text-xs text-muted-foreground">Submissions</p>
                                                 </div>
-                                                <div className="flex gap-2">
-                                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                                        {/* <CheckCircle className="h-3 w-3 mr-1" /> */}
-                                                        VERIFIED:
-                                                        {staff.verified}
-                                                    </Badge>
-                                                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                                                        {/* <Clock className="h-3 w-3 mr-1" /> */}
-                                                        NOT VERIFIED:
-                                                        {staff.pending}
-                                                    </Badge>
-                                                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                                                        {/* <XCircle className="h-3 w-3 mr-1" /> */}
-                                                        REJECTED:
-                                                        {staff.rejected}
-                                                    </Badge>
+                                                <div className="flex gap-4 text-sm text-muted-foreground items-center">
+                                                    <div>
+                                                        Verified: <span className="font-semibold text-foreground">{staff.verified}</span>
+                                                    </div>
+                                                    <div>
+                                                        Pending: <span className="font-semibold text-foreground">{staff.pending}</span>
+                                                    </div>
+                                                    <div>
+                                                        Rejected: <span className="font-semibold text-foreground">{staff.rejected}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="text-center min-w-[80px]">
+                                                    <p className="text-lg font-semibold text-foreground">{staff.hours}h</p>
+                                                    <p className="text-xs text-muted-foreground">Total Hours</p>
                                                 </div>
                                                 <div className="text-center min-w-[60px]">
-                                                    <p className="text-lg font-semibold text-purple-600">Total Hours: {staff.hours}h</p>
-                                                    <p className="text-xs text-muted-foreground">Hours</p>
-                                                </div>
-                                                <div className="text-center min-w-[60px]">
-                                                    <p className={`text-lg font-semibold ${staff.approvalRate >= 80 ? 'text-green-600' : staff.approvalRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    <p className="text-lg font-semibold text-foreground">
                                                         {staff.approvalRate}%
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">Approval</p>
@@ -1401,23 +1240,19 @@ export default function ManagerDashboardPage() {
                     <div className="grid gap-4 lg:grid-cols-2">
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-blue-500" />
                                             Activity Distribution
                                         </CardTitle>
                                         <CardDescription>Submissions by responsibility</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(responsibilityStats.map(r => ({ Title: r.title, TotalSubmissions: r.totalSubmissions, Verified: r.verified, Pending: r.pending, Rejected: r.rejected, CompletionRate: r.completionRate })), 'responsibility_distribution')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
+                                <div className="w-full min-h-[300px]">
                                     {responsibilityStats.length > 0 ? (
-                                        <Doughnut data={responsibilityDistributionData} options={pieChartOptions} />
+                                        <ReactECharts option={responsibilityDistributionOption} style={{ height: '300px', width: '100%' }} />
                                     ) : (
                                         <div className="h-full flex items-center justify-center text-muted-foreground">
                                             No responsibility data available
@@ -1429,7 +1264,7 @@ export default function ManagerDashboardPage() {
 
                         <Card>
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             <Activity className="h-5 w-5 text-indigo-500" />
@@ -1437,21 +1272,18 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Verified, pending, rejected by task</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(responsibilityStats.map(r => ({ Title: r.title, Verified: r.verified, Pending: r.pending, Rejected: r.rejected })), 'responsibility_status_breakdown')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Bar data={responsibilityStatusData} options={barChartOptions} />
+                                <div className="w-full min-h-[300px]">
+                                        <ReactECharts option={responsibilityStatusOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card className="lg:col-span-2">
                             <CardHeader>
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
                                             {/* <Target className="h-5 w-5 text-green-500" /> */}
@@ -1459,14 +1291,11 @@ export default function ManagerDashboardPage() {
                                         </CardTitle>
                                         <CardDescription>Success rate trend across responsibilities</CardDescription>
                                     </div>
-                                    <Button variant="outline" size="sm" onClick={() => exportToCSV(responsibilityStats.map(r => ({ Title: r.title, CompletionRate: r.completionRate })), 'completion_rates')}>
-                                        <Download className="h-4 w-4" />
-                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="h-[300px]">
-                                    <Line data={responsibilityCompletionData} options={completionRateChartOptions} />
+                                <div className="w-full min-h-[300px]">
+                                        <ReactECharts option={responsibilityCompletionOption} style={{ height: '300px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -1475,7 +1304,7 @@ export default function ManagerDashboardPage() {
                     {/* Responsibilities Details */}
                     <Card>
                         <CardHeader>
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div>
                                     <CardTitle className="flex items-center gap-2">
                                         <Briefcase className="h-5 w-5 text-indigo-500" />
@@ -1483,68 +1312,27 @@ export default function ManagerDashboardPage() {
                                     </CardTitle>
                                     <CardDescription>Performance by responsibility</CardDescription>
                                 </div>
-                                <Button variant="outline" size="sm" onClick={() => exportToCSV(responsibilityStats.map(r => ({ Title: r.title, Description: r.description || '', AssignedStaffCount: r.assignedStaff, AssignedStaffNames: r.assignedStaffNames, TotalSubmissions: r.totalSubmissions, Verified: r.verified, Pending: r.pending, Rejected: r.rejected, CompletionRate: r.completionRate, IsActive: r.isActive ? 'Yes' : 'No' })), 'responsibilities_overview')}>
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Export All
-                                </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="h-[500px]">
-                                <div className="space-y-3">
-                                    {responsibilityStats.map((resp, index) => (
-                                        <div
-                                            key={resp.id}
-                                            className="p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-                                        >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="relative">
-                                                        <Target className="h-4 w-4 text-indigo-500" />
-                                                        {index < 3 && (
-                                                            <div className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-yellow-400 border border-white flex items-center justify-center text-[10px] ">
-                                                                {index + 1}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <span className="font-medium">{resp.title}</span>
-                                                </div>
-                                                <Badge variant={resp.isActive ? "default" : "secondary"}>
-                                                    {resp.isActive ? 'Active' : 'Inactive'}
-                                                </Badge>
-                                            </div>
-                                            {resp.description && (
-                                                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{resp.description}</p>
-                                            )}
-                                            <div className="grid grid-cols-4 gap-4 text-center">
-                                                <div className="p-2 rounded bg-muted">
-                                                    <p className="text-lg font-semibold text-blue-600">{resp.assignedStaff}</p>
-                                                    <p className="text-xs text-muted-foreground">Assigned</p>
-                                                </div>
-                                                <div className="p-2 rounded bg-muted">
-                                                    <p className="text-lg font-semibold text-indigo-600">{resp.totalSubmissions}</p>
-                                                    <p className="text-xs text-muted-foreground">Submissions</p>
-                                                </div>
-                                                <div className="p-2 rounded bg-muted">
-                                                    <p className="text-lg font-semibold text-green-600">{resp.verified}</p>
-                                                    <p className="text-xs text-muted-foreground">Verified</p>
-                                                </div>
-                                                <div className="p-2 rounded bg-muted">
-                                                    <p className={`text-lg font-semibold ${resp.completionRate >= 80 ? 'text-green-600' : resp.completionRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
-                                                        {resp.completionRate}%
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">Completion</p>
-                                                </div>
-                                            </div>
+                            <div className="w-full min-h-[500px]">
+                                {paginatedResponsibilityStats.length > 0 ? (
+                                    <>
+                                        <div className="h-[450px] w-full">
+                                            <ReactECharts option={responsibilityTreemapOption} style={{ height: '100%', width: '100%' }} />
                                         </div>
-                                    ))}
-                                    {responsibilityStats.length === 0 && (
-                                        <div className="text-center py-8 text-muted-foreground">
-                                            No responsibilities found for your sub-department
+                                        <div className="flex justify-between items-center mt-4">
+                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.max(1, p - 1))} disabled={respPage === 1}>Previous</Button>
+                                            <span className="text-sm text-muted-foreground">Page {respPage} of {totalRespPages || 1}</span>
+                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.min(totalRespPages, p + 1))} disabled={respPage >= totalRespPages || totalRespPages === 0}>Next</Button>
                                         </div>
-                                    )}
-                                </div>
-                            </ScrollArea>
+                                    </>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-muted-foreground min-h-[400px]">
+                                        No responsibilities found
+                                    </div>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

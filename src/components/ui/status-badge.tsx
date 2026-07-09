@@ -4,19 +4,19 @@ import { cn } from "@/lib/utils"
 import { SubmissionStatus, AssignmentStatus, DayStatus } from "@/types/cir"
 
 const statusBadgeVariants = cva(
-    " px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+    "inline-flex items-center rounded-md border border-border bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
     {
         variants: {
             status: {
-                PENDING: "  dark:text-white    text-black p-2.5",
-                SUBMITTED: "  dark:text-white    text-black p-2.5",
-                VERIFIED: "  dark:text-white    text-black p-2.5",
-                REJECTED: "  dark:text-white    text-black p-2.5",
-                IN_PROGRESS: "  dark:text-white    text-black p-2.5",
-                COMPLETED: "  dark:text-white    text-black p-2.5",
-                OVERDUE: "  dark:text-white    text-black p-2.5",
-                NOT_SUBMITTED: "  dark:text-white    text-black p-2.5",
-                PARTIAL: "  dark:text-white    text-black p-2.5",
+                PENDING: "",
+                SUBMITTED: "",
+                VERIFIED: "",
+                REJECTED: "",
+                IN_PROGRESS: "",
+                COMPLETED: "",
+                OVERDUE: "",
+                NOT_SUBMITTED: "",
+                PARTIAL: "",
             },
         },
         defaultVariants: {
@@ -28,13 +28,13 @@ const statusBadgeVariants = cva(
 const statusIcons: Record<string, string> = {
     PENDING: "",
     SUBMITTED: "",
-    VERIFIED: "✅",
-    REJECTED: "❌",
-    IN_PROGRESS: "🔄",
-    COMPLETED: "✓",
-    OVERDUE: "⚠",
-    NOT_SUBMITTED: "○",
-    PARTIAL: "◐",
+    VERIFIED: "",
+    REJECTED: "",
+    IN_PROGRESS: "",
+    COMPLETED: "",
+    OVERDUE: "",
+    NOT_SUBMITTED: "",
+    PARTIAL: "",
 }
 
 const statusLabels: Record<string, string> = {
@@ -100,14 +100,14 @@ function DayStatusBadge({ status, ...props }: DayStatusBadgeProps) {
 
 // Priority badge for responsibilities
 const priorityBadgeVariants = cva(
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+    "inline-flex items-center rounded-md border border-border bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground shadow-sm transition-colors",
     {
         variants: {
             priority: {
-                LOW: "border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400",
-                MEDIUM: "border-yellow-200 bg-yellow-50 text-yellow-700 dark:border-yellow-800 dark:bg-yellow-950 dark:text-yellow-400",
-                HIGH: "border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-400",
-                CRITICAL: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
+                LOW: "",
+                MEDIUM: "",
+                HIGH: "",
+                CRITICAL: "",
             },
         },
         defaultVariants: {
@@ -130,13 +130,13 @@ function PriorityBadge({ className, priority, ...props }: PriorityBadgeProps) {
 
 // Role badge
 const roleBadgeVariants = cva(
-    "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold",
+    "inline-flex items-center rounded-md border border-border bg-secondary px-2.5 py-0.5 text-xs font-semibold text-secondary-foreground shadow-sm transition-colors",
     {
         variants: {
             role: {
-                ADMIN: "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-400",
-                MANAGER: "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400",
-                STAFF: "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-400",
+                ADMIN: "",
+                MANAGER: "",
+                STAFF: "",
             },
         },
         defaultVariants: {
