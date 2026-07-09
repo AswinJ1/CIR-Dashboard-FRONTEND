@@ -29,10 +29,8 @@ import {
     Layers,
 } from "lucide-react"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler } from 'chart.js'
-import { Bar, Line, Doughnut } from 'react-chartjs-2'
-
-ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title, LineElement, PointElement, Filler)
+import ReactECharts from 'echarts-for-react'
+import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 
 type DateRange = {
     from: Date
@@ -272,117 +270,79 @@ export default function AdminAnalyticsPage() {
         })
     }, [filteredSubmissions, dateRange])
 
-    // Chart Data
-    const statusPieData = {
-        labels: ['Verified', 'Pending', 'Rejected'],
-        datasets: [{
-            data: [stats.verified, stats.pending, stats.rejected],
-            backgroundColor: ['rgba(34, 197, 94, 0.8)', 'rgba(251, 191, 36, 0.8)', 'rgba(239, 68, 68, 0.8)'],
-            borderColor: ['rgba(34, 197, 94, 1)', 'rgba(251, 191, 36, 1)', 'rgba(239, 68, 68, 1)'],
-            borderWidth: 2,
-            hoverOffset: 8,
+    // ECharts Status Donut Option
+    const statusDonutOption = {
+        color: ['#85C170', '#F5C242', '#F2846B'], // Verified, Pending, Rejected
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { bottom: 0, left: 'center', itemStyle: { borderWidth: 0 } },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        series: [{
+            name: 'Status',
+            type: 'pie',
+            radius: '75%',
+            center: ['50%', '45%'],
+            itemStyle: { borderColor: '#fff', borderWidth: 2 },
+            label: { show: true, position: 'inside', formatter: '{d}%', color: '#fff', fontSize: 12, fontWeight: 'bold' },
+            labelLine: { show: false },
+            data: [
+                { value: stats.verified, name: 'Verified' },
+                { value: stats.pending, name: 'Pending' },
+                { value: stats.rejected, name: 'Rejected' }
+            ]
         }]
-    }
+    };
 
-    const dailySubmissionsData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [{
-            label: 'Total Submissions',
-            data: dailyData.map(d => d.submissions),
-            borderColor: 'rgba(99, 102, 241, 1)',
-            backgroundColor: 'rgba(99, 102, 241, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-        }, {
-            label: 'Verified',
-            data: dailyData.map(d => d.verified),
-            borderColor: 'rgba(34, 197, 94, 1)',
-            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-        }]
-    }
+    // ECharts Daily Submissions Option
+    const dailySubmissionsOption = {
+        color: ['#4A90D9', '#85C170'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyData.map(d => d.date) },
+        yAxis: { type: 'value' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
+        ],
+        series: [
+            { name: 'Total Submissions', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.1 }, data: dailyData.map(d => d.submissions) },
+            { name: 'Verified', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, data: dailyData.map(d => d.verified) }
+        ]
+    };
 
-    const departmentBarData = {
-        labels: departmentStats.slice(0, 8).map(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name),
-        datasets: [{
-            label: 'Verified',
-            data: departmentStats.slice(0, 8).map(d => d.verified),
-            backgroundColor: 'rgba(34, 197, 94, 0.8)',
-            borderRadius: 4,
-        }, {
-            label: 'Pending/Rejected',
-            data: departmentStats.slice(0, 8).map(d => d.totalSubmissions - d.verified),
-            backgroundColor: 'rgba(251, 191, 36, 0.8)',
-            borderRadius: 4,
-        }]
-    }
+    // ECharts Department Bar Option
+    const departmentBarOption = {
+        color: ['#85C170', '#F5C242'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'value' },
+        yAxis: { type: 'category', data: departmentStats.slice(0, 8).map(d => d.name.length > 15 ? d.name.substring(0, 12) + '...' : d.name) },
+        series: [
+            { name: 'Verified', type: 'bar', stack: 'total', data: departmentStats.slice(0, 8).map(d => d.verified) },
+            { name: 'Pending/Rejected', type: 'bar', stack: 'total', data: departmentStats.slice(0, 8).map(d => d.totalSubmissions - d.verified) }
+        ]
+    };
 
-    const hoursChartData = {
-        labels: dailyData.map(d => d.date),
-        datasets: [{
-            label: 'Hours Worked',
-            data: dailyData.map(d => d.hours),
-            borderColor: 'rgba(139, 92, 246, 1)',
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-        }]
-    }
-
-    // Chart Options
-    const pieChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'bottom' as const, labels: { padding: 20, usePointStyle: true } },
-            tooltip: {
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                padding: 12,
-                callbacks: {
-                    label: function(context: any) {
-                        const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0)
-                        const percentage = total > 0 ? ((context.raw / total) * 100).toFixed(1) : 0
-                        return `${context.label}: ${context.raw} (${percentage}%)`
-                    }
-                }
-            },
-        },
-    }
-
-    const lineChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: { position: 'top' as const, labels: { padding: 15, usePointStyle: true } },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12, mode: 'index' as const, intersect: false },
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-        },
-        interaction: { mode: 'nearest' as const, axis: 'x' as const, intersect: false },
-    }
-
-    const barChartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        indexAxis: 'y' as const,
-        plugins: {
-            legend: { position: 'top' as const, labels: { padding: 15, usePointStyle: true } },
-            tooltip: { backgroundColor: 'rgba(0, 0, 0, 0.8)', padding: 12 },
-        },
-        scales: {
-            x: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0, 0, 0, 0.05)' } },
-            y: { stacked: true, grid: { display: false } },
-        },
-    }
+    // ECharts Hours Trend Option
+    const hoursChartOption = {
+        color: ['#9B7ED9'],
+        tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } },
+        legend: { top: 0 },
+        grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true },
+        toolbox: ECHARTS_COMMON_OPTS.toolbox,
+        xAxis: { type: 'category', boundaryGap: false, data: dailyData.map(d => d.date) },
+        yAxis: { type: 'value' },
+        dataZoom: [
+            { type: 'inside', start: 0, end: 100 },
+            { type: 'slider', start: 0, end: 100, height: 16, bottom: 0 }
+        ],
+        series: [
+            { name: 'Hours Worked', type: 'line', smooth: false, showSymbol: false, lineStyle: { width: 1.5 }, areaStyle: { opacity: 0.1 }, data: dailyData.map(d => d.hours) }
+        ]
+    };
 
     // Reset sub-department when department changes
     useEffect(() => {
@@ -589,21 +549,19 @@ export default function AdminAnalyticsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Activity className="h-5 w-5 text-indigo-500" />
                                     Daily Submissions Trend
                                 </CardTitle>
                                 <CardDescription>Submissions and verifications over time</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px]">
-                                    <Line data={dailySubmissionsData} options={lineChartOptions} />
+                                    <ReactECharts option={dailySubmissionsOption} style={{ height: '100%', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Target className="h-5 w-5 text-green-500" />
                                     Status Distribution
                                 </CardTitle>
                                 <CardDescription>Breakdown by submission status</CardDescription>
@@ -611,7 +569,7 @@ export default function AdminAnalyticsPage() {
                             <CardContent>
                                 <div className="h-[300px]">
                                     {stats.total > 0 ? (
-                                        <Doughnut data={statusPieData} options={pieChartOptions} />
+                                        <ReactECharts option={statusDonutOption} style={{ height: '100%', width: '100%' }} />
                                     ) : (
                                         <div className="h-full flex items-center justify-center text-muted-foreground">
                                             No submissions in selected period
@@ -625,28 +583,26 @@ export default function AdminAnalyticsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-blue-500" />
                                     Department Performance
                                 </CardTitle>
                                 <CardDescription>Submissions by department</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px]">
-                                    <Bar data={departmentBarData} options={barChartOptions} />
+                                    <ReactECharts option={departmentBarOption} style={{ height: '100%', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Clock className="h-5 w-5 text-purple-500" />
                                     Hours Trend
                                 </CardTitle>
                                 <CardDescription>Daily hours worked</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="h-[300px]">
-                                    <Line data={hoursChartData} options={lineChartOptions} />
+                                    <ReactECharts option={hoursChartOption} style={{ height: '100%', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -659,7 +615,6 @@ export default function AdminAnalyticsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Building2 className="h-5 w-5 text-blue-500" />
                                     Departments Overview
                                 </CardTitle>
                                 <CardDescription>Performance by department</CardDescription>
@@ -706,7 +661,6 @@ export default function AdminAnalyticsPage() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
-                                    <Layers className="h-5 w-5 text-cyan-500" />
                                     Sub-Departments
                                 </CardTitle>
                                 <CardDescription>
@@ -765,7 +719,6 @@ export default function AdminAnalyticsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Users className="h-5 w-5 text-indigo-500" />
                                 Staff Performance
                             </CardTitle>
                             <CardDescription>
@@ -840,7 +793,6 @@ export default function AdminAnalyticsPage() {
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
-                                <Briefcase className="h-5 w-5 text-indigo-500" />
                                 Responsibilities Overview
                             </CardTitle>
                             <CardDescription>

@@ -114,11 +114,11 @@ export function DailyWorkCalendar({
     const getStatusColor = (status: DayStatus): string => {
         switch (status) {
             case 'VERIFIED':
-                return 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700'
+                return 'bg-secondary text-secondary-foreground border border-border shadow-sm'
             case 'SUBMITTED':
-                return 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                return 'bg-secondary text-secondary-foreground border border-border shadow-sm'
             case 'REJECTED':
-                return 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700'
+                return 'bg-secondary text-secondary-foreground border border-border shadow-sm'
             case 'PARTIAL':
                 return 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700'
             case 'NOT_SUBMITTED':
@@ -206,7 +206,7 @@ export function DailyWorkCalendar({
                                     </span>
                                 )}
                                 {locked && !data?.hasSubmissions && isPastDate(date) && (
-                                    <AlertCircle className="h-3 w-3 text-red-500" />
+                                    <AlertCircle className="h-3 w-3 text-foreground" />
                                 )}
                             </button>
                         )

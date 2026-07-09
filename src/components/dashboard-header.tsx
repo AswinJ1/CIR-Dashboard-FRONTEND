@@ -353,15 +353,15 @@ export default function DashboardHeader() {
   const getTypeColor = (type: string) => {
     switch (type) {
       case "SUCCESS":
-        return "text-green-600 dark:text-green-400"
+        return "text-foreground dark:text-green-400"
       case "WARNING":
         return "text-orange-600 dark:text-orange-400"
       case "ERROR":
-        return "text-red-600 dark:text-red-400"
+        return "text-foreground dark:text-red-400"
       case "CONTEST":
         return "text-purple-600 dark:text-purple-400"
       case "SYSTEM":
-        return "text-blue-600 dark:text-blue-400"
+        return "text-foreground dark:text-blue-400"
       case "ANNOUNCEMENT":
         return "text-indigo-600 dark:text-indigo-400"
       default:

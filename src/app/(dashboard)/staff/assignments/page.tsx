@@ -36,14 +36,14 @@ export default function StaffAssignmentsPage() {
                         <Info className="h-5 w-5" />
                         New Daily Work Submission
                     </CardTitle>
-                    <CardDescription className="text-blue-600 dark:text-blue-400">
+                    <CardDescription className="text-foreground dark:text-blue-400">
                         We've updated the work submission process to be simpler and more efficient.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-3">
                         <div className="flex items-start gap-3">
-                            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <Calendar className="h-5 w-5 text-foreground dark:text-blue-400 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-medium text-blue-800 dark:text-blue-300">Daily Submissions</p>
                                 <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -52,7 +52,7 @@ export default function StaffAssignmentsPage() {
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                            <Calendar className="h-5 w-5 text-foreground dark:text-blue-400 flex-shrink-0 mt-0.5" />
                             <div>
                                 <p className="font-medium text-blue-800 dark:text-blue-300">Calendar View</p>
                                 <p className="text-sm text-blue-700 dark:text-blue-400">
@@ -67,7 +67,7 @@ export default function StaffAssignmentsPage() {
                         <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
 
-                    <p className="text-xs text-center text-blue-600 dark:text-blue-400">
+                    <p className="text-xs text-center text-foreground dark:text-blue-400">
                         You will be redirected automatically in a few seconds...
                     </p>
                 </CardContent>

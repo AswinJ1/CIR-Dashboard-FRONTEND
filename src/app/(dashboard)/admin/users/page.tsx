@@ -316,7 +316,7 @@ export default function AdminUsersPage() {
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Name <span className="text-red-500">*</span></Label>
+                <Label>Name <span className="text-foreground">*</span></Label>
                 <Input
                   placeholder="Enter full name"
                   value={formName}
@@ -324,7 +324,7 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Email <span className="text-red-500">*</span></Label>
+                <Label>Email <span className="text-foreground">*</span></Label>
                 <Input
                   type="email"
                   placeholder="Enter email address"
@@ -333,7 +333,7 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Password <span className="text-red-500">*</span></Label>
+                <Label>Password <span className="text-foreground">*</span></Label>
                 <Input
                   type="password"
                   placeholder="Enter password (min 6 characters)"
@@ -342,7 +342,7 @@ export default function AdminUsersPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Role <span className="text-red-500">*</span></Label>
+                <Label>Role <span className="text-foreground">*</span></Label>
                 <Select value={formRole} onValueChange={(v) => setFormRole(v as Role)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
@@ -354,7 +354,7 @@ export default function AdminUsersPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Department <span className="text-red-500">*</span></Label>
+                <Label>Department <span className="text-foreground">*</span></Label>
                 <Select
                   value={formDepartmentId}
                   onValueChange={(v) => {
@@ -514,7 +514,7 @@ export default function AdminUsersPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label>Name <span className="text-red-500">*</span></Label>
+              <Label>Name <span className="text-foreground">*</span></Label>
               <Input
                 placeholder="Enter full name"
                 value={editName}
@@ -522,7 +522,7 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Email <span className="text-red-500">*</span></Label>
+              <Label>Email <span className="text-foreground">*</span></Label>
               <Input
                 type="email"
                 placeholder="Enter email address"
@@ -531,7 +531,7 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label>Role <span className="text-red-500">*</span></Label>
+              <Label>Role <span className="text-foreground">*</span></Label>
               <Select value={editRole} onValueChange={(v) => setEditRole(v as Role)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select role" />
@@ -667,7 +667,7 @@ export default function AdminUsersPage() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password <span className="text-red-500">*</span></Label>
+              <Label htmlFor="newPassword">New Password <span className="text-foreground">*</span></Label>
               <Input
                 id="newPassword"
                 type="password"
@@ -677,7 +677,7 @@ export default function AdminUsersPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password <span className="text-red-500">*</span></Label>
+              <Label htmlFor="confirmPassword">Confirm Password <span className="text-foreground">*</span></Label>
               <Input
                 id="confirmPassword"
                 type="password"

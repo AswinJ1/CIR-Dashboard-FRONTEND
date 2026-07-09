@@ -192,7 +192,7 @@ export function AvatarSelector({
                 ) : (
                   <div className="text-center space-y-4">
                     <div className="mx-auto h-16 w-16 rounded-full bg-blue-100 flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-blue-600" />
+                      <ImageIcon className="h-8 w-8 text-foreground" />
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-900">Upload your photo</p>

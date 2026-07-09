@@ -367,7 +367,7 @@ export default function StaffWorkSubmissionsPage() {
                                         Originally submitted: {format(new Date(submission.submittedAt), "PPP")}
                                     </p>
                                     {submission.rejectionReason && (
-                                        <p className="text-xs text-red-600 dark:text-red-400">
+                                        <p className="text-xs text-foreground dark:text-red-400">
                                             Reason: {submission.rejectionReason}
                                         </p>
                                     )}
@@ -478,10 +478,10 @@ export default function StaffWorkSubmissionsPage() {
                                                                     status === 'SUBMITTED' ? 'bg-blue-100 dark:bg-blue-900' :
                                                                     'bg-amber-100 dark:bg-amber-900'
                                                                 }`}>
-                                                                    {status === 'VERIFIED' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                                                                    {status === 'REJECTED' && <XCircle className="h-4 w-4 text-red-600" />}
-                                                                    {status === 'SUBMITTED' && <FileCheck className="h-4 w-4 text-blue-600" />}
-                                                                    {status === 'PENDING' && <Clock className="h-4 w-4 text-amber-600" />}
+                                                                    {status === 'VERIFIED' && <CheckCircle className="h-4 w-4 text-foreground" />}
+                                                                    {status === 'REJECTED' && <XCircle className="h-4 w-4 text-foreground" />}
+                                                                    {status === 'SUBMITTED' && <FileCheck className="h-4 w-4 text-foreground" />}
+                                                                    {status === 'PENDING' && <Clock className="h-4 w-4 text-foreground" />}
                                                                 </div>
                                                                 <div>
                                                                     <p className="font-medium text-sm">
@@ -492,7 +492,7 @@ export default function StaffWorkSubmissionsPage() {
                                                                         {submission.verifiedAt && ` • Verified ${new Date(submission.verifiedAt).toLocaleDateString()}`}
                                                                     </p>
                                                                     {status === 'REJECTED' && submission.rejectionReason && (
-                                                                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                                                                        <p className="text-xs text-foreground dark:text-red-400 mt-1">
                                                                             Reason: {submission.rejectionReason}
                                                                         </p>
                                                                     )}

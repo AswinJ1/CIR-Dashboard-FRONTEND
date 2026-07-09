@@ -431,7 +431,7 @@ export default function AdminResponsibilitiesPage() {
                             {/* Title */}
                             <div className="space-y-2">
                                 <Label htmlFor="title">
-                                    Title <span className="text-red-500">*</span>
+                                    Title <span className="text-foreground">*</span>
                                 </Label>
                                 <Input
                                     id="title"
@@ -444,7 +444,7 @@ export default function AdminResponsibilitiesPage() {
                             {/* Cycle */}
                             <div className="space-y-2">
                                 <Label htmlFor="cycle">
-                                    Cycle (YYYY-MM) <span className="text-red-500">*</span>
+                                    Cycle (YYYY-MM) <span className="text-foreground">*</span>
                                 </Label>
                                 <Input
                                     id="cycle"
@@ -461,7 +461,7 @@ export default function AdminResponsibilitiesPage() {
                             {/* Sub-Department */}
                             <div className="space-y-2">
                                 <Label>
-                                    Sub-Department <span className="text-red-500">*</span>
+                                    Sub-Department <span className="text-foreground">*</span>
                                 </Label>
                                 <Select value={selectedSubDepartment} onValueChange={setSelectedSubDepartment}>
                                     <SelectTrigger>
@@ -1005,7 +1005,7 @@ export default function AdminResponsibilitiesPage() {
                         {/* Title */}
                         <div className="space-y-2">
                             <Label htmlFor="edit-title">
-                                Title <span className="text-red-500">*</span>
+                                Title <span className="text-foreground">*</span>
                             </Label>
                             <Input
                                 id="edit-title"
@@ -1018,7 +1018,7 @@ export default function AdminResponsibilitiesPage() {
                         {/* Cycle */}
                         <div className="space-y-2">
                             <Label htmlFor="edit-cycle">
-                                Cycle (YYYY-MM) <span className="text-red-500">*</span>
+                                Cycle (YYYY-MM) <span className="text-foreground">*</span>
                             </Label>
                             <Input
                                 id="edit-cycle"

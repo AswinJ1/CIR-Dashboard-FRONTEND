@@ -358,7 +358,7 @@ export default function AdminTimetablePage() {
                                         Sub-Department: <span className="font-medium">{selectedTimetable.subDepartment?.name}</span>
                                     </CardDescription>
                                     {!selectedTimetable.isPublished && (
-                                        <div className="flex items-center text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/50 p-2 rounded-md mt-2 border border-amber-200 dark:border-amber-900">
+                                        <div className="flex items-center text-xs text-muted-foreground bg-secondary/50 p-2 rounded-md mt-2 border border-border">
                                             <AlertTriangle className="h-3 w-3 mr-1.5" />
                                             Changes won't lock classrooms until published
                                         </div>
@@ -370,7 +370,6 @@ export default function AdminTimetablePage() {
                                             variant="outline" 
                                             onClick={handlePublishToggle} 
                                             disabled={isActionLoading}
-                                            className="bg-amber-50 text-amber-900 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-200"
                                         >
                                             <RefreshCw className="mr-2 h-4 w-4" /> Unpublish
                                         </Button>
@@ -379,7 +378,6 @@ export default function AdminTimetablePage() {
                                             variant="default" 
                                             onClick={handlePublishToggle} 
                                             disabled={isActionLoading || (selectedTimetable.entries?.length === 0)}
-                                            className="bg-green-600 hover:bg-green-700 text-white"
                                         >
                                             <CalendarCheck className="mr-2 h-4 w-4" /> Publish & Lock
                                         </Button>
@@ -387,7 +385,7 @@ export default function AdminTimetablePage() {
                                     <Button variant="outline" onClick={handleExport} disabled={isActionLoading || !selectedTimetable.entries?.length}>
                                         <FileDown className="mr-2 h-4 w-4" /> Export
                                     </Button>
-                                    <Button variant="destructive" size="icon" onClick={() => handleDeleteTimetable(selectedTimetable.id)} disabled={isActionLoading}>
+                                    <Button variant="outline" size="icon" onClick={() => handleDeleteTimetable(selectedTimetable.id)} disabled={isActionLoading}>
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -465,7 +463,7 @@ export default function AdminTimetablePage() {
                                                                         <Button variant="outline" size="sm" onClick={() => openEditEntryModal(entry)}>
                                                                             <Edit className="h-4 w-4" />
                                                                         </Button>
-                                                                        <Button variant="ghost" className="text-destructive hover:bg-destructive/10 hover:text-destructive" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                                                                        <Button variant="ghost" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
                                                                             <Trash2 className="h-4 w-4" />
                                                                         </Button>
                                                                     </div>

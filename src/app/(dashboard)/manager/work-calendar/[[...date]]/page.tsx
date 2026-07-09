@@ -553,8 +553,8 @@ export default function ManagerWorkCalendarPage() {
                             <Card className="border-2 border-foreground/20">
                                 <CardContent className="py-8">
                                     <div className="text-center space-y-4">
-                                        <div className="h-16 w-16 rounded-full bg-foreground/5 flex items-center justify-center mx-auto">
-                                            <Send className="h-8 w-8 text-foreground" />
+                                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                                            <FileText className="h-8 w-8 text-primary" />
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-xl">
@@ -567,9 +567,8 @@ export default function ManagerWorkCalendarPage() {
                                         <Button
                                             size="lg"
                                             onClick={() => setIsModalOpen(true)}
-                                            className="bg-foreground text-background hover:bg-foreground/90"
+                                            className="w-full sm:w-auto"
                                         >
-                                            <Send className="h-4 w-4 mr-2" />
                                             {isSelectedDateToday ? "Submit Today's Work" : "Submit Work"}
                                         </Button>
                                     </div>
@@ -607,8 +606,8 @@ export default function ManagerWorkCalendarPage() {
                                                     </div>
                                                     <Badge variant="outline" className={cn(
                                                         "border-foreground/20",
-                                                        status === 'VERIFIED' && "border-green-500/50 text-green-600 dark:text-green-400",
-                                                        status === 'REJECTED' && "border-red-500/50 text-red-600 dark:text-red-400"
+                                                        status === 'VERIFIED' && "border-green-500/50 text-foreground dark:text-green-400",
+                                                        status === 'REJECTED' && "border-red-500/50 text-foreground dark:text-red-400"
                                                     )}>
                                                         {status}
                                                     </Badge>
@@ -665,7 +664,7 @@ export default function ManagerWorkCalendarPage() {
 
                                             <div className="grid gap-3 sm:grid-cols-2">
                                                 <div className="space-y-1">
-                                                    <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
+                                                    <Label className="text-xs text-foreground">Hours Worked <span className="text-foreground">*</span></Label>
                                                     <Input
                                                         type="number"
                                                         min="0"
@@ -782,7 +781,7 @@ export default function ManagerWorkCalendarPage() {
 
                                         <div className="grid gap-3 sm:grid-cols-2">
                                             <div className="space-y-1">
-                                                <Label className="text-xs text-foreground">Hours Worked <span className="text-red-500">*</span></Label>
+                                                <Label className="text-xs text-foreground">Hours Worked <span className="text-foreground">*</span></Label>
                                                 <Input
                                                     type="number"
                                                     min="0.5"
@@ -888,7 +887,6 @@ export default function ManagerWorkCalendarPage() {
                         <Button
                             onClick={handleSubmitTodaysWork}
                             disabled={isSubmitting || !hasWorkToSubmit}
-                            className="bg-foreground text-background hover:bg-foreground/90"
                         >
                             {isSubmitting ? (
                                 <>
@@ -896,10 +894,7 @@ export default function ManagerWorkCalendarPage() {
                                     Submitting...
                                 </>
                             ) : (
-                                <>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Submit
-                                </>
+                                "Submit"
                             )}
                         </Button>
                     </DialogFooter>

@@ -30,11 +30,11 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
     const getTodayStatusDisplay = (status: DayStatus): { label: string; color: string } => {
         switch (status) {
             case 'VERIFIED':
-                return { label: 'Verified', color: 'text-green-500' }
+                return { label: 'Verified', color: 'text-foreground' }
             case 'SUBMITTED':
-                return { label: 'Submitted', color: 'text-blue-500' }
+                return { label: 'Submitted', color: 'text-foreground' }
             case 'REJECTED':
-                return { label: 'Rejected', color: 'text-red-500' }
+                return { label: 'Rejected', color: 'text-foreground' }
             case 'PARTIAL':
                 return { label: 'Partial', color: 'text-orange-500' }
             case 'NOT_SUBMITTED':
@@ -86,7 +86,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             <Card className="border-l-4 border-l-blue-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Today's Hours</CardTitle>
-                    <Clock className="h-4 w-4 text-blue-500" />
+                    <Clock className="h-4 w-4 text-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl ">{metrics.todayHours}</div>
@@ -102,7 +102,7 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             <Card className="border-l-4 border-l-green-500">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium"> Verified Days</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <CheckCircle className="h-4 w-4 text-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl ">{metrics.verifiedDaysCount}</div>
@@ -116,10 +116,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             <Card className={`border-l-4 ${metrics.missedDaysCount > 0 ? 'border-l-red-500' : 'border-l-slate-300'}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Missed Days</CardTitle>
-                    <CalendarX className={`h-4 w-4 ${metrics.missedDaysCount > 0 ? 'text-red-500' : 'text-slate-400'}`} />
+                    <CalendarX className={`h-4 w-4 ${metrics.missedDaysCount > 0 ? 'text-foreground' : 'text-slate-400'}`} />
                 </CardHeader>
                 <CardContent>
-                    <div className={`text-2xl  ${metrics.missedDaysCount > 0 ? 'text-red-500' : ''}`}>
+                    <div className={`text-2xl  ${metrics.missedDaysCount > 0 ? 'text-foreground' : ''}`}>
                         {metrics.missedDaysCount}
                     </div>
                     <p className="text-xs text-muted-foreground">

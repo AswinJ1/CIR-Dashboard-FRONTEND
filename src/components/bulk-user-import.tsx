@@ -482,7 +482,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
               {/* Generated Passwords */}
               {importResult.users.length > 0 && (
                 <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-900/20 dark:border-amber-800">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
+                  <AlertCircle className="h-4 w-4 text-foreground" />
                   <AlertDescription>
                     <div className="space-y-3">
                       <div className="space-y-2">
@@ -558,7 +558,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                                 </TableCell>
                                 <TableCell className="font-medium">{user.name}</TableCell>
                                 <TableCell className="text-sm">{user.email}</TableCell>
-                                <TableCell className="font-mono text-sm  text-blue-600">
+                                <TableCell className="font-mono text-sm  text-foreground">
                                   {user.uid}
                                 </TableCell>
                                 <TableCell className="text-sm">
@@ -579,7 +579,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                                     title="Copy password"
                                   >
                                     {copiedIndex === index ? (
-                                      <Check className="h-3 w-3 text-green-600" />
+                                      <Check className="h-3 w-3 text-foreground" />
                                     ) : (
                                       <Copy className="h-3 w-3" />
                                     )}
@@ -619,7 +619,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                         {importResult.errors.map((err, index) => (
                           <div key={index} className="text-sm border-l-2 border-red-500 pl-2">
                             <div className="font-medium">Row {err.row}: {err.email}</div>
-                            <div className="text-red-600 dark:text-red-400">{err.error}</div>
+                            <div className="text-foreground dark:text-red-400">{err.error}</div>
                           </div>
                         ))}
                       </div>
@@ -735,7 +735,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
               {/* Updated Users Table */}
               {updateResult.updatedUsers.length > 0 && (
                 <Alert className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <CheckCircle2 className="h-4 w-4 text-foreground" />
                   <AlertDescription>
                     <div className="space-y-3">
                       <p className=" text-green-900 dark:text-green-100">
@@ -793,7 +793,7 @@ Jane Smith,jane@example.com,Stanford,Amritapuri,Team Beta,Hostel B New,202,wifi_
                         {updateResult.errors.map((err, index) => (
                           <div key={index} className="text-sm border-l-2 border-red-500 pl-2">
                             <div className="font-medium">Row {err.row}: {err.email}</div>
-                            <div className="text-red-600 dark:text-red-400">{err.error}</div>
+                            <div className="text-foreground dark:text-red-400">{err.error}</div>
                           </div>
                         ))}
                       </div>

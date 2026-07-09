@@ -116,7 +116,7 @@ const navigation: NavigationItem[] = [
   { name: "staff", href: "/manager/staff", icon: <UserCheck className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "classroomManagement", href: "/manager/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "timetable", href: "/manager/timetable", icon: <CalendarCheck className="w-4 h-4" />, roles: ["MANAGER"] },
-  { name: "submitWork", href: "/manager/work-calendar", icon: <CalendarRange className="w-4 h-4" />, roles: ["MANAGER"] },
+  // { name: "submitWork", href: "/manager/work-calendar", icon: <CalendarRange className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "myWorkSubmissions", href: "/manager/work-submissions", icon: <FileCheck className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "myResponsibilities", href: "/manager/my-responsibilities", icon: <Calendar1 className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "semReports", href: "/manager/sem-reports", icon: <FileText className="w-4 h-4" />, roles: ["MANAGER"] },
@@ -310,12 +310,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent cursor-pointer">
                 <Link href={getDashboardUrl(role)}>
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  {/* <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                     <Image src="/logo.png" alt="CIR" width={24} height={24} className="rounded-sm" />
-                  </div>
+                  </div> */}
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate ">{t('cirDashboard')}</span>
-                    <span className="truncate text-xs capitalize">{t(role.toLowerCase() + 'Portal')}</span>
+                    <span className="truncate text-xl ">{t('cirDashboard')}</span>
+                    <span className="truncate text-xs  capitalize">{t(role.toLowerCase() + 'Portal')}</span>
                   </div>
                 </Link>
               </SidebarMenuButton>

@@ -131,7 +131,7 @@ export function CreateResponsibilityDialog({ onSuccess, triggerButton }: CreateR
                     {/* Title */}
                     <div className="space-y-2">
                         <Label htmlFor="title">
-                            Responsibility Name <span className="text-red-500">*</span>
+                            Responsibility Name <span className="text-foreground">*</span>
                         </Label>
                         <Input
                             id="title"
@@ -144,7 +144,7 @@ export function CreateResponsibilityDialog({ onSuccess, triggerButton }: CreateR
                     {/* Cycle */}
                     <div className="space-y-2">
                         <Label htmlFor="cycle">
-                            Cycle (YYYY-MM) <span className="text-red-500">*</span>
+                            Cycle (YYYY-MM) <span className="text-foreground">*</span>
                         </Label>
                         <Input
                             id="cycle"
@@ -161,7 +161,7 @@ export function CreateResponsibilityDialog({ onSuccess, triggerButton }: CreateR
                     {/* Start Date */}
                     <div className="space-y-2">
                         <Label>
-                            Start Date <span className="text-red-500">*</span>
+                            Start Date <span className="text-foreground">*</span>
                         </Label>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -190,7 +190,7 @@ export function CreateResponsibilityDialog({ onSuccess, triggerButton }: CreateR
                     {/* End Date */}
                     <div className="space-y-2">
                         <Label>
-                            End Date <span className="text-red-500">*</span>
+                            End Date <span className="text-foreground">*</span>
                         </Label>
                         <Popover>
                             <PopoverTrigger asChild>

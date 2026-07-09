@@ -92,7 +92,7 @@ export function AddResponsibilityDialog({ isToday, onAdd }: AddResponsibilityDia
                     </div>
 
                     <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-950 rounded-lg border border-amber-200 dark:border-amber-800">
-                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                        <AlertCircle className="h-5 w-5 text-foreground dark:text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-sm text-amber-700 dark:text-amber-300">
                             <p className="font-medium">Note:</p>
                             <p>Self-added responsibilities are for today only and will be included in your daily submission.</p>
