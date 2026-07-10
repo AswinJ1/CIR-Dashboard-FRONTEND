@@ -303,9 +303,7 @@ function SubDepartmentsContent() {
                                     <TableRow key={subDept.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-blue-500/10 rounded-lg">
-                                                    <Users className="h-4 w-4 text-foreground" />
-                                                </div>
+                                           
                                                 <span className="font-medium">{subDept.name}</span>
                                             </div>
                                         </TableCell>

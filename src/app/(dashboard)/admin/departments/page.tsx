@@ -198,9 +198,7 @@ export default function AdminDepartmentsPage() {
                                     <TableRow key={dept.id}>
                                         <TableCell>
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2 bg-primary/10 rounded-lg">
-                                                    <Building2 className="h-4 w-4 text-primary" />
-                                                </div>
+                                           
                                                 <span className="font-medium">{dept.name}</span>
                                             </div>
                                         </TableCell>

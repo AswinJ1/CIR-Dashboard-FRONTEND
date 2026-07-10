@@ -671,12 +671,12 @@ export default function AdminDashboardPage() {
 
             {/* Stats Cards - Sharp, clean design */}
             <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-6">
-                <Card className="rounded-none border-l-2 border-l-blue-500">
+                <Card className="rounded-none border-l-2 ">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             {selectedDepartmentId !== "all" ? "Department" : "Departments"}
                         </CardTitle>
-                        <Building2 className="h-4 w-4 text-blue-500" />
+                        {/* <Building2 className="h-4 w-4 text-blue-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
                         <div className="text-2xl font-semibold">
@@ -687,12 +687,12 @@ export default function AdminDashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="rounded-none border-l-2 border-l-indigo-500">
+                <Card className="rounded-none border-l-2 ">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             {selectedStaffId !== "all" ? "Selected" : "Staff"}
                         </CardTitle>
-                        <Users className="h-4 w-4 text-indigo-500" />
+                        {/* <Users className="h-4 w-4 text-indigo-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
                         <div className="text-2xl font-semibold">
@@ -705,43 +705,43 @@ export default function AdminDashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card className="rounded-none border-l-2 border-l-cyan-500">
+                <Card className="rounded-none border-l-2 ">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Submissions</CardTitle>
-                        <BarChart3 className="h-4 w-4 text-cyan-500" />
+                        {/* <BarChart3 className="h-4 w-4 text-cyan-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
-                        <div className="text-2xl font-semibold">{stats.total}</div>
+                        <div className="text-2xl ">{stats.total}</div>
                         <p className="text-xs text-muted-foreground mt-0.5">{stats.totalHours.toFixed(1)}h logged</p>
                     </CardContent>
                 </Card>
-                <Card className="rounded-none border-l-2 border-l-green-500">
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
+                <Card className="rounded-none border-l-2 ">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4 ">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Approval</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-500" />
+                        {/* <TrendingUp className="h-4 w-4 text-green-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
-                        <div className="text-2xl font-semibold">{stats.approvalRate}%</div>
+                        <div className="text-2xl ">{stats.approvalRate}%</div>
                         <p className="text-xs text-muted-foreground mt-0.5">{stats.verified} verified</p>
                     </CardContent>
                 </Card>
-                <Card className="rounded-none border-l-2 border-l-amber-500">
+                <Card className="rounded-none border-l-2 ">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Pending</CardTitle>
-                        <Clock className="h-4 w-4 text-amber-500" />
+                        {/* <Clock className="h-4 w-4 text-amber-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
-                        <div className="text-2xl font-semibold">{stats.pending}</div>
+                        <div className="text-2xl ">{stats.pending}</div>
                         <p className="text-xs text-muted-foreground mt-0.5">awaiting review</p>
                     </CardContent>
                 </Card>
-                <Card className="rounded-none border-l-2 border-l-purple-500">
+                <Card className="rounded-none border-l-2 ">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 pt-3 px-4">
                         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Verified Hrs</CardTitle>
-                        <FileCheck className="h-4 w-4 text-purple-500" />
+                        {/* <FileCheck className="h-4 w-4 text-purple-500" /> */}
                     </CardHeader>
                     <CardContent className="pb-3 px-4">
-                        <div className="text-2xl font-semibold">{stats.verifiedHours.toFixed(1)}h</div>
+                        <div className="text-2xl ">{stats.verifiedHours.toFixed(1)}h</div>
                         <p className="text-xs text-muted-foreground mt-0.5">approved work</p>
                     </CardContent>
                 </Card>
@@ -750,19 +750,19 @@ export default function AdminDashboardPage() {
             {/* Tabs - Clean navigation */}
             <Tabs defaultValue="overview" className="space-y-4">
                 <TabsList className="rounded-none bg-muted/50 p-0.5">
-                    <TabsTrigger value="overview" className="rounded-none gap-2 data-[state=active]:shadow-none">
+                    <TabsTrigger value="overview" className="rounded-none text-md gap-2 data-[state=active]:shadow-none">
                         <Activity className="h-4 w-4" />
                         Overview
                     </TabsTrigger>
-                    <TabsTrigger value="departments" className="rounded-none gap-2 data-[state=active]:shadow-none">
+                    <TabsTrigger value="departments" className="rounded-none text-md gap-2 data-[state=active]:shadow-none">
                         <Building2 className="h-4 w-4" />
                         Departments
                     </TabsTrigger>
-                    <TabsTrigger value="staff" className="rounded-none gap-2 data-[state=active]:shadow-none">
+                    <TabsTrigger value="staff" className="rounded-none gap-2 text-md data-[state=active]:shadow-none">
                         <Users className="h-4 w-4" />
                         Staff
                     </TabsTrigger>
-                    <TabsTrigger value="responsibilities" className="rounded-none gap-2 data-[state=active]:shadow-none">
+                    <TabsTrigger value="responsibilities" className="rounded-none text-md gap-2 data-[state=active]:shadow-none">
                         <Briefcase className="h-4 w-4" />
                         Responsibilities
                     </TabsTrigger>
@@ -808,9 +808,9 @@ export default function AdminDashboardPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="w-full min-h-[240px]">
+                                <div className="w-full min-h-[350px]">
                                     {stats.total > 0 ? (
-                                        <ReactECharts option={statusDonutOption} style={{ height: '240px', width: '100%' }} />
+                                        <ReactECharts option={statusDonutOption} style={{ height: '350px', width: '100%' }} />
                                     ) : (
                                         <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">
                                             No submissions in selected period
@@ -831,8 +831,8 @@ export default function AdminDashboardPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="w-full min-h-[240px]">
-                                    <ReactECharts option={departmentTreemapOption} style={{ height: '240px', width: '100%' }} />
+                                <div className="w-full min-h-[350px]">
+                                    <ReactECharts option={departmentTreemapOption} style={{ height: '350px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -848,8 +848,8 @@ export default function AdminDashboardPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="w-full min-h-[240px]">
-                                    <ReactECharts option={dailyHoursBarOption} style={{ height: '240px', width: '100%' }} />
+                                <div className="w-full min-h-[350px]">
+                                    <ReactECharts option={dailyHoursBarOption} style={{ height: '350px', width: '100%' }} />
                                 </div>
                             </CardContent>
                         </Card>
@@ -862,7 +862,7 @@ export default function AdminDashboardPage() {
                         <Card className="rounded-none">
                             <CardHeader className="pb-2">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Building2 className="h-4 w-4 text-blue-500" />
+                                    {/* <Building2 className="h-4 w-4 text-blue-500" /> */}
                                     Departments
                                 </CardTitle>
                                 <CardDescription className="text-xs">Performance by department</CardDescription>
@@ -873,7 +873,7 @@ export default function AdminDashboardPage() {
                                         {departmentStats.map((dept) => (
                                             <div 
                                                 key={dept.id} 
-                                                className="p-3 border border-l-2 border-l-blue-500 hover:bg-muted/50 transition-colors cursor-pointer"
+                                                className="p-3 border border-l-2  hover:bg-muted/50 transition-colors cursor-pointer"
                                                 onClick={() => setSelectedDepartmentId(String(dept.id))}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
@@ -882,19 +882,19 @@ export default function AdminDashboardPage() {
                                                 </div>
                                                 <div className="grid grid-cols-4 gap-2 text-center text-sm">
                                                     <div>
-                                                        <p className="font-semibold text-indigo-600">{dept.totalSubmissions}</p>
+                                                        <p className="font-semibold ">{dept.totalSubmissions}</p>
                                                         <p className="text-xs text-muted-foreground">Submissions</p>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-green-600">{dept.verified}</p>
+                                                        <p className="font-semibold ">{dept.verified}</p>
                                                         <p className="text-xs text-muted-foreground">Verified</p>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-purple-600">{dept.hours}h</p>
+                                                        <p className="font-semibold ">{dept.hours}h</p>
                                                         <p className="text-xs text-muted-foreground">Hours</p>
                                                     </div>
                                                     <div>
-                                                        <p className={`font-semibold ${dept.approvalRate >= 80 ? 'text-green-600' : dept.approvalRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                        <p className={`font-semibold ${dept.approvalRate >= 80 ? '' : dept.approvalRate >= 50 ? '' : ''}`}>
                                                             {dept.approvalRate}%
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">Approval</p>
@@ -909,7 +909,7 @@ export default function AdminDashboardPage() {
                         <Card className="rounded-none">
                             <CardHeader className="pb-2">
                                 <CardTitle className="flex items-center gap-2 text-base">
-                                    <Layers className="h-4 w-4 text-cyan-500" />
+                                    {/* <Layers className="h-4 w-4 text-cyan-500" /> */}
                                     Sub-Departments
                                 </CardTitle>
                                 <CardDescription className="text-xs">
@@ -922,7 +922,7 @@ export default function AdminDashboardPage() {
                                         {subDepartmentStats.map((subDept) => (
                                             <div 
                                                 key={subDept.id} 
-                                                className="p-3 border border-l-2 border-l-cyan-500 hover:bg-muted/50 transition-colors cursor-pointer"
+                                                className="p-3 border border-l-2  hover:bg-muted/50 transition-colors cursor-pointer"
                                                 onClick={() => setSelectedSubDepartmentId(String(subDept.id))}
                                             >
                                                 <div className="flex items-center justify-between mb-2">
@@ -931,19 +931,19 @@ export default function AdminDashboardPage() {
                                                 </div>
                                                 <div className="grid grid-cols-4 gap-2 text-center text-sm">
                                                     <div>
-                                                        <p className="font-semibold text-indigo-600">{subDept.totalSubmissions}</p>
+                                                        <p className="font-semibold ">{subDept.totalSubmissions}</p>
                                                         <p className="text-xs text-muted-foreground">Submissions</p>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-green-600">{subDept.verified}</p>
+                                                        <p className="font-semibold ">{subDept.verified}</p>
                                                         <p className="text-xs text-muted-foreground">Verified</p>
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-purple-600">{subDept.hours}h</p>
+                                                        <p className="font-semibold ">{subDept.hours}h</p>
                                                         <p className="text-xs text-muted-foreground">Hours</p>
                                                     </div>
                                                     <div>
-                                                        <p className={`font-semibold ${subDept.approvalRate >= 80 ? 'text-green-600' : subDept.approvalRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                        <p className={`font-semibold ${subDept.approvalRate >= 80 ? '' : subDept.approvalRate >= 50 ? '' : ''}`}>
                                                             {subDept.approvalRate}%
                                                         </p>
                                                         <p className="text-xs text-muted-foreground">Approval</p>
@@ -968,7 +968,7 @@ export default function AdminDashboardPage() {
                     <Card className="rounded-none">
                         <CardHeader className="pb-2">
                             <CardTitle className="flex items-center gap-2 text-base">
-                                <Users className="h-4 w-4 text-indigo-500" />
+                                {/* <Users className="h-4 w-4 text-indigo-500" /> */}
                                 Staff Performance
                             </CardTitle>
                             <CardDescription className="text-xs">
@@ -996,11 +996,11 @@ export default function AdminDashboardPage() {
                                                     </AvatarFallback>
                                                 )}
                                             </Avatar>
-                                                    {index < 3 && (
+                                                    {/* {index < 3 && (
                                                         <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-yellow-400 border-2 border-white flex items-center justify-center text-xs ">
                                                             {index + 1}
                                                         </div>
-                                                    )}
+                                                    )} */}
                                                 </div>
                                                 <div>
                                                     <p className="font-medium">{staff.name}</p>
@@ -1052,7 +1052,7 @@ export default function AdminDashboardPage() {
                     <Card className="rounded-none">
                         <CardHeader className="pb-2">
                             <CardTitle className="flex items-center gap-2 text-base">
-                                <Briefcase className="h-4 w-4 text-indigo-500" />
+                                {/* <Briefcase className="h-4 w-4 text-indigo-500" /> */}
                                 Responsibilities
                             </CardTitle>
                             <CardDescription className="text-xs">
@@ -1087,11 +1087,11 @@ export default function AdminDashboardPage() {
    
          {/* Quick Actions */}
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <Card className="rounded-none border-l-2 border-l-blue-500 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Card className="rounded-none border-l-2  cursor-pointer hover:bg-muted/50 transition-colors">
                     <Link href="/admin/users">
                         <CardHeader className="py-4">
                             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                                <FileCheck className="h-4 w-4 text-blue-500" />
+                                {/* <FileCheck className="h-4 w-4 " /> */}
                                Manage Users
                             </CardTitle>
                             <CardDescription className="text-xs">
@@ -1101,11 +1101,11 @@ export default function AdminDashboardPage() {
                     </Link>
                 </Card>
 
-                <Card className="rounded-none border-l-2 border-l-green-500 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Card className="rounded-none border-l-2  cursor-pointer hover:bg-muted/50 transition-colors">
                     <Link href="/admin/departments">
                         <CardHeader className="py-4">
                             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                                <ClipboardList className="h-4 w-4 text-green-500" />
+                                {/* <ClipboardList className="h-4 w-4 " /> */}
                                 Manage Departments
                             </CardTitle>
                             <CardDescription className="text-xs">
@@ -1115,11 +1115,11 @@ export default function AdminDashboardPage() {
                     </Link>
                 </Card>
 
-                <Card className="rounded-none border-l-2 border-l-purple-500 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Card className="rounded-none border-l-2  cursor-pointer hover:bg-muted/50 transition-colors">
                     <Link href="/admin/responsibilities">
                         <CardHeader className="py-4">
                             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                                <Briefcase className="h-4 w-4 text-purple-500" />
+                                {/* <Briefcase className="h-4 w-4 " /> */}
                                 Manage Responsibilities
                             </CardTitle>
                             <CardDescription className="text-xs">
@@ -1129,11 +1129,11 @@ export default function AdminDashboardPage() {
                     </Link>
                 </Card>
 
-                <Card className="rounded-none border-l-2 border-l-amber-500 cursor-pointer hover:bg-muted/50 transition-colors">
+                <Card className="rounded-none border-l-2  cursor-pointer hover:bg-muted/50 transition-colors">
                     <Link href="/admin/work-submissions">
                         <CardHeader className="py-4">
                             <CardTitle className="flex items-center gap-2 text-sm font-medium">
-                                <Target className="h-4 w-4 text-amber-500" />
+                                {/* <Target className="h-4 w-4 " /> */}
                                 Work Submissions
                             </CardTitle>
                             <CardDescription className="text-xs">
