@@ -654,8 +654,8 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                             <div className="flex items-center gap-2 mb-4">
                                 <h3 className="font-semibold">Hours Trend</h3>
                             </div>
-                            <div className="w-full min-h-[250px]">
-                                <ReactECharts option={hoursTrendOption} style={{ height: '250px', width: '100%' }} />
+                            <div className="w-full min-h-[350px]">
+                                <ReactECharts option={hoursTrendOption} style={{ height: '350px', width: '100%' }} />
                             </div>
                         </div>
                     </div>
