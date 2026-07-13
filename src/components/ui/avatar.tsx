@@ -36,17 +36,43 @@ function AvatarImage({
 
 function AvatarFallback({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+  let hashString = "default";
+  if (typeof children === "string") {
+    hashString = children;
+  } else if (Array.isArray(children) && typeof children[0] === "string") {
+    hashString = children.join("");
+  }
+
+  const avatars = [
+    '/assets/Avatar/boy-1.png',
+    '/assets/Avatar/boy-2.png',
+    '/assets/Avatar/boy-3.png',
+    '/assets/Avatar/girl-1.png',
+    '/assets/Avatar/girl-2.png',
+    '/assets/Avatar/girl-3.png',
+  ];
+
+  let hash = 0;
+  for (let i = 0; i < hashString.length; i++) {
+    hash = hashString.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % avatars.length;
+  const selectedAvatar = avatars[index];
+
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
       className={cn(
-        "bg-muted flex size-full items-center justify-center rounded-full",
+        "bg-muted flex size-full items-center justify-center rounded-full overflow-hidden",
         className
       )}
       {...props}
-    />
+    >
+      <img src={selectedAvatar} alt="Fallback Avatar" className="size-full object-cover" />
+    </AvatarPrimitive.Fallback>
   )
 }
 

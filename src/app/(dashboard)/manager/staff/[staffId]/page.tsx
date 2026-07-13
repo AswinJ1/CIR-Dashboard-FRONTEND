@@ -622,7 +622,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                                     className="h-8 gap-1.5"
                                     onClick={() => { setSubmissionStatusFilter(tab.key); setSubmissionsPage(1) }}
                                 >
-                                    {tab.icon}
+                                 
                                     {tab.label}
                                     <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                                         {tab.count}
@@ -892,36 +892,30 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 rounded-none">
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 ">
-                                    <FileText className="h-4 w-4 text-blue-600" />
-                                </div>
+                           
                                 <span className="text-sm text-muted-foreground">Total Submissions</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.total}</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 ">
-                                    <TrendingUp className="h-4 w-4 text-green-600" />
-                                </div>
+                             
                                 <span className="text-sm text-muted-foreground">Approval Rate</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.approvalRate}%</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 ">
+                                {/* <div className="p-2 ">
                                     <Clock className="h-4 w-4 text-amber-600" />
-                                </div>
+                                </div> */}
                                 <span className="text-sm text-muted-foreground">Pending Review</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.pending}</p>
                         </div>
                         <div className="rounded-none border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 ">
-                                    <Clock className="h-4 w-4 text-purple-600" />
-                                </div>
+                           
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.verifiedHours.toFixed(1)}h</p>

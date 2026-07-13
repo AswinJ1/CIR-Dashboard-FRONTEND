@@ -51,10 +51,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
                 {[...Array(4)].map((_, i) => (
                     <Card key={i}>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                            {/* <div className="h-4 w-24 bg-muted animate-pulse rounded" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="h-8 w-16 bg-muted animate-pulse rounded" />
+                            {/* <div className="h-8 w-16 bg-muted animate-pulse rounded" /> */}
                         </CardContent>
                     </Card>
                 ))}
@@ -65,10 +65,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Today's Status */}
-            <Card className="border-l-4 border-l-primary">
+            <Card className="border-l-4 ">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Today's Status</CardTitle>
-                    <Send className={`h-4 w-4 ${todayDisplay.color}`} />
+                    {/* <Send className={`h-4 w-4 ${todayDisplay.color}`} /> */}
                 </CardHeader>
                 <CardContent>
                     <div className={`text-2xl  ${todayDisplay.color}`}>
@@ -83,10 +83,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             </Card>
 
             {/* Today's Hours */}
-            <Card className="border-l-4 border-l-blue-500">
+            <Card className="border-l-4 ">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Today's Hours</CardTitle>
-                    <Clock className="h-4 w-4 text-foreground" />
+                    {/* <Clock className="h-4 w-4 text-foreground" /> */}
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl ">{metrics.todayHours}</div>
@@ -99,10 +99,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             </Card>
 
             {/* Verified Days */}
-            <Card className="border-l-4 border-l-green-500">
+            <Card className="border-l-4 ">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium"> Verified Days</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-foreground" />
+                    {/* <CheckCircle className="h-4 w-4 text-foreground" /> */}
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl ">{metrics.verifiedDaysCount}</div>
@@ -113,10 +113,10 @@ export function DailyMetricsCards({ metrics, isLoading = false }: DailyMetricsCa
             </Card>
 
             {/* Missed Days */}
-            <Card className={`border-l-4 ${metrics.missedDaysCount > 0 ? 'border-l-red-500' : 'border-l-slate-300'}`}>
+            <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Missed Days</CardTitle>
-                    <CalendarX className={`h-4 w-4 ${metrics.missedDaysCount > 0 ? 'text-foreground' : 'text-slate-400'}`} />
+                    {/* <CalendarX className={`h-4 w-4 ${metrics.missedDaysCount > 0 ? 'text-foreground' : 'text-slate-400'}`} /> */}
                 </CardHeader>
                 <CardContent>
                     <div className={`text-2xl  ${metrics.missedDaysCount > 0 ? 'text-foreground' : ''}`}>
