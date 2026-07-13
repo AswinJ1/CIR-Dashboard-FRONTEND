@@ -365,38 +365,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
 
     return (
         <div className="p-6 space-y-6">
-            {/* Breadcrumb */}
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/admin/departments">Departments</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    {department && (
-                        <>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href={`/admin/departments/subdepartments?departmentId=${department.id}`}>
-                                    {department.name}
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                        </>
-                    )}
-                    {subDepartment && (
-                        <>
-                            <BreadcrumbSeparator />
-                            <BreadcrumbItem>
-                                <BreadcrumbLink href={`/admin/departments/subdepartments/staff?departmentId=${departmentId}&subDepartmentId=${subDepartment.id}`}>
-                                    {subDepartment.name}
-                                </BreadcrumbLink>
-                            </BreadcrumbItem>
-                        </>
-                    )}
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{staff.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+
 
             <div className="flex items-center gap-4">
                 <Button
