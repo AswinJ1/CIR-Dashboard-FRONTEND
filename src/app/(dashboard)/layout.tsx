@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DynamicBreadcrumb } from "@/components/dynamic-breadcrumb"
 
 import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput,
@@ -556,6 +557,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Popover>
           </div>
         </header>
+
+        {/* Dynamic Global Breadcrumb */}
+        <DynamicBreadcrumb />
 
         {/* Page Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">

@@ -133,24 +133,7 @@ function StaffListContent() {
 
     return (
         <div className="p-6 space-y-6">
-            {/* Breadcrumb */}
-            <Breadcrumb>
-                <BreadcrumbList>
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href="/admin/departments">Departments</BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbLink href={`/admin/departments/subdepartments?departmentId=${departmentId}`}>
-                            {department?.name}
-                        </BreadcrumbLink>
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator />
-                    <BreadcrumbItem>
-                        <BreadcrumbPage>{subDepartment?.name}</BreadcrumbPage>
-                    </BreadcrumbItem>
-                </BreadcrumbList>
-            </Breadcrumb>
+
 
             <div className="flex items-center gap-4">
                 <Button

@@ -1808,7 +1808,7 @@ export default function ManagerAssignmentsPage() {
 
             {/* Bulk Import Dialog */}
             <Dialog open={bulkImportDialogOpen} onOpenChange={setBulkImportDialogOpen}>
-                <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-6xl lg:max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Upload className="h-5 w-5" />
@@ -1829,7 +1829,7 @@ export default function ManagerAssignmentsPage() {
 
             {/* Create Group Dialog */}
             <Dialog open={createGroupDialogOpen} onOpenChange={setCreateGroupDialogOpen}>
-                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-6xl lg:max-w-7xl w-[95vw] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Create Responsibility Group</DialogTitle>
                         <DialogDescription>
@@ -1913,8 +1913,7 @@ export default function ManagerAssignmentsPage() {
                                     cycleFilteredResponsibilities.map((resp) => (
                                         <div
                                             key={resp.id}
-                                            className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50 cursor-pointer"
-                                            onClick={() => toggleResponsibilitySelection(parseInt(resp.id))}
+                                            className="flex items-center gap-3 p-3 border-b last:border-b-0 hover:bg-muted/50"
                                         >
                                             <Checkbox
                                                 checked={selectedResponsibilityIds.has(parseInt(resp.id))}
