@@ -249,7 +249,7 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
         }> = []
 
         try {
-            const fetched = await withRetry(() => api.responsibilities.getAll())
+            const fetched = await withRetry(() => api.responsibilities.getAll({ includeExpired: true }))
             existingResponsibilities = fetched.map(r => ({
                 title: r.title,
                 description: r.description,

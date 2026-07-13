@@ -143,6 +143,11 @@ export default function AdminDashboardPage() {
     useEffect(() => {
         fetchData()
     }, [user])
+
+    // Reset responsibilities page when filters change
+    useEffect(() => {
+        setRespPage(1)
+    }, [selectedDepartmentId, selectedSubDepartmentId, selectedStaffId])
     
 
     async function fetchData() {
@@ -393,8 +398,14 @@ export default function AdminDashboardPage() {
 
 
     const ITEMS_PER_PAGE = 15;
-    const totalRespPages = Math.ceil(responsibilityStats.length / ITEMS_PER_PAGE);
-    const paginatedResponsibilityStats = responsibilityStats.slice((respPage - 1) * ITEMS_PER_PAGE, respPage * ITEMS_PER_PAGE);
+    // Only show responsibilities that have submissions in the treemap (0-value items are invisible)
+    const responsibilityStatsWithData = responsibilityStats.filter(r => r.totalSubmissions > 0);
+    const totalRespPages = Math.max(1, Math.ceil(responsibilityStats.length / ITEMS_PER_PAGE));
+    // Clamp respPage to valid range
+    const safeRespPage = Math.min(respPage, totalRespPages);
+    const paginatedResponsibilityStats = responsibilityStats.slice((safeRespPage - 1) * ITEMS_PER_PAGE, safeRespPage * ITEMS_PER_PAGE);
+    // For the treemap, only use items that have data (value > 0)
+    const treemapData = paginatedResponsibilityStats.filter(r => r.totalSubmissions > 0);
 
     const responsibilityTreemapOption = {
         color: ECHARTS_PALETTE,
@@ -408,7 +419,7 @@ export default function AdminDashboardPage() {
             label: { show: true, formatter: '{b}', color: '#fff', fontSize: 12, overflow: 'truncate' },
             itemStyle: { borderColor: '#fff', borderWidth: 2, gapWidth: 2 },
             levels: [{ itemStyle: { borderWidth: 0 } }],
-            data: paginatedResponsibilityStats.map((r, i) => ({
+            data: treemapData.map((r, i) => ({
                 name: r.title,
                 value: r.totalSubmissions,
                 itemStyle: { color: ECHARTS_PALETTE[i % ECHARTS_PALETTE.length] }
@@ -1064,13 +1075,26 @@ export default function AdminDashboardPage() {
                             <div className="w-full min-h-[500px]">
                                 {paginatedResponsibilityStats.length > 0 ? (
                                     <>
-                                        <div className="h-[450px] w-full">
-                                            <ReactECharts option={responsibilityTreemapOption} style={{ height: '100%', width: '100%' }} />
-                                        </div>
+                                        {treemapData.length > 0 ? (
+                                            <div className="h-[450px] w-full">
+                                                <ReactECharts option={responsibilityTreemapOption} style={{ height: '100%', width: '100%' }} />
+                                            </div>
+                                        ) : (
+                                            <div className="h-[450px] w-full flex flex-col items-center justify-center text-muted-foreground">
+                                                <p className="text-sm mb-4">No submissions yet for these responsibilities:</p>
+                                                <div className="space-y-1 text-xs max-h-[350px] overflow-y-auto">
+                                                    {paginatedResponsibilityStats.map(r => (
+                                                        <div key={r.id} className="px-3 py-1.5 border rounded-sm">
+                                                            {r.title} <span className="text-muted-foreground">({r.subDepartmentName})</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="flex justify-between items-center mt-4">
-                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.max(1, p - 1))} disabled={respPage === 1}>Previous</Button>
-                                            <span className="text-sm text-muted-foreground">Page {respPage} of {totalRespPages || 1}</span>
-                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.min(totalRespPages, p + 1))} disabled={respPage >= totalRespPages || totalRespPages === 0}>Next</Button>
+                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.max(1, p - 1))} disabled={safeRespPage === 1}>Previous</Button>
+                                            <span className="text-sm text-muted-foreground">Page {safeRespPage} of {totalRespPages}</span>
+                                            <Button variant="outline" size="sm" onClick={() => setRespPage(p => Math.min(totalRespPages, p + 1))} disabled={safeRespPage >= totalRespPages}>Next</Button>
                                         </div>
                                     </>
                                 ) : (
