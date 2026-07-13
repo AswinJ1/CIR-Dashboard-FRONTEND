@@ -704,9 +704,9 @@ export default function StaffDashboardPage() {
                 {/* Left Side: Title and Description */}
                 <div className="w-full lg:w-1/3 space-y-4 pt-2">
                     <div className="flex items-center gap-3">
-                        <CalendarCheck className="h-8 w-8 text-foreground" />
+                        {/* <CalendarCheck className="h-8 w-8 text-foreground" /> */}
                         <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-                            Submit Work
+                            Submit Your Responsibilities
                         </h2>
                     </div>
                     <p className="text-muted-foreground text-base">
@@ -1024,10 +1024,10 @@ export default function StaffDashboardPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Submissions</CardTitle>
-                            <BarChart3 className="h-4 w-4 text-blue-600" />
+                            {/* <BarChart3 className="h-4 w-4 text-blue-600" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl  text-blue-600">{analyticsStats.total}</div>
+                            <div className="text-3xl  ">{analyticsStats.total}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {analyticsStats.totalHours.toFixed(1)} hours logged
                             </p>
@@ -1037,10 +1037,10 @@ export default function StaffDashboardPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Approval Rate</CardTitle>
-                            <TrendingUp className="h-4 w-4 text-green-600" />
+                            {/* <TrendingUp className="h-4 w-4 text-green-600" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl  text-green-600">{analyticsStats.approvalRate}%</div>
+                            <div className="text-3xl ">{analyticsStats.approvalRate}%</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 {analyticsStats.verified} verified of {analyticsStats.total}
                             </p>
@@ -1050,10 +1050,10 @@ export default function StaffDashboardPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-                            <Clock className="h-4 w-4 text-amber-600" />
+                            {/* <Clock className="h-4 w-4 text-amber-600" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl  text-amber-600">{analyticsStats.pending}</div>
+                            <div className="text-3xl  ">{analyticsStats.pending}</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Awaiting manager verification
                             </p>
@@ -1063,10 +1063,10 @@ export default function StaffDashboardPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-                            <FileCheck className="h-4 w-4 text-purple-600" />
+                            {/* <FileCheck className="h-4 w-4 text-purple-600" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl  text-purple-600">{analyticsStats.totalHours.toFixed(1)}h</div>
+                            <div className="text-3xl  ">{analyticsStats.totalHours.toFixed(1)}h</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 total work hours
                             </p>
@@ -1076,10 +1076,10 @@ export default function StaffDashboardPage() {
                     <Card className="hover:shadow-lg transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Verified Hours</CardTitle>
-                            <FileCheck className="h-4 w-4 text-purple-600" />
+                            {/* <FileCheck className="h-4 w-4 text-purple-600" /> */}
                         </CardHeader>
                         <CardContent>
-                            <div className="text-3xl  text-purple-600">{analyticsStats.verifiedHours.toFixed(1)}h</div>
+                            <div className="text-3xl  ">{analyticsStats.verifiedHours.toFixed(1)}h</div>
                             <p className="text-xs text-muted-foreground mt-1">
                                 Approved work hours
                             </p>
@@ -1103,7 +1103,7 @@ export default function StaffDashboardPage() {
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <CardTitle className="flex items-center gap-2">
-                                                <Activity className="h-5 w-5 text-blue-600" />
+                                                {/* <Activity className="h-5 w-5 text-blue-600" /> */}
                                                 Status Distribution
                                             </CardTitle>
                                             <CardDescription>Breakdown by submission status</CardDescription>
@@ -1129,7 +1129,7 @@ export default function StaffDashboardPage() {
                                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                         <div>
                                             <CardTitle className="flex items-center gap-2">
-                                                <TrendingUp className="h-5 w-5 text-indigo-600" />
+                                                {/* <TrendingUp className="h-5 w-5 text-indigo-600" /> */}
                                                 Hours by Responsibility
                                             </CardTitle>
                                             <CardDescription>Total hours worked per responsibility</CardDescription>
@@ -1154,7 +1154,7 @@ export default function StaffDashboardPage() {
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-purple-600" />
+                                            {/* <BarChart3 className="h-5 w-5 text-purple-600" /> */}
                                             Weekly Comparison
                                         </CardTitle>
                                         <CardDescription>Responsibilities and hours by week</CardDescription>
@@ -1162,7 +1162,7 @@ export default function StaffDashboardPage() {
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                <ReactECharts option={weeklyBarOption} style={{ height: '100%', width: '100%' }} />
+                                <ReactECharts option={weeklyBarOption} style={{ height: '300px', width: '100%' }} />
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -1173,7 +1173,7 @@ export default function StaffDashboardPage() {
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
-                                            <Clock className="h-5 w-5 text-green-600" />
+                                            {/* <Clock className="h-5 w-5 text-green-600" /> */}
                                             Hours Logged Over Time
                                         </CardTitle>
                                         <CardDescription>Daily hours worked trend</CardDescription>
@@ -1240,7 +1240,7 @@ export default function StaffDashboardPage() {
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                     <div>
                                         <CardTitle className="flex items-center gap-2">
-                                            <BarChart3 className="h-5 w-5 text-indigo-600" />
+                                            {/* <BarChart3 className="h-5 w-5 text-indigo-600" /> */}
                                             Daily Status Breakdown
                                         </CardTitle>
                                         <CardDescription>Verified, pending, and rejected by day</CardDescription>

@@ -483,9 +483,9 @@ export default function AdminTimetablePage() {
                             <CalendarCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
                             <h3 className="text-xl font-medium mb-1">No Timetable Selected</h3>
                             <p className="text-muted-foreground text-center max-w-sm mb-6">Select a timetable from the sidebar to view details, or create a new one to get started.</p>
-                            <Button onClick={() => setIsCreateTtModalOpen(true)} disabled={isActionLoading}>
+                            {/* <Button onClick={() => setIsCreateTtModalOpen(true)} disabled={isActionLoading}>
                                 <Plus className="mr-2 h-4 w-4" /> Create Timetable
-                            </Button>
+                            </Button> */}
                         </div>
                     )}
                 </div>

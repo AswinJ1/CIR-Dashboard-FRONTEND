@@ -466,7 +466,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <ClipboardList className="h-4 w-4 text-blue-500" />
+                            {/* <ClipboardList className="h-4 w-4 text-blue-500" /> */}
                             Total Submissions
                         </CardTitle>
                     </CardHeader>
@@ -477,7 +477,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <Clock className="h-4 w-4 text-amber-500" />
+                            {/* <Clock className="h-4 w-4 text-amber-500" /> */}
                             Pending
                         </CardTitle>
                     </CardHeader>
@@ -488,7 +488,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <CheckCircle className="h-4 w-4 text-green-500" />
+                            {/* <CheckCircle className="h-4 w-4 text-green-500" /> */}
                             Verified
                         </CardTitle>
                     </CardHeader>
@@ -499,7 +499,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium flex items-center gap-2">
-                            <XCircle className="h-4 w-4 text-red-500" />
+                            {/* <XCircle className="h-4 w-4 text-red-500" /> */}
                             Rejected
                         </CardTitle>
                     </CardHeader>
@@ -575,36 +575,36 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-blue-100 rounded-lg">
+                                {/* <div className="p-2 bg-blue-100 rounded-lg">
                                     <FileText className="h-4 w-4 text-blue-600" />
-                                </div>
+                                </div> */}
                                 <span className="text-sm text-muted-foreground">Period Submissions</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.total}</p>
                         </div>
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-green-100 rounded-lg">
+                                {/* <div className="p-2 bg-green-100 rounded-lg">
                                     <TrendingUp className="h-4 w-4 text-green-600" />
-                                </div>
+                                </div> */}
                                 <span className="text-sm text-muted-foreground">Approval Rate</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.approvalRate}%</p>
                         </div>
                         <div className="rounded-lg border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-amber-100 rounded-lg">
+                                {/* <div className="p-2 bg-amber-100 rounded-lg">
                                     <Clock className="h-4 w-4 text-amber-600" />
-                                </div>
+                                </div> */}
                                 <span className="text-sm text-muted-foreground">Pending Review</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.pending}</p>
                         </div>
                         <div className=" border bg-card p-4">
                             <div className="flex items-center gap-2">
-                                <div className="p-2 bg-purple-100 ">
+                                {/* <div className="p-2 bg-purple-100 ">
                                     <Clock className="h-4 w-4 text-purple-600" />
-                                </div>
+                                </div> */}
                                 <span className="text-sm text-muted-foreground">Verified Hours</span>
                             </div>
                             <p className="text-2xl  mt-2">{analyticsStats.hours.toFixed(1)}h</p>
