@@ -88,13 +88,13 @@ export interface Department {
 
 export interface CreateDepartmentDto {
   name: string
-  description?: string
+  description?: string | null
   type?: DepartmentType
 }
 
 export interface UpdateDepartmentDto {
   name?: string
-  description?: string
+  description?: string | null
   type?: DepartmentType
 }
 
@@ -115,14 +115,14 @@ export interface SubDepartment {
 
 export interface CreateSubDepartmentDto {
   name: string
-  description?: string
+  description?: string | null
   departmentId: string
   type?: SubDepartmentType
 }
 
 export interface UpdateSubDepartmentDto {
   name?: string
-  description?: string
+  description?: string | null
   type?: SubDepartmentType
 }
 

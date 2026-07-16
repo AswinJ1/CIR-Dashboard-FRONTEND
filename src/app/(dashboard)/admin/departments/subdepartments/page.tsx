@@ -156,13 +156,13 @@ function SubDepartmentsContent() {
             if (isEditingSubDept && editingSubDeptId) {
                 await api.subDepartments.update(editingSubDeptId, {
                     name: subDeptName,
-                    description: subDeptDescription || undefined,
+                    description: subDeptDescription.trim() || null,
                 })
                 toast.success("Sub-department updated successfully")
             } else {
                 await api.subDepartments.create({
                     name: subDeptName,
-                    description: subDeptDescription || undefined,
+                    description: subDeptDescription.trim() || null,
                     departmentId: departmentId!,
                 })
                 toast.success("Sub-department created successfully")

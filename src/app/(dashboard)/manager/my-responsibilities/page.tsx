@@ -701,7 +701,11 @@ export default function ManagerMyResponsibilitiesPage() {
 
                                     {submission.managerComment && (
                                         <div className="text-sm">
-                                            <span className="font-medium">Manager Feedback: </span>
+                                            <span className="font-medium">
+                                                {submission.verifiedBy
+                                                    ? `${submission.verifiedBy.name}'s Feedback (${(submission.verifiedBy as any).role === 'ADMIN' ? 'Admin' : 'Manager'}): `
+                                                    : "Reviewer Feedback: "}
+                                            </span>
                                             <span className="text-muted-foreground">{submission.managerComment}</span>
                                         </div>
                                     )}
