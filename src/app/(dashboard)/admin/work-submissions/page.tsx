@@ -450,7 +450,11 @@ export default function AdminWorkSubmissionsPage() {
 
                             {(selectedSubmission as any).managerComment && (
                                 <div>
-                                    <Label className="text-muted-foreground text-xs">Previous Manager Comment</Label>
+                                    <Label className="text-muted-foreground text-xs">
+                                        {(selectedSubmission as any).verifiedBy
+                                            ? `Previous Comment by ${(selectedSubmission as any).verifiedBy.name} (${(selectedSubmission as any).verifiedBy.role === 'ADMIN' ? 'Admin' : 'Manager'})`
+                                            : "Previous Reviewer Comment"}
+                                    </Label>
                                     <p className="text-sm mt-1 p-2 bg-muted rounded">
                                         {(selectedSubmission as any).managerComment}
                                     </p>

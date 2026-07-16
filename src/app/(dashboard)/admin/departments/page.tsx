@@ -98,13 +98,13 @@ export default function AdminDepartmentsPage() {
             if (isEditingDept && editingDeptId) {
                 await api.departments.update(editingDeptId, {
                     name: deptName,
-                    description: deptDescription || undefined,
+                    description: deptDescription.trim() || null,
                 })
                 toast.success("Department updated successfully")
             } else {
                 await api.departments.create({
                     name: deptName,
-                    description: deptDescription || undefined,
+                    description: deptDescription.trim() || null,
                 })
                 toast.success("Department created successfully")
             }

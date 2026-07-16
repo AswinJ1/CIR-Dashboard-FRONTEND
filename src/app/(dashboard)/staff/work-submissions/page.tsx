@@ -555,7 +555,7 @@ export default function StaffWorkSubmissionsPage() {
                     <DialogHeader>
                         <DialogTitle className="text-foreground">Resubmit Work</DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                            Update your submission based on manager's feedback
+                            Update your submission based on the reviewer's feedback
                         </DialogDescription>
                     </DialogHeader>
 
@@ -573,7 +573,9 @@ export default function StaffWorkSubmissionsPage() {
                             {resubmitSubmission.managerComment && (
                                 <div className="p-4">
                                     <p className="text-sm font-semibold mb-2 flex items-center gap-2">
-                                        Manager's Feedback:
+                                        {resubmitSubmission.verifiedBy
+                                            ? `${resubmitSubmission.verifiedBy.name}'s Feedback (${resubmitSubmission.verifiedBy.role === 'ADMIN' ? 'Admin' : 'Manager'}):`
+                                            : "Reviewer's Feedback:"}
                                     </p>
                                     <p>{resubmitSubmission.managerComment}</p>
                                 </div>
@@ -594,7 +596,7 @@ export default function StaffWorkSubmissionsPage() {
                                         min="0.5"
                                         max="24"
                                         step="0.5"
-                                        placeholder="e.g., 2.5"
+                                        placeholder=""
                                         value={resubmitData.hoursWorked}
                                         onChange={(e) => setResubmitData({ ...resubmitData, hoursWorked: e.target.value })}
                                         className="border-foreground/20 bg-background"

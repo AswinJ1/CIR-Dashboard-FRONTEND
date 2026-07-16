@@ -661,7 +661,7 @@ export default function StaffWorkCalendarPage() {
                                                         min="0"
                                                         max="24"
                                                         step="0.5"
-                                                        placeholder="e.g., 2.5 (0 if no work done)"
+                                                        placeholder=""
                                                         value={formData.hoursWorked}
                                                         onChange={(e) => updateFormData(assignment.id, { hoursWorked: e.target.value })}
                                                         className="h-9 border-foreground/20 bg-background"
@@ -778,7 +778,7 @@ export default function StaffWorkCalendarPage() {
                                                     min="0.5"
                                                     max="24"
                                                     step="0.5"
-                                                    placeholder="e.g., 2.5"
+                                                    placeholder=""
                                                     value={newResp.hoursWorked}
                                                     onChange={(e) => updateNewResponsibility(newResp.id, { hoursWorked: e.target.value })}
                                                     className="h-9 border-foreground/20 bg-background"
