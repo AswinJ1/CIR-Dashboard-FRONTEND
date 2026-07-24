@@ -68,6 +68,7 @@ import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
+import { ColumnFilter } from "@/components/ui/column-filter"
 
 type DateRange = { from: Date; to: Date }
 
@@ -97,6 +98,10 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
     const [submissionsPage, setSubmissionsPage] = useState(1)
     const SUBMISSIONS_PER_PAGE = 10
     const [submissionStatusFilter, setSubmissionStatusFilter] = useState<string>("all")
+
+    // Column filter state for All Submissions table
+    const [colSubRespFilter, setColSubRespFilter] = useState<string[]>([])
+    const [colSubStatusFilter, setColSubStatusFilter] = useState<string[]>([])
 
     // Analytics date range
     const [dateRange, setDateRange] = useState<DateRange>({
@@ -195,19 +200,33 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
         return { pending, approved, rejected }
     }, [staffSubmissions])
 
-    // Filter submissions by date range + status
+    // Column filter options for submissions table
+    const subRespOptions = useMemo(() => {
+        const set = new Set<string>()
+        staffSubmissions.forEach(s => set.add(s.assignment?.responsibility?.title || 'N/A'))
+        return Array.from(set).sort()
+    }, [staffSubmissions])
+
+    const subStatusOptions = useMemo(() => {
+        const set = new Set<string>()
+        staffSubmissions.forEach(s => { if (s.status) set.add(s.status) })
+        return Array.from(set).sort()
+    }, [staffSubmissions])
+
+    // Filter submissions by date range + status + column filters
     const dateRangeSubmissions = useMemo(() => {
         return staffSubmissions.filter(s => {
             const date = new Date(s.workDate || s.submittedAt)
             const inRange = date >= submissionDateRange.from && date <= submissionDateRange.to
             if (!inRange) return false
-            if (submissionStatusFilter === "all") return true
-            if (submissionStatusFilter === "pending") return s.status === 'SUBMITTED' || s.status === 'PENDING'
-            if (submissionStatusFilter === "approved") return s.status === 'VERIFIED'
-            if (submissionStatusFilter === "rejected") return s.status === 'REJECTED'
+            if (submissionStatusFilter === "pending" && s.status !== 'SUBMITTED' && s.status !== 'PENDING') return false
+            if (submissionStatusFilter === "approved" && s.status !== 'VERIFIED') return false
+            if (submissionStatusFilter === "rejected" && s.status !== 'REJECTED') return false
+            if (colSubRespFilter.length > 0 && !colSubRespFilter.includes(s.assignment?.responsibility?.title || 'N/A')) return false
+            if (colSubStatusFilter.length > 0 && !colSubStatusFilter.includes(s.status || '')) return false
             return true
         }).sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime())
-    }, [staffSubmissions, submissionDateRange, submissionStatusFilter])
+    }, [staffSubmissions, submissionDateRange, submissionStatusFilter, colSubRespFilter, colSubStatusFilter])
 
     // Paginated submissions
     const submissionsTotalPages = Math.ceil(dateRangeSubmissions.length / SUBMISSIONS_PER_PAGE)
@@ -549,15 +568,15 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
             </Card>
 
             {/* Submissions */}
-            <Card>
-                <CardHeader>
+            <div>
+                <div>
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col sm:flex-row justify-between gap-4">
                             <div>
-                                <CardTitle>All Submissions</CardTitle>
-                                <CardDescription>
+                                <div className="font-semibold">All Submissions</div>
+                                <p>
                                     {dateRangeSubmissions.length} submission{dateRangeSubmissions.length !== 1 ? 's' : ''} found
-                                </CardDescription>
+                                </p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Popover>
@@ -631,15 +650,35 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             ))}
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
+                </div>
+                <div>
+                    <Table className="border">
+                        <TableHeader className="bg-white">
                             <TableRow>
-                                <TableHead>Responsibility</TableHead>
+                                <TableHead>
+                                    <div className="flex items-center gap-1">
+                                        <span>Responsibility</span>
+                                        <ColumnFilter
+                                            title="Responsibility"
+                                            options={subRespOptions}
+                                            selected={colSubRespFilter}
+                                            onChange={setColSubRespFilter}
+                                        />
+                                    </div>
+                                </TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Hours</TableHead>
-                                <TableHead>Status</TableHead>
+                                <TableHead>
+                                    <div className="flex items-center gap-1">
+                                        <span>Status</span>
+                                        <ColumnFilter
+                                            title="Status"
+                                            options={subStatusOptions}
+                                            selected={colSubStatusFilter}
+                                            onChange={setColSubStatusFilter}
+                                        />
+                                    </div>
+                                </TableHead>
                                 {!isOwnSubmission && <TableHead className="text-right">Actions</TableHead>}
                             </TableRow>
                         </TableHeader>
@@ -706,18 +745,18 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             </div>
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Semester Reports Section - Between Submissions and Analytics */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Semester Reports</CardTitle>
+            <div>
+                <div>
+                    <div className="font-semibold">Semester Reports</div>
                     {/* <CardDescription>
                         Review semester reports submitted by {staff.name}
                     </CardDescription> */}
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                     {semReportsLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -815,17 +854,17 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             </TabsContent>
                         </Tabs>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Analytics Section */}
-            <Card>
-                <CardHeader>
+            <div>
+                <div>
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
-                        <div>
+                        <CardContent>
                             <CardTitle>Performance Analytics</CardTitle>
                             <CardDescription>Detailed metrics for {staff.name}</CardDescription>
-                        </div>
+                        </CardContent>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
@@ -886,7 +925,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                             </PopoverContent>
                         </Popover>
                     </div>
-                </CardHeader>
+                </div>
                 <CardContent className="space-y-6">
                     {/* Stats Cards */}
                     <div className="grid gap-4 grid-cols-2 lg:grid-cols-4 rounded-none">
@@ -979,7 +1018,7 @@ function StaffDetailContent({ staffId }: { staffId: string }) {
                         </CardContent>
                     </Card>
                 </CardContent>
-            </Card>
+            </div>
 
             {/* Review Dialog */}
             <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>

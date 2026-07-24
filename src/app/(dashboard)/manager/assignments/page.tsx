@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
 import BulkResponsibilitiesImport from "@/components/bulk-responsibilities-import"
+import { ColumnFilter } from "@/components/ui/column-filter"
 
 const ITEMS_PER_PAGE = 10
 
@@ -71,6 +72,9 @@ export default function ManagerAssignmentsPage() {
     // Filter state for All Assignments
     const [filterStaff, setFilterStaff] = useState<string>("all")
     const [filterGroup, setFilterGroup] = useState<string>("all")
+    const [colResponsibilityFilter, setColResponsibilityFilter] = useState<string[]>([])
+    const [colStaffFilter, setColStaffFilter] = useState<string[]>([])
+    const [colGroupFilter, setColGroupFilter] = useState<string[]>([])
 
     // View mode for the assignments list
     const [viewMode, setViewMode] = useState<"all" | "groups" | "responsibilities" | "responsibility-groups">("all")
@@ -88,6 +92,8 @@ export default function ManagerAssignmentsPage() {
     const [isUpdatingResp, setIsUpdatingResp] = useState(false)
     const [respSearchQuery, setRespSearchQuery] = useState("")
     const [respCurrentPage, setRespCurrentPage] = useState(1)
+    const [colRespTitleFilter, setColRespTitleFilter] = useState<string[]>([])
+    const [colRespCycleFilter, setColRespCycleFilter] = useState<string[]>([])
 
     // Assignment mode: "single" or "group"
     const [assignmentMode, setAssignmentMode] = useState<"single" | "group">("single")
@@ -253,6 +259,35 @@ export default function ManagerAssignmentsPage() {
         })
     }
 
+    const responsibilityOptions = useMemo(() => {
+        const titles = new Set<string>()
+        assignments.forEach(a => {
+            if (a.responsibility?.title) titles.add(a.responsibility.title)
+        })
+        return Array.from(titles).sort()
+    }, [assignments])
+
+    const staffOptions = useMemo(() => {
+        const names = new Set<string>()
+        assignments.forEach(a => {
+            if (a.staff?.name) names.add(a.staff.name)
+        })
+        return Array.from(names).sort()
+    }, [assignments])
+
+    const groupOptions = useMemo(() => {
+        const groups = new Set<string>()
+        assignments.forEach(a => {
+            const groupInfo = responsibilityToGroupMap.get(String(a.responsibilityId))
+            if (groupInfo) {
+                groups.add(groupInfo.groupName)
+            } else {
+                groups.add("Ungrouped")
+            }
+        })
+        return Array.from(groups).sort()
+    }, [assignments, responsibilityToGroupMap])
+
     // Filtered and paginated assignments
     const filteredAssignments = useMemo(() => {
         return assignments.filter(a => {
@@ -271,9 +306,19 @@ export default function ManagerAssignmentsPage() {
                 (filterGroup === "ungrouped" && !groupInfo) ||
                 (groupInfo?.groupId === filterGroup)
             
-            return matchesSearch && matchesStaff && matchesGroup
+            // Column header filters
+            const respTitle = a.responsibility?.title || 'N/A'
+            const matchesColResp = colResponsibilityFilter.length === 0 || colResponsibilityFilter.includes(respTitle)
+
+            const staffName = a.staff?.name || 'Unknown'
+            const matchesColStaff = colStaffFilter.length === 0 || colStaffFilter.includes(staffName)
+
+            const groupName = groupInfo ? groupInfo.groupName : "Ungrouped"
+            const matchesColGroup = colGroupFilter.length === 0 || colGroupFilter.includes(groupName)
+
+            return matchesSearch && matchesStaff && matchesGroup && matchesColResp && matchesColStaff && matchesColGroup
         })
-    }, [assignments, searchQuery, filterStaff, filterGroup, responsibilityToGroupMap])
+    }, [assignments, searchQuery, filterStaff, filterGroup, responsibilityToGroupMap, colResponsibilityFilter, colStaffFilter, colGroupFilter])
 
     const totalPages = Math.ceil(filteredAssignments.length / ITEMS_PER_PAGE)
 
@@ -285,7 +330,7 @@ export default function ManagerAssignmentsPage() {
     // Reset to page 1 when search or filters change
     useEffect(() => {
         setCurrentPage(1)
-    }, [searchQuery, filterStaff, filterGroup])
+    }, [searchQuery, filterStaff, filterGroup, colResponsibilityFilter, colStaffFilter, colGroupFilter])
 
     async function handleCreate() {
         if (assignmentMode === "group") {
@@ -502,17 +547,39 @@ export default function ManagerAssignmentsPage() {
         }
     }
 
+    const respTitleOptions = useMemo(() => {
+        const titles = new Set<string>()
+        responsibilities.forEach(r => {
+            if (r.title) titles.add(r.title)
+        })
+        return Array.from(titles).sort()
+    }, [responsibilities])
+
+    const respCycleOptions = useMemo(() => {
+        const cycles = new Set<string>()
+        responsibilities.forEach(r => {
+            if (r.cycle) cycles.add(r.cycle)
+            else cycles.add("No Cycle")
+        })
+        return Array.from(cycles).sort()
+    }, [responsibilities])
+
     // Filtered and paginated responsibilities
     const filteredResponsibilities = useMemo(() => {
         return responsibilities.filter(r => {
             const searchLower = respSearchQuery.toLowerCase()
-            return (
+            const matchesSearch = (
                 r.title?.toLowerCase().includes(searchLower) ||
                 r.description?.toLowerCase().includes(searchLower) ||
                 r.cycle?.toLowerCase().includes(searchLower)
             )
+            const matchesTitle = colRespTitleFilter.length === 0 || colRespTitleFilter.includes(r.title)
+            const cycleVal = r.cycle || "No Cycle"
+            const matchesCycle = colRespCycleFilter.length === 0 || colRespCycleFilter.includes(cycleVal)
+
+            return matchesSearch && matchesTitle && matchesCycle
         })
-    }, [responsibilities, respSearchQuery])
+    }, [responsibilities, respSearchQuery, colRespTitleFilter, colRespCycleFilter])
 
     const respTotalPages = Math.ceil(filteredResponsibilities.length / ITEMS_PER_PAGE)
 
@@ -521,10 +588,10 @@ export default function ManagerAssignmentsPage() {
         return filteredResponsibilities.slice(start, start + ITEMS_PER_PAGE)
     }, [filteredResponsibilities, respCurrentPage])
 
-    // Reset responsibility page when search changes
+    // Reset responsibility page when search or filters change
     useEffect(() => {
         setRespCurrentPage(1)
-    }, [respSearchQuery])
+    }, [respSearchQuery, colRespTitleFilter, colRespCycleFilter])
 
     // Get responsibilities that match the selected cycle for group creation
     const cycleFilteredResponsibilities = useMemo(() => {
@@ -978,18 +1045,18 @@ export default function ManagerAssignmentsPage() {
             </Card> */}
 
             {/* Assignments View */}
-            <Card>
-                <CardHeader>
+            <div>
+                <div>
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle>Assignments</CardTitle>
-                            <CardDescription>
+                            <div className="font-semibold">Assignments</div>
+                            <p>
                                 {assignments.length} total assignments
-                            </CardDescription>
+                            </p>
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "all" | "groups" | "responsibilities" | "responsibility-groups")}>
                         <div className="flex items-center justify-between mb-4">
                             <TabsList>
@@ -1064,7 +1131,7 @@ export default function ManagerAssignmentsPage() {
                                     </div>
                                 </div>
 
-                                {(filterStaff !== "all" || filterGroup !== "all" || searchQuery) && (
+                                {(filterStaff !== "all" || filterGroup !== "all" || searchQuery || colResponsibilityFilter.length > 0 || colStaffFilter.length > 0 || colGroupFilter.length > 0) && (
                                     <Button 
                                         variant="ghost" 
                                         size="sm"
@@ -1072,6 +1139,9 @@ export default function ManagerAssignmentsPage() {
                                             setFilterStaff("all")
                                             setFilterGroup("all")
                                             setSearchQuery("")
+                                            setColResponsibilityFilter([])
+                                            setColStaffFilter([])
+                                            setColGroupFilter([])
                                         }}
                                     >
                                         <X className="h-4 w-4 mr-1" />
@@ -1086,18 +1156,48 @@ export default function ManagerAssignmentsPage() {
 
                             {filteredAssignments.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-8">
-                                    {(searchQuery || filterStaff !== "all" || filterGroup !== "all") 
+                                    {(searchQuery || filterStaff !== "all" || filterGroup !== "all" || colResponsibilityFilter.length > 0 || colStaffFilter.length > 0 || colGroupFilter.length > 0) 
                                         ? `No assignments match your filters. (${assignments.length} total assignments)` 
                                         : "No assignments yet. Create one to get started."}
                                 </p>
                             ) : (
                                 <>
-                                    <Table>
-                                        <TableHeader>
+                                    <Table className="border">
+                                        <TableHeader className="bg-white">
                                             <TableRow>
-                                                <TableHead>Responsibility</TableHead>
-                                                <TableHead>Assigned To</TableHead>
-                                                <TableHead>Group</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Responsibility</span>
+                                                        <ColumnFilter
+                                                            title="Responsibility"
+                                                            options={responsibilityOptions}
+                                                            selected={colResponsibilityFilter}
+                                                            onChange={setColResponsibilityFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Assigned To</span>
+                                                        <ColumnFilter
+                                                            title="Assigned To"
+                                                            options={staffOptions}
+                                                            selected={colStaffFilter}
+                                                            onChange={setColStaffFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Group</span>
+                                                        <ColumnFilter
+                                                            title="Group"
+                                                            options={groupOptions}
+                                                            selected={colGroupFilter}
+                                                            onChange={setColGroupFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -1342,9 +1442,9 @@ export default function ManagerAssignmentsPage() {
 
                         {/* Responsibilities Management Tab */}
                         <TabsContent value="responsibilities">
-                            {/* Search for responsibilities */}
-                            <div className="mb-4">
-                                <div className="relative max-w-sm">
+                            {/* Search and filters for responsibilities */}
+                            <div className="mb-4 flex flex-wrap items-center gap-4">
+                                <div className="relative max-w-sm flex-1">
                                     <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                     <Input
                                         placeholder="Search responsibilities..."
@@ -1353,20 +1453,56 @@ export default function ManagerAssignmentsPage() {
                                         className="pl-8 h-9 text-sm"
                                     />
                                 </div>
+                                {(respSearchQuery || colRespTitleFilter.length > 0 || colRespCycleFilter.length > 0) && (
+                                    <Button 
+                                        variant="ghost" 
+                                        size="sm"
+                                        onClick={() => {
+                                            setRespSearchQuery("")
+                                            setColRespTitleFilter([])
+                                            setColRespCycleFilter([])
+                                        }}
+                                    >
+                                        <X className="h-4 w-4 mr-1" />
+                                        Clear Filters
+                                    </Button>
+                                )}
                             </div>
 
                             {filteredResponsibilities.length === 0 ? (
                                 <p className="text-muted-foreground text-center py-8">
-                                    {respSearchQuery ? "No responsibilities match your search." : "No responsibilities yet. Create one to get started."}
+                                    {(respSearchQuery || colRespTitleFilter.length > 0 || colRespCycleFilter.length > 0) 
+                                        ? "No responsibilities match your filters." 
+                                        : "No responsibilities yet. Create one to get started."}
                                 </p>
                             ) : (
                                 <>
-                                    <Table>
-                                        <TableHeader>
+                                    <Table className="border">
+                                        <TableHeader className="bg-white">
                                             <TableRow>
-                                                <TableHead>Title</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Title</span>
+                                                        <ColumnFilter
+                                                            title="Title"
+                                                            options={respTitleOptions}
+                                                            selected={colRespTitleFilter}
+                                                            onChange={setColRespTitleFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead>Description</TableHead>
-                                                <TableHead>Cycle</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Cycle</span>
+                                                        <ColumnFilter
+                                                            title="Cycle"
+                                                            options={respCycleOptions}
+                                                            selected={colRespCycleFilter}
+                                                            onChange={setColRespCycleFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead>Date Range</TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
@@ -1594,8 +1730,8 @@ export default function ManagerAssignmentsPage() {
                             )}
                         </TabsContent>
                     </Tabs>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Edit Dialog */}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

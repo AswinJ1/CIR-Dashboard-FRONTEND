@@ -299,7 +299,7 @@ export default function AdminTimetablePage() {
                 <div>
                     <h1 className="text-3xl  tracking-tight flex items-center gap-2">
                         {/* <CalendarCheck className="h-8 w-8 text-primary" /> */}
-                        Master Timetable Admin
+                        Manage TimeTable 
                     </h1>
                     <p className="text-muted-foreground">Manage timetables across all sub-departments</p>
                 </div>
@@ -318,7 +318,7 @@ export default function AdminTimetablePage() {
                         {timetables.length === 0 ? (
                             <p className="text-sm text-muted-foreground text-center py-4">No timetables found</p>
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-2 ">
                                 {timetables.map(tt => (
                                     <div 
                                         key={tt.id}
@@ -330,9 +330,9 @@ export default function AdminTimetablePage() {
                                             <p className="font-semibold text-xs text-primary max-w-full truncate">{tt.subDepartment?.name}</p>
                                             <p className="text-xs text-muted-foreground">{format(new Date(tt.createdAt), 'dd MMM yyyy')}</p>
                                         </div>
-                                        <Badge variant={tt.isPublished ? "default" : "secondary"} className="text-xs shrink-0">
+                                        <div>
                                             {tt.isPublished ? "Published" : "Draft"}
-                                        </Badge>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -343,19 +343,19 @@ export default function AdminTimetablePage() {
                 {/* Main Content: Timetable Details */}
                 <div className="lg:col-span-3">
                     {selectedTimetable ? (
-                        <Card className="h-full border-t-4 border-t-primary shadow-sm">
+                        <Card className="h-full border-t-4  shadow-sm">
                             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <CardTitle className="text-2xl">Timetable v{selectedTimetable.id}</CardTitle>
-                                        <Badge variant={selectedTimetable.isPublished ? "default" : "secondary"}>
+                                        <CardTitle className="text-2xl">Timetable</CardTitle>
+                                        {/* <Badge variant={selectedTimetable.isPublished ? "default" : "secondary"}>
                                             {selectedTimetable.isPublished ? "Published (Locked)" : "Draft Mode"}
-                                        </Badge>
+                                        </Badge> */}
                                     </div>
                                     <CardDescription>
-                                        Department: <span className="font-medium">{selectedTimetable.subDepartment?.department?.name}</span>
+                                        Department: <span className="">{selectedTimetable.subDepartment?.department?.name}</span>
                                         <br />
-                                        Sub-Department: <span className="font-medium">{selectedTimetable.subDepartment?.name}</span>
+                                        Sub-Department: <span className="">{selectedTimetable.subDepartment?.name}</span>
                                     </CardDescription>
                                     {!selectedTimetable.isPublished && (
                                         <div className="flex items-center text-xs text-muted-foreground bg-secondary/50 p-2 rounded-md mt-2 border border-border">
@@ -371,15 +371,16 @@ export default function AdminTimetablePage() {
                                             onClick={handlePublishToggle} 
                                             disabled={isActionLoading}
                                         >
-                                            <RefreshCw className="mr-2 h-4 w-4" /> Unpublish
+                                            Unpublish
                                         </Button>
                                     ) : (
                                         <Button 
                                             variant="default" 
                                             onClick={handlePublishToggle} 
                                             disabled={isActionLoading || (selectedTimetable.entries?.length === 0)}
+                                            className=""
                                         >
-                                            <CalendarCheck className="mr-2 h-4 w-4" /> Publish & Lock
+                                            Publish & Lock
                                         </Button>
                                     )}
                                     <Button variant="outline" onClick={handleExport} disabled={isActionLoading || !selectedTimetable.entries?.length}>
@@ -444,7 +445,7 @@ export default function AdminTimetablePage() {
                                                             return (
                                                             <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card rounded-xl border shadow-sm hover:shadow transition-shadow group">
                                                                 <div className="flex items-start sm:items-center gap-4">
-                                                                    <div className="bg-primary/10 text-primary font-mono font-semibold px-3 py-1.5 rounded-md min-w-[120px] text-center shrink-0 border border-primary/20">
+                                                                    <div className=" text-primary  dark:text-white font-mono font-semibold px-3 py-1.5 rounded-md min-w-[120px] text-center shrink-0 border ">
                                                                         {tm1} - {tm2}
                                                                     </div>
                                                                     <div>

@@ -9,6 +9,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RoleBadge } from "@/components/ui/status-badge"
+import { Filter, Download } from "lucide-react"
+import { ColumnFilter } from "@/components/ui/column-filter"
+import * as XLSX from "xlsx"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import {
   Table,
   TableBody,
@@ -33,7 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Search, Plus, Eye, Pencil, Trash2, UserPlus, KeyRound } from "lucide-react"
+import { Search, MoreHorizontal, Eye, Pencil, Trash2, UserPlus, KeyRound } from "lucide-react"
 import { toast } from "sonner"
 
 export default function AdminUsersPage() {
@@ -63,6 +73,10 @@ export default function AdminUsersPage() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [isResettingPassword, setIsResettingPassword] = useState(false)
 
+  //Column filter 
+  const [roleFilter, setRoleFilter] = useState<string[]>([])
+  const [deptFilter, setDeptFilter] = useState<string[]>([])
+  const [subDeptFilter, setSubDeptFilter] = useState<string[]>([])
   // Form state for creating a user
   const [formName, setFormName] = useState("")
   const [formEmail, setFormEmail] = useState("")
@@ -278,6 +292,32 @@ export default function AdminUsersPage() {
     }
   }
 
+useEffect(() => {
+  let result = employees
+
+  if (searchQuery) {
+    result = result.filter(e =>
+      e.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      e.email?.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }
+
+  if (roleFilter.length > 0) {
+    result = result.filter(e => roleFilter.includes(e.role))
+  }
+
+  if (deptFilter.length > 0) {
+    result = result.filter(e => deptFilter.includes(e.department?.name || "N/A"))
+  }
+
+  if (subDeptFilter.length > 0) {
+    result = result.filter(e => subDeptFilter.includes(e.subDepartment?.name || "N/A"))
+  }
+
+  setFilteredEmployees(result)
+}, [searchQuery, employees, roleFilter, deptFilter,subDeptFilter])
+
+
   // View handler
   function openViewDialog(employee: Employee) {
     setViewingEmployee(employee)
@@ -420,88 +460,104 @@ export default function AdminUsersPage() {
       </div>
 
       {/* Users Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Users</CardTitle>
-          <CardDescription>
-            {filteredEmployees.length} user{filteredEmployees.length !== 1 ? 's' : ''} found
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {filteredEmployees.length === 0 ? (
-            <p className="text-muted-foreground text-center py-8">
-              No users found
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Sub-Department</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEmployees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell className="font-medium">{employee.name}</TableCell>
-                    <TableCell>{employee.email}</TableCell>
-                    <TableCell>
-                     {employee.role}
-                    </TableCell>
-                    <TableCell>
-                      {employee.department?.name || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {employee.subDepartment?.name || 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="View user"
-                          onClick={() => router.push(`/admin/departments/subdepartments/staff/${employee.id}`)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Reset password"
-                          onClick={() => openResetPasswordDialog(employee)}
-                        >
-                          <KeyRound className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Edit user"
-                          onClick={() => openEditDialog(employee)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(employee.id)}
-                          className="text-destructive hover:text-destructive"
-                          title="Delete user"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+    <div>
+  <div>
+    <h2 className="font-semibold text-lg">All Users</h2>
+    <p className="p-1">
+      {filteredEmployees.length} user{filteredEmployees.length !== 1 ? 's' : ''} found
+    </p>
+  </div>
+  <div className="">
+    {filteredEmployees.length === 0 ? (
+      <p className="text-muted-foreground text-center py-8">
+        No users found
+      </p>
+    ) : (
+      <Table className="border-2 shadow">
+        <TableHeader className="bg-white dark:bg-white dark:text-white">
+          <TableRow className="hover:bg-transparent border-b-2 border-border">
+            <TableHead>Name</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>
+              <div className="flex items-center gap-1">
+                Role
+                <ColumnFilter
+                  title="Role"
+                  options={["ADMIN", "MANAGER", "STAFF"]}
+                  selected={roleFilter}
+                  onChange={setRoleFilter}
+                />
+              </div>
+            </TableHead>
+            <TableHead>
+              <div className="flex items-center gap-1">
+                Department
+                <ColumnFilter
+                  title="Department"
+                  options={[...new Set(employees.map(e => e.department?.name || "N/A"))]}
+                  selected={deptFilter}
+                  onChange={setDeptFilter}
+                />
+              </div>
+            </TableHead>
+            <TableHead>
+            <div className="flex items-center gap-1">
+              Sub-Department
+              <ColumnFilter
+                title="Sub-Department"
+                options={[...new Set(employees.map(e => e.subDepartment?.name || "N/A"))]}
+                selected={subDeptFilter}
+                onChange={setSubDeptFilter}
+              />
+            </div>
+          </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredEmployees.map((employee) => (
+            <TableRow key={employee.id} className="hover:bg-muted/40">
+              <TableCell className="font-medium">{employee.name}</TableCell>
+              <TableCell>{employee.email}</TableCell>
+              <TableCell>{employee.role}</TableCell>
+              <TableCell>{employee.department?.name || 'N/A'}</TableCell>
+              <TableCell>{employee.subDepartment?.name || 'N/A'}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem
+                      onClick={() => router.push(`/admin/departments/subdepartments/staff/${employee.id}`)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" /> View
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEditDialog(employee)}>
+                      <Pencil className="h-4 w-4 mr-2" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openResetPasswordDialog(employee)}>
+                      <KeyRound className="h-4 w-4 mr-2" /> Reset Password
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => handleDelete(employee.id)}
+                      className=""
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    )}
+  </div>
+</div>
 
       {/* Edit User Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>

@@ -164,24 +164,24 @@ function StaffListContent() {
             </div>
 
             {/* Staff List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Staff in {subDepartment?.name}</CardTitle>
-                    <CardDescription>
+            <div>
+                <div>
+                    <div>Staff in {subDepartment?.name}</div>
+                    <p>
                         {staffMembers.length} staff member{staffMembers.length !== 1 ? 's' : ''}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
+                    </p>
+                </div>
+                <div>
                     {filteredStaff.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             <User className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <p>No staff members found in this sub-department</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
+                        <Table className="border ">
+                            <TableHeader className="bg-white">
                                 <TableRow>
-                                    <TableHead>Staff Member</TableHead>
+                                    <TableHead>Name</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Role</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
@@ -211,9 +211,7 @@ function StaffListContent() {
                                             </div>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={staff.role === 'MANAGER' ? 'default' : 'outline'}>
-                                                {staff.role === 'MANAGER' ? 'Manager' : staff.role}
-                                            </Badge>
+                                           {staff.role}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button
@@ -231,8 +229,8 @@ function StaffListContent() {
                             </TableBody>
                         </Table>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

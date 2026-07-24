@@ -90,14 +90,14 @@ export default function ManagerStaffPage() {
             </div>
 
             {/* Staff List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Staff Members</CardTitle>
-                    <CardDescription>
+            <div>
+                <div>
+                    <div className="font-semibold">Department Staffs</div>
+                    <p>
                         {filteredStaff.length} staff member{filteredStaff.length !== 1 ? 's' : ''} - Click to view submissions
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
+                    </p>
+                </div>
+                <div>
                     {filteredStaff.length === 0 ? (
                         <p className="text-muted-foreground text-center py-8">
                             No staff members found
@@ -109,10 +109,10 @@ export default function ManagerStaffPage() {
                                 return (
                                     <Card
                                         key={member.id}
-                                        className="p-4 cursor-pointer hover:shadow-md transition-all hover:border-primary group"
+                                        className="p-4 cursor-pointer hover:shadow-md transition-all hover:border-primary group rounded-md"
                                         onClick={() => handleStaffClick(member.id)}
                                     >
-                                        <div className="flex items-start gap-4">
+                                        <div className="flex items-start gap-4 ">
                                             <Avatar className="h-20 w-20 ring-2 ring-primary/20 hover:ring-primary/40 transition-all border-2 border-background shadow-sm flex-shrink-0">
                                                 {member.avatarUrl ? (
                                                     <AvatarImage src={member.avatarUrl} alt={member.name || ''} />
@@ -154,8 +154,8 @@ export default function ManagerStaffPage() {
                             })}
                         </div>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     )
 }

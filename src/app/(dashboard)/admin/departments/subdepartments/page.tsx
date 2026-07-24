@@ -261,14 +261,14 @@ function SubDepartmentsContent() {
             </div>
 
             {/* Sub-Departments List */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Sub-Departments in {department?.name}</CardTitle>
-                    <CardDescription>
+            <div>
+                <div>
+                    <div className="font-semibold">Sub-Departments in {department?.name}</div>
+                    <p>
                         {subDepartments.length} sub-department{subDepartments.length !== 1 ? 's' : ''}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
+                    </p>
+                </div>
+                <div>
                     {filteredSubDepartments.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -278,8 +278,8 @@ function SubDepartmentsContent() {
                             </Button>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
+                        <Table className="border">
+                            <TableHeader className="bg-white">
                                 <TableRow>
                                     <TableHead>Sub-Department</TableHead>
                                     <TableHead>Description</TableHead>
@@ -334,8 +334,8 @@ function SubDepartmentsContent() {
                             </TableBody>
                         </Table>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Sub-Department Dialog */}
             <Dialog open={subDeptDialogOpen} onOpenChange={setSubDeptDialogOpen}>

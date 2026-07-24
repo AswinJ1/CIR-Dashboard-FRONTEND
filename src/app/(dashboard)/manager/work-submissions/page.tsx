@@ -478,19 +478,9 @@ export default function ManagerWorkSubmissionsPage() {
                                                             className="flex items-center justify-between p-3 bg-background rounded-lg border"
                                                         >
                                                             <div className="flex items-start gap-3">
-                                                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                                                                    status === 'VERIFIED' ? 'bg-green-100 dark:bg-green-900' :
-                                                                    status === 'REJECTED' ? 'bg-red-100 dark:bg-red-900' :
-                                                                    status === 'SUBMITTED' ? 'bg-blue-100 dark:bg-blue-900' :
-                                                                    'bg-amber-100 dark:bg-amber-900'
-                                                                }`}>
-                                                                    {status === 'VERIFIED' && <CheckCircle className="h-4 w-4 text-foreground" />}
-                                                                    {status === 'REJECTED' && <XCircle className="h-4 w-4 text-foreground" />}
-                                                                    {status === 'SUBMITTED' && <FileCheck className="h-4 w-4 text-foreground" />}
-                                                                    {status === 'PENDING' && <Clock className="h-4 w-4 text-foreground" />}
-                                                                </div>
+                                                          
                                                                 <div>
-                                                                    <p className="font-medium text-sm">
+                                                                    <p className="">
                                                                         {submission.assignment?.responsibility?.title || 'Work Submission'}
                                                                     </p>
                                                                     <p className="text-xs text-muted-foreground">

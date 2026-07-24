@@ -170,22 +170,22 @@ export default function AdminDepartmentsPage() {
             </div>
 
             {/* Departments List */}
-            <Card>
-                <CardHeader>
+            <div>
+                <div>
                     <CardTitle>All Departments</CardTitle>
                     <CardDescription>
                         {departments.length} department{departments.length !== 1 ? 's' : ''}
                     </CardDescription>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                     {filteredDepartments.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                             <p>No departments found</p>
                         </div>
                     ) : (
-                        <Table>
-                            <TableHeader>
+                        <Table className="border">
+                            <TableHeader className="bg-white">
                                 <TableRow>
                                     <TableHead>Department</TableHead>
                                     <TableHead>Description</TableHead>
@@ -240,8 +240,8 @@ export default function AdminDepartmentsPage() {
                             </TableBody>
                         </Table>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
             {/* Department Dialog */}
             <Dialog open={deptDialogOpen} onOpenChange={setDeptDialogOpen}>

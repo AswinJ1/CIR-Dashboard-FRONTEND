@@ -5,9 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RoleBadge } from "@/components/ui/status-badge"
 import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { IdCard } from "lucide-react" // or UserCog
 import {
     Dialog,
     DialogContent,
@@ -16,18 +15,22 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { Mail, Building2, Key, Shield, Camera, User, Calendar, Briefcase } from "lucide-react"
+import { Mail, Building2, Key, Shield, User, Briefcase, Lock } from "lucide-react"
 import { useState, useEffect } from "react"
 import { api } from "@/lib/api"
 import { toast } from "sonner"
 import { AvatarSelector } from "@/components/avatar-selector"
+import { cn } from "@/lib/utils"
 
 interface ProfilePageProps {
     roleKey: "admin" | "manager" | "staff"
 }
 
+type ProfileTab = "profile" | "security"
+
 export function ProfilePage({ roleKey }: ProfilePageProps) {
     const { user, role } = useAuth()
+    const [activeTab, setActiveTab] = useState<ProfileTab>("profile")
     const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
     const [currentPassword, setCurrentPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
@@ -119,155 +122,155 @@ export function ProfilePage({ roleKey }: ProfilePageProps) {
         )
     }
 
+    const navItems: { key: ProfileTab; label: string; icon: typeof User }[] = [
+        { key: "profile", label: "Profile", icon: User },
+        { key: "security", label: "Security", icon: Lock },
+    ]
+
     return (
-        <div className="p-4 sm:p-6 space-y-6 max-w-3xl mx-auto">
+        <div className="p-4 sm:p-6 space-y-6 max-w-5xl mx-auto">
             {/* Page header */}
             <div>
-                <h1 className="text-2xl sm:text-3xl  tracking-tight">Profile</h1>
+                <h1 className="text-2xl sm:text-3xl">Settings</h1>
                 <p className="text-sm sm:text-base text-muted-foreground">
                     Manage your account settings and preferences
                 </p>
             </div>
 
             {/* Profile Hero Card */}
-            <Card className="overflow-hidden">
-                {/* Gradient banner */}
-                <div className="h-32 sm:h-40 bg-gradient-to-br from-primary/80 via-primary/60 to-primary/40 relative">
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE4YzMuMzEgMCA2LTIuNjkgNi02cy0yLjY5LTYtNi02LTYgMi42OS02IDYgMi42OSA2IDYgNnptMCAxMmMzLjMxIDAgNi0yLjY5IDYtNnMtMi42OS02LTYtNi02IDIuNjktNiA2IDIuNjkgNiA2IDZ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30" />
-                </div>
-
-                <CardContent className="relative px-4 sm:px-6 pb-6">
-                    {/* Avatar overlapping the banner */}
-                    <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-16 sm:-mt-14">
-                        <div className="relative group">
-                            <AvatarSelector
-                                currentAvatar={avatarUrl}
-                                gender={gender}
-                                onSave={handleAvatarSave}
-                                fallbackInitials={getInitials(displayName)}
-                            />
-                        </div>
-                        <div className="flex-1 text-center sm:text-left sm:pb-1">
-                            <h2 className="text-xl sm:text-2xl ">{displayName}</h2>
-                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1.5">
-                                {role} |
-                                {jobTitle && (
-                                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground  px-2 py-0.5 ">
-                                        {/* <Briefcase className="h-3 w-3" /> */}
-                                        {jobTitle}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Information Cards Grid */}
-            <div className="grid gap-4 sm:grid-cols-2">
-                {/* Contact Info */}
                 <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            Contact Information
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="rounded-lg bg-primary/10 p-2">
-                                <Mail className="h-4 w-4 text-primary" />
+                    <CardContent className="px-4 sm:px-6 py-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4">
+                            <div className="h-32 w-32 sm:h-36 sm:w-36 shrink-0">
+                                <AvatarSelector
+                                    currentAvatar={avatarUrl}
+                                    gender={gender}
+                                    onSave={handleAvatarSave}
+                                    fallbackInitials={getInitials(displayName)}
+                                />
                             </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email</p>
-                                <p className="text-sm font-medium truncate mt-0.5">{displayEmail || "Not available"}</p>
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                            <div className="rounded-lg bg-primary/10 p-2">
-                                <Shield className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Role</p>
-                                <p className="text-sm font-medium mt-0.5 capitalize">{role?.toLowerCase() || "Unknown"}</p>
+                            <div className="flex-1 text-center sm:text-left">
+                                <h2 className="text-xl sm:text-2xl">{displayName}</h2>
+                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-1 text-sm text-muted-foreground">
+                                    <span className="capitalize">{role?.toLowerCase()}</span>
+                                    {jobTitle && (
+                                        <>
+                                            <span>·</span>
+                                            <span>{jobTitle}</span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Department Info */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
-                            Department
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-start gap-3">
-                            <div className="rounded-lg bg-primary/10 p-2">
-                                <Building2 className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Department</p>
-                                <p className="text-sm font-medium mt-0.5">{departmentName || "Not assigned"}</p>
-                            </div>
-                        </div>
-                        <Separator />
-                        <div className="flex items-start gap-3">
-                            <div className="rounded-lg bg-primary/10 p-2">
-                                <Briefcase className="h-4 w-4 text-primary" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Sub-Department</p>
-                                <p className="text-sm font-medium mt-0.5">{subDepartmentName || "Not assigned"}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Security Card */}
-            <Card>
-                <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Key className="h-4 w-4 text-muted-foreground" />
-                            Security
-                        </CardTitle>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsPasswordDialogOpen(true)}
+            {/* Sidebar + Content layout */}
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6">
+                <nav className="space-y-1">
+                    {navItems.map(({ key, label, icon: Icon }) => (
+                        <button
+                            key={key}
+                            onClick={() => setActiveTab(key)}
+                            className={cn(
+                                "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
+                                activeTab === key
+                                    ? "bg-secondary text-secondary-foreground"
+                                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            )}
                         >
-                            Change Password
-                        </Button>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center gap-3 p-3">
-                        {/* <div className="rounded-lg bg-green-500/10 p-2">
-                            <Shield className="h-4 w-4 text-foreground dark:text-green-400" />
-                        </div> */}
-                        <div>
-                            <p className="text-sm font-medium">Password</p>
-                            <p className="text-xs text-muted-foreground">
-                              Minimum 6 characters required
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+                            <Icon className="h-4 w-4" />
+                            {label}
+                        </button>
+                    ))}
+                </nav>
+
+                <div className="space-y-4">
+                    {activeTab === "profile" && (
+                        <>
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base">Contact Information</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-muted-foreground">Email</p>
+                                            <p className="text-sm truncate">{displayEmail || "Not available"}</p>
+                                        </div>
+                                    </div>
+                                    <Separator />
+                                    <div className="flex items-center gap-3">
+                                        <IdCard className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-muted-foreground">Role</p>
+                                            <p className="text-sm capitalize">{role?.toLowerCase() || "Unknown"}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-base">Department</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-muted-foreground">Department</p>
+                                            <p className="text-sm">{departmentName || "Not assigned"}</p>
+                                        </div>
+                                    </div>
+                                    <Separator />
+                                    <div className="flex items-center gap-3">
+                                        <Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-xs text-muted-foreground">Sub-Department</p>
+                                            <p className="text-sm">{subDepartmentName || "Not assigned"}</p>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+
+                    {activeTab === "security" && (
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base">Security</CardTitle>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setIsPasswordDialogOpen(true)}
+                                    >
+                                        Change Password
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-3">
+                                    <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    <div>
+                                        <p className="text-sm">Password</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Minimum 6 characters required
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </div>
 
             {/* Change Password Dialog */}
             <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="flex items-center gap-2">
-                            <Key className="h-5 w-5" />
-                            Change Password
-                        </DialogTitle>
+                        <DialogTitle>Change Password</DialogTitle>
                         <DialogDescription>
                             Enter your current password and choose a new one.
                         </DialogDescription>

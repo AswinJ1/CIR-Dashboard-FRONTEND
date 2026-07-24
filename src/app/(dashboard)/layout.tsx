@@ -421,7 +421,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       e.preventDefault();
                       logout();
                     }}
-                    className="text-destructive focus:text-destructive cursor-pointer"
+                    className=" cursor-pointer"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>{t('signOut')}</span>

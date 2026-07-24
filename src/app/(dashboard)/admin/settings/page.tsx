@@ -86,7 +86,7 @@ export default function AdminSettingsPage() {
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-2xl tracking-tight flex items-center gap-3">
-                        <Settings className="h-7 w-7" />
+                        {/* <Settings className="h-7 w-7" /> */}
                         Application Settings
                     </h1>
                     <p className="text-muted-foreground mt-1">

@@ -786,7 +786,7 @@ export default function AdminDashboardPage() {
                         <CardHeader className="pb-2">
                             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                 <div>
-                                    <CardTitle className="flex items-center gap-2 text-base">
+                                    <CardTitle className="flex items-center gap-2 text-base ">
                                         Submissions Trend
                                     </CardTitle>
                                     <CardDescription className="text-xs">Multi-series view of all submission statuses over time</CardDescription>
@@ -794,7 +794,8 @@ export default function AdminDashboardPage() {
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="w-full min-h-[300px]">
+                            <div className="w-full min-h-[300px] ;
+">
                                     {dailyData.length > 0 ? (
                                         <ReactECharts option={timelineOption} style={{ height: '300px', width: '100%' }} />
                                     ) : (
