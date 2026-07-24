@@ -62,6 +62,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
+import { ColumnFilter } from "@/components/ui/column-filter"
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 
@@ -98,16 +99,78 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
     // Activity card date filter
     const [activityFilterDate, setActivityFilterDate] = useState<Date | null>(null)
 
+    // Column filter state for Assignments tab
+    const [colAssignRespFilter, setColAssignRespFilter] = useState<string[]>([])
+    const [colAssignCycleFilter, setColAssignCycleFilter] = useState<string[]>([])
+    const [colAssignStatusFilter, setColAssignStatusFilter] = useState<string[]>([])
+
+    // Column filter state for Submissions tab
+    const [colSubRespFilter, setColSubRespFilter] = useState<string[]>([])
+    const [colSubStatusFilter, setColSubStatusFilter] = useState<string[]>([])
+
+    // Column filter options for Assignments
+    const assignRespOptions = useMemo(() => {
+        const set = new Set<string>()
+        assignments.forEach(a => { if (a.responsibility?.title) set.add(a.responsibility.title) })
+        return Array.from(set).sort()
+    }, [assignments])
+
+    const assignCycleOptions = useMemo(() => {
+        const set = new Set<string>()
+        assignments.forEach(a => set.add(a.responsibility?.cycle || 'N/A'))
+        return Array.from(set).sort()
+    }, [assignments])
+
+    const assignStatusOptions = useMemo(() => {
+        const set = new Set<string>()
+        assignments.forEach(a => { if (a.status) set.add(a.status) })
+        return Array.from(set).sort()
+    }, [assignments])
+
+    // Column filter options for Submissions
+    const subRespOptions = useMemo(() => {
+        const set = new Set<string>()
+        submissions.forEach(s => set.add(s.assignment?.responsibility?.title || 'N/A'))
+        return Array.from(set).sort()
+    }, [submissions])
+
+    const subStatusOptions = useMemo(() => {
+        const set = new Set<string>()
+        submissions.forEach(s => { if (s.status) set.add(s.status) })
+        return Array.from(set).sort()
+    }, [submissions])
+
     // Paginated data
     const activityAssignments = useMemo(() => {
-        if (!activityFilterDate) return assignments
-        return assignments.filter(a => isSameDay(new Date(a.assignedAt), activityFilterDate))
-    }, [assignments, activityFilterDate])
+        let filtered = assignments
+        if (activityFilterDate) {
+            filtered = filtered.filter(a => isSameDay(new Date(a.assignedAt), activityFilterDate))
+        }
+        if (colAssignRespFilter.length > 0) {
+            filtered = filtered.filter(a => colAssignRespFilter.includes(a.responsibility?.title || ''))
+        }
+        if (colAssignCycleFilter.length > 0) {
+            filtered = filtered.filter(a => colAssignCycleFilter.includes(a.responsibility?.cycle || 'N/A'))
+        }
+        if (colAssignStatusFilter.length > 0) {
+            filtered = filtered.filter(a => colAssignStatusFilter.includes(a.status || ''))
+        }
+        return filtered
+    }, [assignments, activityFilterDate, colAssignRespFilter, colAssignCycleFilter, colAssignStatusFilter])
 
     const activitySubmissions = useMemo(() => {
-        if (!activityFilterDate) return submissions
-        return submissions.filter(s => isSameDay(new Date(s.workDate || s.submittedAt), activityFilterDate))
-    }, [submissions, activityFilterDate])
+        let filtered = submissions
+        if (activityFilterDate) {
+            filtered = filtered.filter(s => isSameDay(new Date(s.workDate || s.submittedAt), activityFilterDate))
+        }
+        if (colSubRespFilter.length > 0) {
+            filtered = filtered.filter(s => colSubRespFilter.includes(s.assignment?.responsibility?.title || 'N/A'))
+        }
+        if (colSubStatusFilter.length > 0) {
+            filtered = filtered.filter(s => colSubStatusFilter.includes(s.status || ''))
+        }
+        return filtered
+    }, [submissions, activityFilterDate, colSubRespFilter, colSubStatusFilter])
 
     const assignmentsTotalPages = Math.ceil(activityAssignments.length / ITEMS_PER_PAGE)
     const paginatedAssignments = useMemo(() => {
@@ -479,7 +542,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
             </div>
 
             {/* Performance Analytics */}
-            <Card>
+            <div>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
                         <div>
@@ -629,10 +692,10 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </div>
                     </div>
                 </CardContent>
-            </Card>
+            </div>
 
             {/* Tabs for Assignments and Submissions */}
-            <Card>
+            <div>
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between gap-4">
                         <div>
@@ -704,12 +767,42 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                             ) : (
                                 <>
-                                    <Table>
-                                        <TableHeader>
+                                    <Table className="border">
+                                        <TableHeader className="bg-white">
                                             <TableRow>
-                                                <TableHead>Responsibility</TableHead>
-                                                <TableHead>Cycle</TableHead>
-                                                <TableHead>Status</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Responsibility</span>
+                                                        <ColumnFilter
+                                                            title="Responsibility"
+                                                            options={assignRespOptions}
+                                                            selected={colAssignRespFilter}
+                                                            onChange={setColAssignRespFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Cycle</span>
+                                                        <ColumnFilter
+                                                            title="Cycle"
+                                                            options={assignCycleOptions}
+                                                            selected={colAssignCycleFilter}
+                                                            onChange={setColAssignCycleFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Status</span>
+                                                        <ColumnFilter
+                                                            title="Status"
+                                                            options={assignStatusOptions}
+                                                            selected={colAssignStatusFilter}
+                                                            onChange={setColAssignStatusFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead>Assigned</TableHead>
                                                 <TableHead className="text-right">Actions</TableHead>
                                             </TableRow>
@@ -794,12 +887,32 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                                 </div>
                             ) : (
                                 <>
-                                    <Table>
-                                        <TableHeader>
+                                    <Table className="border">
+                                        <TableHeader className="bg-white">
                                             <TableRow>
-                                                <TableHead>Responsibility</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Responsibility</span>
+                                                        <ColumnFilter
+                                                            title="Responsibility"
+                                                            options={subRespOptions}
+                                                            selected={colSubRespFilter}
+                                                            onChange={setColSubRespFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead>Hours</TableHead>
-                                                <TableHead>Status</TableHead>
+                                                <TableHead>
+                                                    <div className="flex items-center gap-1">
+                                                        <span>Status</span>
+                                                        <ColumnFilter
+                                                            title="Status"
+                                                            options={subStatusOptions}
+                                                            selected={colSubStatusFilter}
+                                                            onChange={setColSubStatusFilter}
+                                                        />
+                                                    </div>
+                                                </TableHead>
                                                 <TableHead>Submitted</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -858,7 +971,7 @@ function StaffDetailsContent({ staffId }: { staffId: string }) {
                         </TabsContent>
                     </Tabs>
                 </CardContent>
-            </Card>
+            </div>
 
             {/* View Responsibility Dialog */}
             <Dialog open={viewResponsibilityDialogOpen} onOpenChange={setViewResponsibilityDialogOpen}>

@@ -310,8 +310,8 @@ export default function ManagerTimetablePage() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl  tracking-tight flex items-center gap-2">
-                        <CalendarCheck className="h-8 w-8 text-primary" />
-                        Timetable Management
+                        {/* <CalendarCheck className="h-8 w-8 text-primary" /> */}
+                        Manage Timetable
                     </h1>
                     <p className="text-muted-foreground">Manage class schedules for your sub-department</p>
                 </div>
@@ -354,14 +354,14 @@ export default function ManagerTimetablePage() {
                 {/* Main Content: Timetable Details */}
                 <div className="lg:col-span-3">
                     {selectedTimetable ? (
-                        <Card className="h-full border-t-4 border-t-primary shadow-sm">
+                        <Card className="h-full border-t-4  shadow-sm">
                             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b">
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-2">
-                                        <CardTitle className="text-2xl">Timetable v{selectedTimetable.id}</CardTitle>
-                                        <Badge variant={selectedTimetable.isPublished ? "default" : "secondary"}>
+                                        <CardTitle className="text-2xl">Timetable</CardTitle>
+                                        {/* <Badge variant={selectedTimetable.isPublished ? "default" : "secondary"}>
                                             {selectedTimetable.isPublished ? "Published (Locked)" : "Draft Mode"}
-                                        </Badge>
+                                        </Badge> */}
                                     </div>
                                     <CardDescription>
                                         Sub-Department: <span className="font-medium">{selectedTimetable.subDepartment?.name}</span>
@@ -455,7 +455,7 @@ export default function ManagerTimetablePage() {
                                                             return (
                                                             <div key={entry.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-card rounded-xl border shadow-sm hover:shadow transition-shadow group">
                                                                 <div className="flex items-start sm:items-center gap-4">
-                                                                    <div className="bg-primary/10 text-primary font-mono font-semibold px-3 py-1.5 rounded-md min-w-[120px] text-center shrink-0 border border-primary/20">
+                                                                    <div className="bg-primary/10 text-black dark:text-white  font-mono font-semibold px-3 py-1.5 rounded-md min-w-[120px] text-center shrink-0 border border-primary/20">
                                                                         {tm1} - {tm2}
                                                                     </div>
                                                                     <div>
