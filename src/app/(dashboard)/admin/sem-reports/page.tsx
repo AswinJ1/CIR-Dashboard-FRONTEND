@@ -21,6 +21,7 @@ import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
 import type { SemReport, Department, SubDepartment } from "@/types/cir"
+import { useTranslation } from "react-i18next"
 
 // Generate academic year options (e.g., "2025-2026", "2024-2025", ...)
 function getAcademicYearOptions(): { label: string; startYear: number }[] {
@@ -36,6 +37,7 @@ function getAcademicYearOptions(): { label: string; startYear: number }[] {
 }
 
 export default function AdminSemReportsPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [reports, setReports] = useState<SemReport[]>([])
   const [departments, setDepartments] = useState<Department[]>([])

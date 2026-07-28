@@ -13,8 +13,10 @@ import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
 import type { SemReport } from "@/types/cir"
+import { useTranslation } from "react-i18next"
 
 export default function ManagerSemReportsPage() {
+  const { t } = useTranslation()
   const { user } = useAuth()
   const [reports, setReports] = useState<SemReport[]>([])
   const [loading, setLoading] = useState(true)

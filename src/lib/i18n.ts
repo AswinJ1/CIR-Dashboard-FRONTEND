@@ -5,12 +5,18 @@ import enTranslation from '../locales/en.json';
 import mlTranslation from '../locales/ml.json';
 import hiTranslation from '../locales/hi.json';
 import taTranslation from '../locales/ta.json';
+import zhTranslation from '../locales/zh.json';
+import jaTranslation from '../locales/ja.json';
+import koTranslation from '../locales/ko.json';
 
 const resources = {
   en: { translation: enTranslation },
   ml: { translation: mlTranslation },
   hi: { translation: hiTranslation },
-  ta: { translation: taTranslation }
+  ta: { translation: taTranslation },
+  zh: { translation: zhTranslation },
+  ja: { translation: jaTranslation },
+  ko: { translation: koTranslation }
 };
 
 let initialLanguage = 'en';

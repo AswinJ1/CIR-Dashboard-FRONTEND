@@ -46,6 +46,7 @@ import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 import { ManagerExportDialog } from '@/components/export-dialog'
+import { useTranslation } from "react-i18next"
 
 // CSV Export utility function
 const exportToCSV = (data: Record<string, any>[], filename: string) => {
@@ -85,6 +86,7 @@ type DateRange = {
 }
 
 export default function ManagerDashboardPage() {
+    const { t } = useTranslation()
     const { user } = useAuth()
     const router = useRouter()
     const [calendarView, setCalendarView] = useState<'month' | 'week' | 'list'>('month')

@@ -44,8 +44,10 @@ const TIME_SLOTS = [
     { label: 'Period 8 — 15:10 to 16:00', start: '15:10', end: '16:00' },
     { label: 'Period 9 — 16:00 to 16:50', start: '16:00', end: '16:50' },
 ]
+import { useTranslation } from "react-i18next"
 
 export default function AdminTimetablePage() {
+    const { t } = useTranslation()
     const { user } = useAuth()
     const [timetables, setTimetables] = useState<Timetable[]>([])
     const [selectedTimetable, setSelectedTimetable] = useState<Timetable | null>(null)

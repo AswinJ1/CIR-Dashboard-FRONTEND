@@ -120,3 +120,104 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Prose content: ensure lists render properly in Tiptap & notice cards */
+.prose ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose li {
+  margin-top: 0.15em;
+  margin-bottom: 0.15em;
+}
+
+.prose li > p {
+  margin: 0;
+}
+
+.prose blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 1em;
+  font-style: italic;
+  color: var(--muted-foreground);
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 0.75em;
+  margin-bottom: 0.25em;
+}
+
+.prose h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+.prose h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+/* Notice card body: adjustable rich content */
+.notice-body {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+
+.notice-body p {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.notice-body ul {
+  list-style-type: disc;
+  padding-left: 1.25em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.notice-body ol {
+  list-style-type: decimal;
+  padding-left: 1.25em;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.notice-body li {
+  margin-top: 0.1em;
+  margin-bottom: 0.1em;
+}
+
+.notice-body h1,
+.notice-body h2,
+.notice-body h3 {
+  font-weight: 600;
+  color: var(--foreground);
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+}
+
+.notice-body blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 0.75em;
+  font-style: italic;
+  color: var(--muted-foreground);
+}

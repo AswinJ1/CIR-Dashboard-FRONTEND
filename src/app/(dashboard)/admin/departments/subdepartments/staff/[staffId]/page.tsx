@@ -65,10 +65,12 @@ import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
 import { ColumnFilter } from "@/components/ui/column-filter"
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
+import { useTranslation } from "react-i18next"
 
 type DateRange = { from: Date; to: Date }
 
 function StaffDetailsContent({ staffId }: { staffId: string }) {
+    const { t } = useTranslation()
     const router = useRouter()
     const searchParams = useSearchParams()
     const departmentId = searchParams.get('departmentId')

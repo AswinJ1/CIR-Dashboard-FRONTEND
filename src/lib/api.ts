@@ -45,6 +45,10 @@ import {
     CreateTimetableEntryDto,
     UpdateTimetableEntryDto,
     AppSetting,
+    NotificationItem,
+    ManagedNotice,
+    CreateBroadcastNoticeDto,
+    NoticeTargets,
 } from '@/types/cir'
 import { de } from 'date-fns/locale';
 
@@ -671,7 +675,7 @@ export const timetableApi = {
 
 // ==================== Notifications API ====================
 export const notificationsApi = {
-    getAll: (): Promise<any[]> =>
+    getAll: (): Promise<NotificationItem[]> =>
         fetchApi('/notifications'),
 
     getUnreadCount: (): Promise<number> =>
@@ -686,6 +690,38 @@ export const notificationsApi = {
         fetchApi('/notifications/read-all', {
             method: 'PATCH',
         }),
+
+    // Notice Board APIs
+    broadcastNotice: (dto: CreateBroadcastNoticeDto): Promise<{ count: number; message: string }> =>
+        fetchApi('/notifications/broadcast', {
+            method: 'POST',
+            body: JSON.stringify(dto),
+        }),
+
+    getManageNotices: (): Promise<ManagedNotice[]> =>
+        fetchApi('/notifications/manage'),
+
+    togglePin: (id: number): Promise<{ isPinned: boolean }> =>
+        fetchApi(`/notifications/${id}/pin`, {
+            method: 'PATCH',
+        }),
+
+    deleteNotice: (id: number): Promise<{ message: string }> =>
+        fetchApi(`/notifications/${id}`, {
+            method: 'DELETE',
+        }),
+
+    updateNotice: (id: number, dto: { title?: string; message?: string; isPinned?: boolean }): Promise<{ message: string }> =>
+        fetchApi(`/notifications/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(dto),
+        }),
+
+    getTargets: (): Promise<NoticeTargets> =>
+        fetchApi('/notifications/targets'),
+
+    getNoticeBoard: (): Promise<NotificationItem[]> =>
+        fetchApi('/notifications/board'),
 }
 
 // ==================== Settings API ====================

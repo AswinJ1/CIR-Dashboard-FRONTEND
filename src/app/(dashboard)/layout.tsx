@@ -45,7 +45,7 @@ import {
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { useAuth, getDashboardUrl } from "@/components/providers/auth-context"
-import { Role } from "@/types/cir"
+import { Role, NotificationItem } from "@/types/cir"
 import { useTranslation } from "react-i18next"
 import "@/lib/i18n"
 
@@ -58,16 +58,7 @@ interface SearchOption {
   roles: string[]
 }
 
-interface Notification {
-  id: string
-  title: string
-  message: string
-  type: string
-  priority: string
-  isRead: boolean
-  createdAt: string
-  actionUrl: string | null
-}
+
 
 interface NavigationItem {
   name: string
@@ -102,6 +93,7 @@ const searchOptions: SearchOption[] = [
 const navigation: NavigationItem[] = [
   // Admin Navigation
   { name: "dashboard", href: "/admin", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["ADMIN"] },
+  { name: "noticeBoard", href: "/admin/notifications", icon: <Bell className="w-4 h-4" />, roles: ["ADMIN"] },
   { name: "manageUsers", href: "/admin/users", icon: <Users className="w-4 h-4" />, roles: ["ADMIN"] },
   { name: "manageDepartments", href: "/admin/departments", icon: <Building2 className="w-4 h-4" />, roles: ["ADMIN"] },
   { name: "manageResponsibilities", href: "/admin/responsibilities", icon: <Briefcase className="w-4 h-4" />, roles: ["ADMIN"] },
@@ -113,6 +105,7 @@ const navigation: NavigationItem[] = [
 
   // Manager Navigation
   { name: "dashboard", href: "/manager", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["MANAGER"] },
+  { name: "noticeBoard", href: "/manager/notifications", icon: <Bell className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "manageDuty", href: "/manager/assignments", icon: <ClipboardList className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "staff", href: "/manager/staff", icon: <UserCheck className="w-4 h-4" />, roles: ["MANAGER"] },
   { name: "classroomManagement", href: "/manager/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["MANAGER"] },
@@ -124,6 +117,7 @@ const navigation: NavigationItem[] = [
 
   // Staff Navigation
   { name: "dashboard", href: "/staff", icon: <LayoutDashboard className="w-4 h-4" />, roles: ["STAFF"] },
+  { name: "noticeBoard", href: "/staff/notifications", icon: <Bell className="w-4 h-4" />, roles: ["STAFF"] },
   { name: "workCalendar", href: "/staff/responsibilities", icon: <CalendarRange className="w-4 h-4" />, roles: ["STAFF"] },
   { name: "manageWorkSubmissions", href: "/staff/work-submissions", icon: <FileCheck className="w-4 h-4" />, roles: ["STAFF"] },
   { name: "classroomManagement", href: "/staff/classrooms", icon: <FolderOpen className="w-4 h-4" />, roles: ["STAFF"] },
@@ -142,7 +136,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { theme, setTheme } = useTheme()
   const [profile, setProfile] = React.useState<any>(null)
   const [openSearch, setOpenSearch] = React.useState(false)
-  const [notifications, setNotifications] = React.useState<Notification[]>([])
+  const [notifications, setNotifications] = React.useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = React.useState(0)
   const [notificationOpen, setNotificationOpen] = React.useState(false)
 
@@ -289,10 +283,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return date.toLocaleDateString()
   }
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: NotificationItem) => {
     if (!notification.isRead) {
       try {
-        await api.notifications.markAsRead(Number(notification.id))
+        await api.notifications.markAsRead(notification.id)
         setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n))
         setUnreadCount(prev => Math.max(0, prev - 1))
       } catch (error) {
@@ -476,6 +470,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ml')}>Malayalam (മലയാളം)</DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('hi')}>Hindi (हिन्दी)</DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ta')}>Tamil (தமிழ்)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('zh')}>中文 (Chinese)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ja')}>日本語 (Japanese)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ko')}>한국어 (Korean)</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
