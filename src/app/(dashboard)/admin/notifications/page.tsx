@@ -4,7 +4,7 @@ import * as React from "react"
 import { format } from "date-fns"
 import {
   Plus, Pin, PinOff, Trash2, Users, Building2, Network,
-  User, Megaphone, Search, X, ChevronDown, Loader2, Pencil
+  User, Megaphone, Search, X, ChevronDown, Loader2, Pencil, CalendarDays
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@/components/ui/button"
@@ -386,7 +386,8 @@ export default function AdminNotificationsPage() {
 
                   {/* Meta row */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(), "dd MMM yyyy")}
                     </span>
                     {isPinned && (
@@ -398,11 +399,11 @@ export default function AdminNotificationsPage() {
 
                   {/* Content */}
                   <div className="flex-1 mt-4">
-                    <h3 className="font-semibold text-lg text-foreground leading-snug mb-2">
+                    <h3 className="font-semibold text-lg  leading-snug mb-2">
                       {title || "Notice Title"}
                     </h3>
                     <div
-                      className="notice-body prose prose-sm dark:prose-invert max-w-none"
+                      className="prose prose-sm dark:prose-invert max-w-none"
                       dangerouslySetInnerHTML={{ __html: message || "<p class='text-muted-foreground italic'>Notice content preview...</p>" }}
                     />
                   </div>
@@ -457,7 +458,7 @@ export default function AdminNotificationsPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.03, duration: 0.3 }}
               >
-                <div className="group relative flex flex-col  border border-2 bg-card dark:bg-white shadow p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px]">
+                <div className="group relative flex flex-col border-2 bg-card dark:bg-white shadow p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px]">
                   {/* Header: target + status */}
                   <div className="flex items-center justify-between">
                     <span className="dark:text-black">
@@ -468,7 +469,8 @@ export default function AdminNotificationsPage() {
 
                   {/* Date & actions */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="dark:text-black">
+                    <span className="dark:text-black inline-flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
                     </span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -523,7 +525,7 @@ export default function AdminNotificationsPage() {
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4"
+                      className="notice-body line-clamp-4 bg-white text-black [&_*]:text-black"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
@@ -563,14 +565,17 @@ export default function AdminNotificationsPage() {
                 </div>
                 <DialogTitle className="text-xl">{viewNotice.title}</DialogTitle>
                 <DialogDescription>
-                  {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                    {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  </span>
                   {viewNotice.createdBy && ` · by ${viewNotice.createdBy.name}`}
                   {` · ${viewNotice.recipientCount} recipients`}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <div
-                  className="notice-body prose prose-sm dark:prose-invert max-w-none"
+                  className="notice-body prose prose-sm max-w-none bg-white text-black [&_*]:text-black"
                   dangerouslySetInnerHTML={{ __html: viewNotice.message }}
                 />
               </div>

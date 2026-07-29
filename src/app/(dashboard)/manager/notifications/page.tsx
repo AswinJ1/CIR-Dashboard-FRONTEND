@@ -4,7 +4,7 @@ import * as React from "react"
 import { format } from "date-fns"
 import {
   Plus, Pin, PinOff, Trash2, Network,
-  User, Megaphone, Search, X, ChevronDown, Loader2, Pencil
+  User, Megaphone, Search, X, ChevronDown, Loader2, Pencil, CalendarDays
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@/components/ui/button"
@@ -93,6 +93,10 @@ export default function ManagerNotificationsPage() {
     setTargetType(notice.targetType || "SUB_DEPARTMENT")
     setIsPinned(notice.isPinned)
     setCreateOpen(true)
+  }
+
+  const handleOpenNotice = (notice: ManagedNotice) => {
+    setViewNotice(notice)
   }
 
   const handlePublish = async () => {
@@ -188,8 +192,8 @@ export default function ManagerNotificationsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Notice Board ({managerSubDeptName})
+          <h1 className="text-2xl tracking-tight">
+            Notice: {managerSubDeptName}
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Create and publish notices for staff members in your sub-department
@@ -342,7 +346,8 @@ export default function ManagerNotificationsPage() {
                   </div>
 
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(), "dd MMM yyyy")}
                     </span>
                     {isPinned && (
@@ -410,18 +415,22 @@ export default function ManagerNotificationsPage() {
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ delay: index * 0.03, duration: 0.3 }}
               >
-                <div className="group relative flex flex-col bg-card border border-border p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px]">
+                <div
+                  onClick={() => handleOpenNotice(notice)}
+                  className="group relative flex flex-col dark:bg-white border shadow p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px] cursor-pointer"
+                >
                   {/* Header */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="dark:text-black">
                       {getTargetLabel(notice)}
                     </span>
-                    <span className="text-xs text-muted-foreground">Published</span>
+                    <span className="dark:text-black">Published</span>
                   </div>
 
                   {/* Date & actions */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="dark:text-black inline-flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
                     </span>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -429,14 +438,14 @@ export default function ManagerNotificationsPage() {
                       {((user && notice.createdBy && String(user.id) === String(notice.createdBy.id)) || role === 'ADMIN') && (
                         <>
                           <button
-                            onClick={() => handleTogglePin(notice)}
+                            onClick={(e) => { e.stopPropagation(); handleTogglePin(notice) }}
                             className={`p-1 transition-colors rounded-sm hover:bg-muted ${notice.isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                             title={notice.isPinned ? "Unpin" : "Pin"}
                           >
                             {notice.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                           </button>
                           <button
-                            onClick={() => handleOpenEdit(notice)}
+                            onClick={(e) => { e.stopPropagation(); handleOpenEdit(notice) }}
                             className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-muted"
                             title="Edit"
                           >
@@ -444,7 +453,11 @@ export default function ManagerNotificationsPage() {
                           </button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <button className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-muted" title="Delete">
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-muted"
+                                title="Delete"
+                              >
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </AlertDialogTrigger>
@@ -477,19 +490,19 @@ export default function ManagerNotificationsPage() {
 
                   {/* Title & Body */}
                   <div className="flex-1 mt-3">
-                    <h3 className="font-semibold text-base text-foreground leading-snug mb-2 line-clamp-2">
+                    <h3 className="dark:text-black leading-snug mb-2 line-clamp-2">
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4"
+                      className="notice-body line-clamp-4 bg-white text-black [&_*]:text-black"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
 
                   {/* Footer */}
                   <div className="mt-3 pt-3 border-t border-border">
-                    <span className="text-xs text-muted-foreground">
-                      {notice.recipientCount} recipients
+                    <span className="dark:text-black">
+                      From {notice.createdBy?.name}
                     </span>
                   </div>
                 </div>
@@ -517,13 +530,16 @@ export default function ManagerNotificationsPage() {
                 </div>
                 <DialogTitle className="text-xl">{viewNotice.title}</DialogTitle>
                 <DialogDescription>
-                  {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  <span className="inline-flex items-center gap-1">
+                    <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                    {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  </span>
                   {` · ${viewNotice.recipientCount} recipients`}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <div
-                  className="notice-body prose prose-sm dark:prose-invert max-w-none"
+                  className="notice-body prose prose-sm max-w-none bg-white text-black [&_*]:text-black"
                   dangerouslySetInnerHTML={{ __html: viewNotice.message }}
                 />
               </div>

@@ -3,7 +3,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import {
-  Bell, Pin, CheckCheck, Megaphone, Search, Loader2
+  Bell, Pin, CheckCheck, Megaphone, Search, Loader2, CalendarDays
 } from "lucide-react"
 import { motion, AnimatePresence } from "motion/react"
 import { Button } from "@/components/ui/button"
@@ -168,23 +168,24 @@ export default function StaffNotificationsPage() {
               >
                 <div
                   onClick={() => handleOpenNotice(notice)}
-                  className={`group relative flex flex-col bg-card border border-border p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px] cursor-pointer ${
+                  className={`group relative flex flex-col shadow dark:bg-white border border-border p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px] cursor-pointer ${
                     !notice.isRead ? "border-l-2 border-l-primary" : ""
                   }`}
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="dark:text-black">
                       {notice.targetType === "ALL" ? "All Staff" : "Notice"}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="dark:text-black">
                       {!notice.isRead ? "Unread" : "Read"}
                     </span>
                   </div>
 
                   {/* Date row */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="dark:text-black inline-flex items-center gap-1">
+                      <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
                     </span>
                     {notice.isPinned && (
@@ -196,11 +197,11 @@ export default function StaffNotificationsPage() {
 
                   {/* Title & Body */}
                   <div className="flex-1 mt-3">
-                    <h3 className="font-semibold text-base text-foreground leading-snug mb-2 line-clamp-2">
+                    <h3 className="dark:text-black leading-snug mb-2 line-clamp-2">
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4"
+                      className="notice-body line-clamp-4 bg-white text-black [&_*]:text-black"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
@@ -208,7 +209,7 @@ export default function StaffNotificationsPage() {
                   {/* Footer */}
                   {notice.createdBy && (
                     <div className="mt-3 pt-3 border-t border-border">
-                      <span className="text-xs text-muted-foreground">
+                      <span className="dark:text-black">
                         By {notice.createdBy.name}
                       </span>
                     </div>
@@ -235,13 +236,17 @@ export default function StaffNotificationsPage() {
                 </div>
                 <DialogTitle className="text-xl leading-snug">{viewNotice.title}</DialogTitle>
                 <DialogDescription className="text-xs">
-                  Published on {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  <span className="inline-flex items-center gap-1">
+                    Published on
+                    <CalendarDays className="w-3.5 h-3.5 shrink-0" />
+                    {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
+                  </span>
                   {viewNotice.createdBy && ` · By ${viewNotice.createdBy.name}`}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <div
-                  className="notice-body prose prose-sm dark:prose-invert max-w-none"
+                  className="notice-body prose prose-sm max-w-none bg-white text-black [&_*]:text-black"
                   dangerouslySetInnerHTML={{ __html: viewNotice.message }}
                 />
               </div>
