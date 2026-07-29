@@ -671,6 +671,12 @@ export interface ManagedNotice {
   createdAt: string
   type: string
   recipientCount: number
+  recipients?: {
+    id: number
+    name: string
+    email?: string
+    role?: string
+  }[]
 }
 
 export interface CreateBroadcastNoticeDto {
