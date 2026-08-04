@@ -50,7 +50,6 @@ import { Search, Plus, Pencil, Trash2, CalendarIcon, Building, ChevronDown, Chev
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
-import { useTranslation } from "react-i18next"
 
 function parseLogicalDate(dateStr: string | null | undefined): Date | undefined {
     if (!dateStr) return undefined;
@@ -60,7 +59,6 @@ function parseLogicalDate(dateStr: string | null | undefined): Date | undefined 
 }
 
 export default function AdminResponsibilitiesPage() {
-    const { t } = useTranslation()
     const { user } = useAuth()
     const [responsibilities, setResponsibilities] = useState<Responsibility[]>([])
     const [responsibilityGroups, setResponsibilityGroups] = useState<ResponsibilityGroup[]>([])

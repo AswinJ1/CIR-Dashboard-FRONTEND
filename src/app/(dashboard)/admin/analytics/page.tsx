@@ -32,7 +32,6 @@ import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 import { AdminExportDialog } from '@/components/export-dialog'
-import { useTranslation } from "react-i18next"
 
 type DateRange = {
     from: Date
@@ -40,7 +39,6 @@ type DateRange = {
 }
 
 export default function AdminAnalyticsPage() {
-    const { t } = useTranslation()
     const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(true)
     const [submissions, setSubmissions] = useState<WorkSubmission[]>([])

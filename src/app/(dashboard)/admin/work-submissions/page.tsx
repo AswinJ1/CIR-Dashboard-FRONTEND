@@ -49,13 +49,11 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
-import { useTranslation } from "react-i18next"
 
 type SortField = 'responsibility' | 'employee' | 'department' | 'hours' | 'submittedAt' | 'status' | null
 type SortOrder = 'asc' | 'desc' | null
 
 export default function AdminWorkSubmissionsPage() {
-    const { t } = useTranslation()
     const [submissions, setSubmissions] = useState<WorkSubmission[]>([])
     const [departments, setDepartments] = useState<Department[]>([])
     const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])

@@ -45,10 +45,8 @@ import {
 } from "@/components/ui/select"
 import { Search, MoreHorizontal, Eye, Pencil, Trash2, UserPlus, KeyRound } from "lucide-react"
 import { toast } from "sonner"
-import { useTranslation } from "react-i18next"
 
 export default function AdminUsersPage() {
-  const { t } = useTranslation()
   const router = useRouter()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [departments, setDepartments] = useState<Department[]>([])

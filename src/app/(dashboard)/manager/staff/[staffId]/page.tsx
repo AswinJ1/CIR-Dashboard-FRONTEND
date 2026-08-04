@@ -69,12 +69,10 @@ import { SemReportCard } from "@/components/sem-reports/sem-report-card"
 import { SemReportDetail } from "@/components/sem-reports/sem-report-detail"
 import { ReviewActions } from "@/components/sem-reports/review-actions"
 import { ColumnFilter } from "@/components/ui/column-filter"
-import { useTranslation } from "react-i18next"
 
 type DateRange = { from: Date; to: Date }
 
 function StaffDetailContent({ staffId }: { staffId: string }) {
-    const { t } = useTranslation()
     const router = useRouter()
     const { user } = useAuth()
     const isOwnSubmission = String(user?.id) === String(staffId)

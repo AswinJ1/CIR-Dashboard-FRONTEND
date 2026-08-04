@@ -60,7 +60,6 @@ import {
 import { toast } from "sonner"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns"
 import { cn} from "@/lib/utils"
-import { useTranslation } from "react-i18next"
 
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
@@ -114,7 +113,6 @@ interface DashboardStats {
 }
 
 export default function AdminDashboardPage() {
-  const { t } = useTranslation()
   const { user } = useAuth()
   // const [stats, setStats] = useState<DashboardStats>({
   //   totalEmployees: 0,

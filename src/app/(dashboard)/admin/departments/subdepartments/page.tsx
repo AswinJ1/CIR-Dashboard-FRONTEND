@@ -35,10 +35,8 @@ import {
 } from "@/components/ui/table"
 import { Search, Plus, Pencil, Trash2, Users, ChevronRight, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
-import { useTranslation } from "react-i18next"
 
 function SubDepartmentsContent() {
-    const { t } = useTranslation()
     const router = useRouter()
     const searchParams = useSearchParams()
     const departmentId = searchParams.get('departmentId')

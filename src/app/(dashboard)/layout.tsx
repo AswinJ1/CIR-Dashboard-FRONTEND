@@ -42,7 +42,7 @@ import {
 } from "@/components/animate-ui/components/radix/sidebar"
 
 // Utilities & Providers
-import { cn } from "@/lib/utils"
+import { cn, stripHtml } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { useAuth, getDashboardUrl } from "@/components/providers/auth-context"
 import { Role, NotificationItem } from "@/types/cir"
@@ -470,9 +470,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ml')}>Malayalam (മലയാളം)</DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('hi')}>Hindi (हिन्दी)</DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ta')}>Tamil (தமிழ்)</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('zh')}>中文 (Chinese)</DropdownMenuItem>
+                {/* <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('zh')}>中文 (Chinese)</DropdownMenuItem>
                 <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ja')}>日本語 (Japanese)</DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ko')}>한국어 (Korean)</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => i18n.changeLanguage('ko')}>한국어 (Korean)</DropdownMenuItem> */}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -523,7 +523,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                                 {notification.title}
                               </p>
                               <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                {notification.message}
+                                {stripHtml(notification.message)}
                               </p>
                               <p className="text-[10px] text-muted-foreground mt-2">
                                 {formatTimeAgo(notification.createdAt)}

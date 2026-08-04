@@ -48,7 +48,6 @@ import {
 import ReactECharts from 'echarts-for-react'
 import { ECHARTS_COMMON_OPTS, ECHARTS_PALETTE } from '@/lib/echarts-theme'
 import { StaffExportDialog } from '@/components/export-dialog'
-import { useTranslation } from "react-i18next"
 
 // CSV Export utility function
 const exportToCSV = (data: Record<string, any>[], filename: string) => {
@@ -97,7 +96,6 @@ type DateRange = {
 }
 
 export default function StaffDashboardPage() {
-    const { t } = useTranslation()
     const { user } = useAuth()
     const [isLoading, setIsLoading] = useState(true)
     const [calendarView, setCalendarView] = useState<'month' | 'week' | 'list'>('month')

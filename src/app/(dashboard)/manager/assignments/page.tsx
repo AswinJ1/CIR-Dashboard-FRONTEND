@@ -53,12 +53,10 @@ import {
 import { CreateResponsibilityDialog } from "@/components/manager/create-responsibility-dialog"
 import BulkResponsibilitiesImport from "@/components/bulk-responsibilities-import"
 import { ColumnFilter } from "@/components/ui/column-filter"
-import { useTranslation } from "react-i18next"
 
 const ITEMS_PER_PAGE = 10
 
 export default function ManagerAssignmentsPage() {
-    const { t } = useTranslation()
     const [assignments, setAssignments] = useState<Assignment[]>([])
     const [responsibilities, setResponsibilities] = useState<Responsibility[]>([])
     const [responsibilityGroups, setResponsibilityGroups] = useState<ResponsibilityGroup[]>([])

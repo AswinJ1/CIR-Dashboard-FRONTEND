@@ -28,10 +28,8 @@ import CreateClassroomModal from "@/components/classrooms/create-classroom-modal
 import BookClassroomModal from "@/components/classrooms/book-classroom-modal"
 import { classroomApi, bookingApi, departmentsApi, subDepartmentsApi, employeesApi } from "@/lib/api"
 import { toast } from "sonner"
-import { useTranslation } from "react-i18next"
 
 export default function ClassroomManagementPage() {
-    const { t } = useTranslation()
     const { user } = useAuth()
     const userRole = user?.role as Role
 

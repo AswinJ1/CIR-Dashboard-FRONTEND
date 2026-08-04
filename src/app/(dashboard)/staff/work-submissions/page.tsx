@@ -49,7 +49,6 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import { useTranslation } from "react-i18next"
 
 interface DayGroup {
     date: string
@@ -63,7 +62,6 @@ interface DayGroup {
 const ITEMS_PER_PAGE = 10
 
 export default function StaffWorkSubmissionsPage() {
-    const { t } = useTranslation()
     const router = useRouter()
     const [allSubmissions, setAllSubmissions] = useState<WorkSubmission[]>([])
     const [isLoading, setIsLoading] = useState(true)

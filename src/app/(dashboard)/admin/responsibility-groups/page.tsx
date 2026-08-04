@@ -37,10 +37,8 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from "@/components/ui/collapsible"
-import { useTranslation } from "react-i18next"
 
 export default function AdminResponsibilityGroupsPage() {
-    const { t } = useTranslation()
     const [groups, setGroups] = useState<ResponsibilityGroup[]>([])
     const [subDepartments, setSubDepartments] = useState<SubDepartment[]>([])
     const [departments, setDepartments] = useState<Department[]>([])
