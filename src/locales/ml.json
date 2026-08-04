@@ -22,6 +22,8 @@
   "search": "തിരയുക... ⌘K",
   "menu": "മെനു",
   "notifications": "അറിയിപ്പുകൾ",
+  "noticeBoard":"നോട്ടീസ്",
+  "settings":"ക്രമീകരണങ്ങൾ",
   "noNotifications": "അറിയിപ്പുകൾ ഒന്നുമില്ല",
   "viewAllNotifications": "എല്ലാ അറിയിപ്പുകളും കാണുക"
 }

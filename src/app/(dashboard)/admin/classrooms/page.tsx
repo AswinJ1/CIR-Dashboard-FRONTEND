@@ -29,9 +29,6 @@ import BookClassroomModal from "@/components/classrooms/book-classroom-modal"
 import { classroomApi, bookingApi, departmentsApi, subDepartmentsApi, employeesApi } from "@/lib/api"
 import { toast } from "sonner"
 
-
-
-//need to edit 
 export default function ClassroomManagementPage() {
     const { user } = useAuth()
     const userRole = user?.role as Role

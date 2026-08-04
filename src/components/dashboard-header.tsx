@@ -39,6 +39,7 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
+import { NotificationItem } from "@/types/cir"
 
 interface SearchOption {
   label: string
@@ -224,7 +225,7 @@ export default function DashboardHeader() {
   const { theme, setTheme } = useTheme()
   const [profile, setProfile] = useState<any>(null)
   const [open, setOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notifications, setNotifications] = useState<NotificationItem[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [notificationOpen, setNotificationOpen] = useState(false)
   const router = useRouter()

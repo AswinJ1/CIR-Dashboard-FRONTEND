@@ -628,3 +628,63 @@ export interface AppSetting {
   label?: string
   updatedAt: string
 }
+
+// ==================== Notifications & Notices ====================
+export type NoticeTargetType = 'ALL' | 'DEPARTMENT' | 'SUB_DEPARTMENT' | 'INDIVIDUAL'
+
+export interface NotificationItem {
+  id: number
+  userId: number
+  title: string
+  message: string
+  type: string
+  targetType?: NoticeTargetType
+  targetId?: number
+  isPinned: boolean
+  createdById?: number
+  createdBy?: {
+    id: number
+    name: string
+    email?: string
+    role?: string
+  }
+  entityId?: number
+  entityType?: string
+  isRead: boolean
+  createdAt: string
+}
+
+export interface ManagedNotice {
+  id: number
+  title: string
+  message: string
+  targetType?: NoticeTargetType
+  targetId?: number
+  isPinned: boolean
+  createdById?: number
+  createdBy?: {
+    id: number
+    name: string
+    email?: string
+    role?: string
+  }
+  createdAt: string
+  type: string
+  recipientCount: number
+}
+
+export interface CreateBroadcastNoticeDto {
+  title: string
+  message: string
+  targetType: NoticeTargetType
+  targetId?: number
+  userIds?: number[]
+  isPinned?: boolean
+}
+
+export interface NoticeTargets {
+  departments: { id: number; name: string; type?: string }[]
+  subDepartments: { id: number; name: string; departmentId: number; department?: { name: string } }[]
+  staff: { id: number; name: string; email: string; role?: string; subDepartmentId?: number }[]
+}
+
