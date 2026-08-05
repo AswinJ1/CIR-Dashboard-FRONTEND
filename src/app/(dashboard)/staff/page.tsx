@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DailyMetricsCards } from "@/components/staff/daily-metrics-cards"
 import { toast } from "sonner"
@@ -33,7 +32,6 @@ import {
     Target,
     Activity,
     Download,
-    ChevronRight,
 } from "lucide-react"
 import DashboardHeader from "@/components/dashboard-header"
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, addDays } from "date-fns"
@@ -770,10 +768,10 @@ export default function StaffDashboardPage() {
                                                         router.push(`/staff/work-calendar/${format(day, 'yyyy-MM-dd')}`)
                                                     }
                                                 }}
-                                                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${status === 'future' ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 cursor-pointer hover:shadow-md bg-card'}`}
+                                                className={`flex flex-col items-center justify-center p-4 border transition-all ${status === 'future' ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 cursor-pointer hover:shadow-md bg-card'}`}
                                             >
-                                                <span className="text-sm text-muted-foreground uppercase tracking-wider mb-2">{format(day, 'EEE')}</span>
-                                                <span className={`text-3xl font-bold mb-4 ${isSameDay(day, today) ? 'text-primary' : 'text-foreground'}`}>{format(day, 'd')}</span>
+                                                <span className="tracking-wider mb-2">{format(day, 'EEE')}</span>
+                                                <span className={`mb-4 ${isSameDay(day, today) ? '' : ''}`}>{format(day, 'd')}</span>
                                                 {renderStatusBadge(status)}
                                             </div>
                                         )
@@ -784,43 +782,30 @@ export default function StaffDashboardPage() {
 
                         {calendarView === 'list' && (
                             <div className="w-full h-full min-h-[400px] p-6 pt-16 md:pt-6">
-                                <div className="mt-8 overflow-hidden rounded-md border">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead className="w-[100px]">Date</TableHead>
-                                                <TableHead>Day</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead className="w-[50px]"></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {listDays.map((day, i) => {
-                                                const status = getDayStatusCategory(day);
-                                                return (
-                                                    <TableRow 
-                                                        key={i}
-                                                        onClick={() => router.push(`/staff/work-calendar/${format(day, 'yyyy-MM-dd')}`)}
-                                                        className="cursor-pointer hover:bg-muted/50"
-                                                    >
-                                                        <TableCell className="font-medium">
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isSameDay(day, today) ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-                                                                {format(day, 'd')}
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell>
-                                                            <div className="font-medium">{format(day, 'EEEE')}</div>
-                                                            <div className="text-xs text-muted-foreground">{format(day, 'MMMM yyyy')}</div>
-                                                        </TableCell>
-                                                        <TableCell>{renderStatusBadge(status)}</TableCell>
-                                                        <TableCell>
-                                                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                                        </TableCell>
-                                                    </TableRow>
-                                                )
-                                            })}
-                                        </TableBody>
-                                    </Table>
+                                <div className="flex flex-col gap-2 overflow-y-auto max-h-[500px] pr-2 mt-8">
+                                    {listDays.map((day, i) => {
+                                        const status = getDayStatusCategory(day);
+                                        return (
+                                            <div 
+                                                key={i}
+                                                onClick={() => router.push(`/staff/work-calendar/${format(day, 'yyyy-MM-dd')}`)}
+                                                className="flex items-center justify-between p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-12 h-12 flex items-center justify-center ${isSameDay(day, today) ? '' : ''}`}>
+                                                        {format(day, 'd')}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="">{format(day, 'EEEE')}</h4>
+                                                        <p className="">{format(day, 'MMMM yyyy')}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-4">
+                                                    {renderStatusBadge(status)}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
                                 </div>
                             </div>
                         )}
@@ -833,15 +818,15 @@ export default function StaffDashboardPage() {
                             Approved
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-amber-50 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800"></div> 
+                            <div className="dark:bg-white dark:border-amber-800"></div> 
                             Pending
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-800"></div> 
+                            <div className="dark:bg-white"></div> 
                             Missed
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-background border border-input"></div> 
+                            <div className="dark:bg-white"></div> 
                             No Data
                         </div>
                     </div>

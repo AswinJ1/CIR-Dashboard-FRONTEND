@@ -33,6 +33,7 @@ import { api } from "@/lib/api"
 import { useAuth } from "@/components/providers/auth-context"
 import { ManagedNotice, NoticeTargetType, NoticeTargets, CreateBroadcastNoticeDto } from "@/types/cir"
 import Tiptap from "@/components/tiptap"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const targetTypeConfig: Partial<Record<NoticeTargetType, { label: string; icon: React.ReactNode; color: string }>> = {
   SUB_DEPARTMENT: { label: "Sub-Department", icon: <Network className="w-3.5 h-3.5" />, color: "bg-secondary text-foreground border-border" },
@@ -187,6 +188,96 @@ export default function ManagerNotificationsPage() {
     return "Targeted"
   }
 
+  const renderTargetHeader = (notice: ManagedNotice) => {
+    const recipients = notice.recipients || []
+    if (notice.targetType === "INDIVIDUAL" && recipients.length > 0) {
+      if (recipients.length === 1) {
+        const r = recipients[0]
+        return (
+          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+            To:
+            <Avatar className="w-4 h-4 shrink-0">
+              <AvatarFallback className="text-[8px]">{r.name}</AvatarFallback>
+            </Avatar>
+            <span className="text-slate-900 dark:text-white font-normal">{r.name}</span>
+          </span>
+        )
+      }
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity focus:outline-none">
+              <span className="text-xs text-muted-foreground">To:</span>
+              <div className="flex -space-x-1.5 items-center">
+                {recipients.slice(0, 3).map(r => (
+                  <Avatar key={r.id} className="size-4 border border-background">
+                    <AvatarFallback className="text-[7px]">{r.name}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <span className="text-xs text-slate-900 dark:text-white font-normal">
+                {recipients.length} Recipients
+              </span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-60 p-2 rounded-none shadow-md" align="start" onClick={(e) => e.stopPropagation()}>
+            <div className="text-xs text-muted-foreground mb-1.5 px-2 font-normal">Targeted Staff ({recipients.length})</div>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {recipients.map(r => (
+                <div key={r.id} className="flex items-center gap-2 p-1.5 hover:bg-muted/50 text-xs">
+                  <Avatar className="w-5 h-5 shrink-0">
+                    <AvatarFallback className="text-[9px]">{r.name}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-slate-900 dark:text-white font-normal">{r.name}</div>
+                    {r.email && <div className="truncate text-[10px] text-muted-foreground">{r.email}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )
+    }
+
+    if (recipients.length > 0) {
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity focus:outline-none">
+              <span className="text-xs text-muted-foreground">To: {getTargetLabel(notice)}</span>
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-60 p-2 rounded-none shadow-md" align="start" onClick={(e) => e.stopPropagation()}>
+            <div className="text-xs text-muted-foreground mb-1.5 px-2 font-normal">Recipients ({recipients.length})</div>
+            <div className="space-y-1 max-h-48 overflow-y-auto">
+              {recipients.map(r => (
+                <div key={r.id} className="flex items-center gap-2 p-1.5 hover:bg-muted/50 text-xs">
+                  <Avatar className="w-5 h-5 shrink-0">
+                    <AvatarFallback className="text-[9px]">{r.name}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate text-slate-900 dark:text-white font-normal">{r.name}</div>
+                    {r.email && <div className="truncate text-[10px] text-muted-foreground">{r.email}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )
+    }
+
+    return (
+      <span className="text-xs text-muted-foreground">
+        To: {getTargetLabel(notice)}
+      </span>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6 p-6">
       {/* Header */}
@@ -225,19 +316,18 @@ export default function ManagerNotificationsPage() {
               <TabsContent value="edit" className="space-y-5">
                 {/* Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="notice-title" className="text-sm font-medium">Title</Label>
+                  <Label htmlFor="notice-title" className="text-sm">Title</Label>
                   <Input
                     id="notice-title"
                     placeholder="Enter notice title..."
                     value={title}
                     onChange={e => setTitle(e.target.value)}
-                    className="font-medium"
                   />
                 </div>
 
                 {/* Tiptap Editor */}
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Content</Label>
+                  <Label className="text-sm">Content</Label>
                   <Tiptap
                     content={message}
                     onChange={setMessage}
@@ -248,7 +338,7 @@ export default function ManagerNotificationsPage() {
                 {/* Target Type */}
                 {!editingNoticeId && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Target Audience</Label>
+                    <Label className="text-sm">Target Audience</Label>
                     <Select value={targetType} onValueChange={(v) => { setTargetType(v as NoticeTargetType); setSelectedUserIds([]) }}>
                       <SelectTrigger id="target-type-select">
                         <SelectValue />
@@ -268,7 +358,7 @@ export default function ManagerNotificationsPage() {
                 {/* Individual Staff Picker */}
                 {!editingNoticeId && targetType === "INDIVIDUAL" && (
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Select Staff Members</Label>
+                    <Label className="text-sm">Select Staff Members</Label>
                     <Popover open={staffSearchOpen} onOpenChange={setStaffSearchOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-between text-left font-normal" id="staff-picker-btn">
@@ -289,14 +379,17 @@ export default function ManagerNotificationsPage() {
                                 <CommandItem
                                   key={s.id}
                                   onSelect={() => toggleStaffSelection(s.id)}
-                                  className="flex items-center gap-2"
+                                  className="flex items-center gap-2.5 py-2"
                                 >
                                   <Checkbox
                                     checked={selectedUserIds.includes(s.id)}
                                     className="pointer-events-none"
                                   />
+                                  <Avatar className="w-6 h-6 shrink-0">
+                                    <AvatarFallback className="text-[10px]">{s.name}</AvatarFallback>
+                                  </Avatar>
                                   <div className="flex-1 min-w-0">
-                                    <div className="font-medium truncate">{s.name}</div>
+                                    <div className="truncate text-slate-900 dark:text-white">{s.name}</div>
                                     <div className="text-xs text-muted-foreground truncate">{s.email}</div>
                                   </div>
                                 </CommandItem>
@@ -311,8 +404,11 @@ export default function ManagerNotificationsPage() {
                         {selectedUserIds.map(id => {
                           const staff = targets.staff.find(s => s.id === id)
                           return staff ? (
-                            <Badge key={id} variant="secondary" className="gap-1 pr-1">
-                              {staff.name}
+                            <Badge key={id} variant="secondary" className="gap-1.5 pr-1 py-1 text-xs">
+                              <Avatar className="w-4 h-4 shrink-0">
+                                <AvatarFallback className="text-[9px]">{staff.name}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-slate-900 dark:text-white">{staff.name}</span>
                               <button onClick={() => toggleStaffSelection(id)} className="ml-0.5 hover:text-foreground">
                                 <X className="w-3 h-3" />
                               </button>
@@ -327,7 +423,7 @@ export default function ManagerNotificationsPage() {
                 {/* Pin Toggle */}
                 <div className="flex items-center justify-between border p-3 bg-muted/30">
                   <div className="space-y-0.5">
-                    <Label className="text-sm font-medium">Pin Notice</Label>
+                    <Label className="text-sm">Pin Notice</Label>
                     <p className="text-xs text-muted-foreground">Pinned notices appear at the top of staff notice board</p>
                   </div>
                   <Switch checked={isPinned} onCheckedChange={setIsPinned} id="pin-switch" />
@@ -336,13 +432,13 @@ export default function ManagerNotificationsPage() {
 
               {/* Preview Tab */}
               <TabsContent value="preview" className="py-2 space-y-3">
-                <p className="text-xs font-medium text-muted-foreground">Card Preview:</p>
+                <p className="text-xs text-muted-foreground">Card Preview:</p>
                 <div className="flex flex-col bg-card border border-border p-5 min-h-[240px]">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       {targetType === "ALL" ? "All Staff" : (targetType && targetTypeConfig[targetType]?.label) || "Sub-Department"}
                     </span>
-                    <span className="text-xs font-medium text-muted-foreground">Published</span>
+                    <span className="text-xs text-muted-foreground">Published</span>
                   </div>
 
                   <div className="flex items-center justify-between mt-2">
@@ -356,11 +452,11 @@ export default function ManagerNotificationsPage() {
                   </div>
 
                   <div className="flex-1 mt-4">
-                    <h3 className="font-semibold text-lg text-foreground leading-snug mb-2">
+                    <h3 className="text-lg text-slate-900 dark:text-white leading-snug mb-2">
                       {title || "Notice Title"}
                     </h3>
                     <div
-                      className="notice-body prose prose-sm dark:prose-invert max-w-none"
+                      className="text-xs text-slate-700 dark:text-slate-200 max-w-none [&_*]:text-slate-900 [&_*]:dark:text-white"
                       dangerouslySetInnerHTML={{ __html: message || "<p class='text-muted-foreground italic'>Notice content preview...</p>" }}
                     />
                   </div>
@@ -401,7 +497,7 @@ export default function ManagerNotificationsPage() {
       ) : filteredNotices.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Megaphone className="w-12 h-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold">No notices published yet</h3>
+          <h3 className="text-lg">No notices published yet</h3>
           <p className="text-sm text-muted-foreground mt-1">Create notices for staff in your sub-department</p>
         </div>
       ) : (
@@ -417,19 +513,17 @@ export default function ManagerNotificationsPage() {
               >
                 <div
                   onClick={() => handleOpenNotice(notice)}
-                  className="group relative flex flex-col dark:bg-white border shadow p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px] cursor-pointer"
+                  className="group relative flex flex-col border border-border bg-card shadow-sm hover:border-primary/30 transition-all duration-200 h-[260px] p-5 cursor-pointer"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between">
-                    <span className="dark:text-black">
-                      {getTargetLabel(notice)}
-                    </span>
-                    <span className="dark:text-black">Published</span>
+                    {renderTargetHeader(notice)}
+                    <span className="text-xs text-muted-foreground">Published</span>
                   </div>
 
                   {/* Date & actions */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="dark:text-black inline-flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
                     </span>
@@ -439,14 +533,14 @@ export default function ManagerNotificationsPage() {
                         <>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleTogglePin(notice) }}
-                            className={`p-1 transition-colors rounded-sm hover:bg-muted ${notice.isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                            className={`p-1 transition-colors hover:bg-muted ${notice.isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                             title={notice.isPinned ? "Unpin" : "Pin"}
                           >
                             {notice.isPinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
                           </button>
                           <button
                             onClick={(e) => { e.stopPropagation(); handleOpenEdit(notice) }}
-                            className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-muted"
+                            className="p-1 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted"
                             title="Edit"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -455,7 +549,7 @@ export default function ManagerNotificationsPage() {
                             <AlertDialogTrigger asChild>
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded-sm hover:bg-muted"
+                                className="p-1 text-muted-foreground hover:text-foreground transition-colors hover:bg-muted"
                                 title="Delete"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -490,21 +584,26 @@ export default function ManagerNotificationsPage() {
 
                   {/* Title & Body */}
                   <div className="flex-1 mt-3">
-                    <h3 className="dark:text-black leading-snug mb-2 line-clamp-2">
+                    <h3 className="text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2">
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4 bg-white text-black [&_*]:text-black"
+                      className="notice-body line-clamp-4 text-xs text-slate-700 dark:text-slate-300 max-w-none [&_*]:text-slate-900 [&_*]:dark:text-white"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
 
-                  {/* Footer */}
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <span className="dark:text-black">
-                      From {notice.createdBy?.name}
-                    </span>
-                  </div>
+                  {/* Footer with Avatar */}
+                  {notice.createdBy && (
+                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                      <Avatar className="w-5 h-5 shrink-0">
+                        <AvatarFallback className="text-[9px]">{notice.createdBy.name}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-slate-700 dark:text-slate-300">
+                        From {notice.createdBy.name}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -514,11 +613,12 @@ export default function ManagerNotificationsPage() {
 
       {/* View Notice Dialog */}
       <Dialog open={!!viewNotice} onOpenChange={(o) => !o && setViewNotice(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-none">
           {viewNotice && (
             <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
+              {/* Top Header Section */}
+              <div className="p-6 bg-card border-b border-border space-y-2">
+                <div className="flex items-center gap-2 mb-1">
                   {viewNotice.targetType && targetTypeConfig[viewNotice.targetType] && (
                     <Badge variant="secondary" className="gap-1 text-xs">
                       {targetTypeConfig[viewNotice.targetType]?.label}
@@ -528,18 +628,32 @@ export default function ManagerNotificationsPage() {
                     <Badge variant="secondary" className="text-xs">Pinned</Badge>
                   )}
                 </div>
-                <DialogTitle className="text-xl">{viewNotice.title}</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-xl leading-snug text-slate-900 dark:text-white font-normal">
+                  {viewNotice.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex items-center gap-1">
+                    Published on
                     <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                     {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
                   </span>
+                  {viewNotice.createdBy && (
+                    <span className="inline-flex items-center gap-1">
+                      · By
+                      <Avatar className="w-4 h-4 shrink-0">
+                        <AvatarFallback className="text-[8px]">{viewNotice.createdBy.name}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-slate-900 dark:text-white">{viewNotice.createdBy.name}</span>
+                    </span>
+                  )}
                   {` · ${viewNotice.recipientCount} recipients`}
                 </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
+              </div>
+
+              {/* Bottom Message Body Section */}
+              <div className="p-6 overflow-y-auto max-h-[calc(85vh-160px)] bg-muted/20 dark:bg-muted/10">
                 <div
-                  className="notice-body prose prose-sm max-w-none bg-white text-black [&_*]:text-black"
+                  className="notice-body text-sm text-slate-900 dark:text-white max-w-none space-y-2 [&_*]:text-slate-900 [&_*]:dark:text-white"
                   dangerouslySetInnerHTML={{ __html: viewNotice.message }}
                 />
               </div>

@@ -614,18 +614,18 @@ export default function ManagerDashboardPage() {
 
                 {/* Right Side: Wide Calendar & Legend */}
                 <div className="w-full lg:w-2/3 flex flex-col gap-6">
-                    <div className="w-full border rounded-xl overflow-hidden bg-background relative min-h-[450px]">
+                    <div className="w-full border  overflow-hidden bg-background relative min-h-[450px]">
                         {/* Month / Week / List View Toggles Overlay */}
                         <div className="absolute top-[22px] right-[70px] z-20 hidden md:flex items-center bg-muted/30 p-1 rounded-lg border border-border/50">
                             <button 
                                 onClick={() => setCalendarView('month')}
-                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'month' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>Month</button>
+                                className={`px-4 py-1.5    transition-all ${calendarView === 'month' ? 'shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : ''}`}>Month</button>
                             <button 
                                 onClick={() => setCalendarView('week')}
-                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'week' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>Week</button>
+                                className={`px-4 py-1.5    transition-all ${calendarView === 'week' ? ' shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : ''}`}>Week</button>
                             <button 
                                 onClick={() => setCalendarView('list')}
-                                className={`px-4 py-1.5 font-semibold text-sm rounded-md transition-all ${calendarView === 'list' ? 'bg-background text-primary shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : 'text-muted-foreground hover:text-foreground'}`}>List</button>
+                                className={`px-4 py-1.5    transition-all ${calendarView === 'list' ? 'shadow-[0_1px_3px_rgb(0,0,0,0.1)]' : ''}`}>List</button>
                         </div>
 
                         {calendarView === 'month' && (
@@ -668,11 +668,11 @@ export default function ManagerDashboardPage() {
                                                         router.push(`/manager/work-calendar/${format(day, 'yyyy-MM-dd')}`)
                                                     }
                                                 }}
-                                                className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${status === 'future' ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 cursor-pointer hover:shadow-md bg-card'}`}
+                                                className={`flex flex-col items-center justify-center p-4  border transition-all ${status === 'future' ? 'opacity-50 pointer-events-none' : 'hover:border-primary/50 cursor-pointer hover:shadow-md bg-card'}`}
                                             >
-                                                <span className="text-sm text-muted-foreground uppercase tracking-wider mb-2">{format(day, 'EEE')}</span>
-                                                <span className={`text-3xl font-bold mb-4 ${isSameDay(day, today) ? 'text-primary' : 'text-foreground'}`}>{format(day, 'd')}</span>
-                                                {renderStatusBadge(status)}
+                                                <span className=" tracking-wider mb-2">{format(day, 'EEE')}</span>
+                                                <span className={`mb-4 ${isSameDay(day, today) ? '' : ''}`}>{format(day, 'd')}</span>
+                                                {(status)}
                                             </div>
                                         )
                                     })}
@@ -692,17 +692,17 @@ export default function ManagerDashboardPage() {
                                                 className="flex items-center justify-between p-4 rounded-xl border bg-card hover:border-primary/50 hover:shadow-sm transition-all cursor-pointer"
                                             >
                                                 <div className="flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-lg flex items-center justify-center font-bold text-lg ${isSameDay(day, today) ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+                                                    <div className={`w-12 h-12 flex items-center justify-center  ${isSameDay(day, today) ? '' : ''}`}>
                                                         {format(day, 'd')}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-semibold text-foreground">{format(day, 'EEEE')}</h4>
-                                                        <p className="text-sm text-muted-foreground">{format(day, 'MMMM yyyy')}</p>
+                                                        <h4 className="">{format(day, 'EEEE')}</h4>
+                                                        <p className="">{format(day, 'MMMM yyyy')}</p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    {renderStatusBadge(status)}
-                                                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                                    {(status)}
+                                                    {/* <ChevronRight className="w-5 h-5 text-muted-foreground" /> */}
                                                 </div>
                                             </div>
                                         )
@@ -719,15 +719,15 @@ export default function ManagerDashboardPage() {
                             Approved
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-amber-50 border border-amber-200 dark:bg-amber-900/30 dark:border-amber-800"></div> 
+                            <div className="dark:bg-white dark:border-amber-800"></div> 
                             Pending
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-red-50 border border-red-200 dark:bg-red-900/30 dark:border-red-800"></div> 
+                            <div className="dark:bg-white"></div> 
                             Missed
                         </div>
                         <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded-sm bg-background border border-input"></div> 
+                            <div className="dark:bg-white"></div> 
                             No Data
                         </div>
                     </div>

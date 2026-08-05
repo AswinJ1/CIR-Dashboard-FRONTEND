@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { toast } from "sonner"
 import { api } from "@/lib/api"
 import { NotificationItem } from "@/types/cir"
@@ -89,7 +90,7 @@ export default function StaffNotificationsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="text-2xl tracking-tight">
             Notice Board
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -150,7 +151,7 @@ export default function StaffNotificationsPage() {
       ) : filteredNotices.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <Bell className="w-12 h-12 text-muted-foreground/30 mb-4" />
-          <h3 className="text-lg font-semibold">No notices found</h3>
+          <h3 className="text-lg">No notices found</h3>
           <p className="text-sm text-muted-foreground mt-1">
             {activeTab === "unread" ? "You're all caught up! No unread notices." : "No notices available right now."}
           </p>
@@ -168,23 +169,23 @@ export default function StaffNotificationsPage() {
               >
                 <div
                   onClick={() => handleOpenNotice(notice)}
-                  className={`group relative flex flex-col shadow dark:bg-white border border-border p-5 hover:border-primary/30 transition-all duration-200 min-h-[220px] cursor-pointer ${
-                    !notice.isRead ? "border-l-2 border-l-primary" : ""
+                  className={`group relative flex flex-col border border-border bg-card shadow-sm hover:border-primary/30 transition-all duration-200 h-[260px] p-5 cursor-pointer ${
+                    !notice.isRead ? "border-l-4 border-l-primary" : ""
                   }`}
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between">
-                    <span className="dark:text-black">
+                    <span className="text-xs text-muted-foreground">
                       {notice.targetType === "ALL" ? "All Staff" : "Notice"}
                     </span>
-                    <span className="dark:text-black">
+                    <span className="text-xs text-muted-foreground">
                       {!notice.isRead ? "Unread" : "Read"}
                     </span>
                   </div>
 
                   {/* Date row */}
                   <div className="flex items-center justify-between mt-2">
-                    <span className="dark:text-black inline-flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
                     </span>
@@ -197,19 +198,22 @@ export default function StaffNotificationsPage() {
 
                   {/* Title & Body */}
                   <div className="flex-1 mt-3">
-                    <h3 className="dark:text-black leading-snug mb-2 line-clamp-2">
+                    <h3 className="text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2">
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4 bg-white text-black [&_*]:text-black"
+                      className="notice-body line-clamp-4 text-xs text-slate-700 dark:text-slate-300 max-w-none [&_*]:text-slate-900 [&_*]:dark:text-white"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
 
-                  {/* Footer */}
+                  {/* Footer with Avatar */}
                   {notice.createdBy && (
-                    <div className="mt-3 pt-3 border-t border-border">
-                      <span className="dark:text-black">
+                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                      <Avatar className="w-5 h-5 shrink-0">
+                        <AvatarFallback className="text-[9px]">{notice.createdBy.name}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-xs text-slate-700 dark:text-slate-300">
                         By {notice.createdBy.name}
                       </span>
                     </div>
@@ -223,30 +227,43 @@ export default function StaffNotificationsPage() {
 
       {/* View Modal */}
       <Dialog open={!!viewNotice} onOpenChange={(o) => !o && setViewNotice(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] p-0 overflow-hidden flex flex-col rounded-none">
           {viewNotice && (
             <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
+              {/* Top Header Section */}
+              <div className="p-6 bg-card border-b border-border space-y-2">
+                <div className="flex items-center gap-2 mb-1">
                   {viewNotice.isPinned && (
                     <Badge variant="secondary" className="text-xs">
                       Pinned
                     </Badge>
                   )}
                 </div>
-                <DialogTitle className="text-xl leading-snug">{viewNotice.title}</DialogTitle>
-                <DialogDescription className="text-xs">
+                <DialogTitle className="text-xl leading-snug text-slate-900 dark:text-white font-normal">
+                  {viewNotice.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-muted-foreground flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex items-center gap-1">
                     Published on
                     <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                     {format(new Date(viewNotice.createdAt), "MMMM dd, yyyy 'at' hh:mm a")}
                   </span>
-                  {viewNotice.createdBy && ` · By ${viewNotice.createdBy.name}`}
+                  {viewNotice.createdBy && (
+                    <span className="inline-flex items-center gap-1">
+                      · By
+                      <Avatar className="w-4 h-4 shrink-0">
+                        <AvatarFallback className="text-[8px]">{viewNotice.createdBy.name}</AvatarFallback>
+                      </Avatar>
+                      <span className="text-slate-900 dark:text-white">{viewNotice.createdBy.name}</span>
+                    </span>
+                  )}
                 </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
+              </div>
+
+              {/* Bottom Message Body Section */}
+              <div className="p-6 overflow-y-auto max-h-[calc(85vh-160px)] bg-muted/20 dark:bg-muted/10">
                 <div
-                  className="notice-body prose prose-sm max-w-none bg-white text-black [&_*]:text-black"
+                  className="notice-body text-sm text-slate-900 dark:text-white max-w-none space-y-2 [&_*]:text-slate-900 [&_*]:dark:text-white"
                   dangerouslySetInnerHTML={{ __html: viewNotice.message }}
                 />
               </div>
