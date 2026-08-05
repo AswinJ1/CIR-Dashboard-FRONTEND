@@ -513,16 +513,16 @@ export default function ManagerNotificationsPage() {
               >
                 <div
                   onClick={() => handleOpenNotice(notice)}
-                  className="group relative flex flex-col border border-border bg-card shadow-sm hover:border-primary/30 transition-all duration-200 h-[260px] p-5 cursor-pointer"
+                  className="group relative flex flex-col justify-between border border-border bg-card shadow-sm hover:border-primary/30 transition-all duration-200 h-[260px] p-5 cursor-pointer overflow-hidden"
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between shrink-0">
                     {renderTargetHeader(notice)}
                     <span className="text-xs text-muted-foreground">Published</span>
                   </div>
 
                   {/* Date & actions */}
-                  <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center justify-between mt-2 shrink-0">
                     <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                       <CalendarDays className="w-3.5 h-3.5 shrink-0" />
                       {format(new Date(notice.createdAt), "dd MMM yyyy")}
@@ -577,29 +577,29 @@ export default function ManagerNotificationsPage() {
 
                   {/* Pinned */}
                   {notice.isPinned && (
-                    <div className="mt-2">
+                    <div className="mt-1.5 shrink-0">
                       <Badge variant="secondary" className="text-[10px]">Pinned</Badge>
                     </div>
                   )}
 
                   {/* Title & Body */}
-                  <div className="flex-1 mt-3">
-                    <h3 className="text-slate-900 dark:text-white leading-snug mb-2 line-clamp-2">
+                  <div className="flex-1 min-h-0 my-2 overflow-hidden flex flex-col justify-start">
+                    <h3 className="text-slate-900 dark:text-white leading-snug mb-1 line-clamp-2 shrink-0">
                       {notice.title}
                     </h3>
                     <div
-                      className="notice-body line-clamp-4 text-xs text-slate-700 dark:text-slate-300 max-w-none [&_*]:text-slate-900 [&_*]:dark:text-white"
+                      className="notice-body line-clamp-2 text-xs text-slate-700 dark:text-slate-300 max-w-none [&_*]:text-slate-900 [&_*]:dark:text-white"
                       dangerouslySetInnerHTML={{ __html: notice.message }}
                     />
                   </div>
 
                   {/* Footer with Avatar */}
                   {notice.createdBy && (
-                    <div className="mt-3 pt-3 border-t border-border flex items-center gap-2">
+                    <div className="shrink-0 pt-2 border-t border-border flex items-center gap-2">
                       <Avatar className="w-5 h-5 shrink-0">
                         <AvatarFallback className="text-[9px]">{notice.createdBy.name}</AvatarFallback>
                       </Avatar>
-                      <span className="text-xs text-slate-700 dark:text-slate-300">
+                      <span className="text-xs text-slate-700 dark:text-slate-300 truncate">
                         From {notice.createdBy.name}
                       </span>
                     </div>
