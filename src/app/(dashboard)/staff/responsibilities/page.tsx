@@ -586,7 +586,7 @@ export default function StaffResponsibilitiesPage() {
                                     <div>
                                         <p className="text-sm font-medium mb-1">Date Range</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {format(parseISO(selectedResponsibility.startDate), "MMM d")} - {format(parseISO(selectedResponsibility.endDate), "MMM d, yyyy")}
+                                            {format(parseISO(selectedResponsibility.startDate.split('T')[0]), "MMM d")} - {format(parseISO(selectedResponsibility.endDate.split('T')[0]), "MMM d, yyyy")}
                                         </p>
                                     </div>
                                 )}
@@ -627,7 +627,7 @@ export default function StaffResponsibilitiesPage() {
                                     <p className="font-medium text-sm truncate">{resp.title}</p>
                                     {resp.startDate && resp.endDate && (
                                         <p className="text-xs text-muted-foreground">
-                                            {format(parseISO(resp.startDate), "MMM d")} - {format(parseISO(resp.endDate), "MMM d")}
+                                            {format(parseISO(resp.startDate.split('T')[0]), "MMM d")} - {format(parseISO(resp.endDate.split('T')[0]), "MMM d")}
                                         </p>
                                     )}
                                 </div>

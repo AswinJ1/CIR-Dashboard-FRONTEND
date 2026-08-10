@@ -102,7 +102,7 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
         try {
             const buffer = await file.arrayBuffer()
             // cellDates: true converts Excel serial dates to JS Date objects
-            const workbook = xlsx.read(buffer, { type: 'array', cellDates: true })
+            const workbook = xlsx.read(buffer, { type: 'array', cellDates: false })
             const sheetName = workbook.SheetNames[0]
             const sheet = workbook.Sheets[sheetName]
             
@@ -116,29 +116,92 @@ export default function BulkResponsibilitiesImport({ onSuccess }: BulkResponsibi
 
             const responsibilities: ImportedResponsibility[] = []
             
-            // Helper to format JS Dates back to YYYY-MM-DD
-            const formatDate = (val: any) => {
-                if (!val) return ''
-                if (val instanceof Date) {
-                    return format(val, 'yyyy-MM-dd')
+            // Helper to parse and format any Excel date value (serial number, Date, or text string) to YYYY-MM-DD
+            const formatDate = (val: any): string => {
+                if (val === null || val === undefined || val === '') return ''
+
+                // If Excel date serial number (e.g. 46235 -> 2026-08-01)
+                if (typeof val === 'number') {
+                    const parsed = xlsx.SSF.parse_date_code(val)
+                    if (parsed) {
+                        const y = parsed.y
+                        const m = String(parsed.m).padStart(2, '0')
+                        const d = String(parsed.d).padStart(2, '0')
+                        return `${y}-${m}-${d}`
+                    }
                 }
-                return String(val).trim()
+
+                const str = String(val).trim()
+                if (!str) return ''
+
+                // If numeric string representation of Excel date code (e.g. "46235")
+                if (/^\d{5}(\.\d+)?$/.test(str)) {
+                    const parsed = xlsx.SSF.parse_date_code(parseFloat(str))
+                    if (parsed) {
+                        const y = parsed.y
+                        const m = String(parsed.m).padStart(2, '0')
+                        const d = String(parsed.d).padStart(2, '0')
+                        return `${y}-${m}-${d}`
+                    }
+                }
+
+                // If JS Date object
+                if (val instanceof Date) {
+                    const year = val.getFullYear()
+                    const month = String(val.getMonth() + 1).padStart(2, '0')
+                    const day = String(val.getDate()).padStart(2, '0')
+                    return `${year}-${month}-${day}`
+                }
+
+                // Normalize date strings like YYYY-MM-DD, YYYY-M-D, or YYYY/MM/DD
+                let match = str.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/)
+                if (match) {
+                    const [, y, m, d] = match
+                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+                }
+
+                // Normalize date strings like DD/MM/YYYY or DD-MM-YYYY
+                match = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/)
+                if (match) {
+                    const [, d, m, y] = match
+                    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
+                }
+
+                return str
+            }
+
+            // Helper to format work cycle to YYYY-MM
+            const formatCycle = (val: any): string => {
+                if (!val) return format(new Date(), "yyyy-MM")
+                const formatted = formatDate(val)
+                const match = formatted.match(/^(\d{4})[-/](\d{1,2})/)
+                if (match) {
+                    const [, y, m] = match
+                    return `${y}-${m.padStart(2, '0')}`
+                }
+                return formatted.trim() || format(new Date(), "yyyy-MM")
             }
 
             // Case-insensitive header matching
             for (const row of rawData) {
-                const normalizedRow: Record<string, string> = {}
+                const rawNormalizedRow: Record<string, any> = {}
                 for (const key of Object.keys(row)) {
-                    normalizedRow[key.trim().toLowerCase()] = formatDate(row[key])
+                    rawNormalizedRow[key.trim().toLowerCase()] = row[key]
                 }
 
-                if (normalizedRow.title) {
+                if (rawNormalizedRow.title) {
+                    const titleStr = String(rawNormalizedRow.title).trim()
+                    const descStr = rawNormalizedRow.description ? String(rawNormalizedRow.description).trim() : undefined
+                    const cycleStr = formatCycle(rawNormalizedRow.cycle)
+                    const startDateStr = rawNormalizedRow.startdate ? formatDate(rawNormalizedRow.startdate) : undefined
+                    const endDateStr = rawNormalizedRow.enddate ? formatDate(rawNormalizedRow.enddate) : undefined
+
                     responsibilities.push({
-                        title: normalizedRow.title,
-                        description: normalizedRow.description || undefined,
-                        cycle: normalizedRow.cycle || format(new Date(), "yyyy-MM"),
-                        startDate: normalizedRow.startdate || undefined,
-                        endDate: normalizedRow.enddate || undefined,
+                        title: titleStr,
+                        description: descStr || undefined,
+                        cycle: cycleStr,
+                        startDate: startDateStr || undefined,
+                        endDate: endDateStr || undefined,
                     })
                 }
             }

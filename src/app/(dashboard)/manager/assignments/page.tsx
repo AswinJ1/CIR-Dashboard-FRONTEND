@@ -534,6 +534,17 @@ export default function ManagerAssignmentsPage() {
         }
     }
 
+    function formatDateOnly(dateStr?: string | null): string {
+        if (!dateStr) return ''
+        const cleanStr = String(dateStr).split('T')[0]
+        const parts = cleanStr.split('-')
+        if (parts.length === 3) {
+            const [y, m, d] = parts
+            return `${parseInt(m, 10)}/${parseInt(d, 10)}/${y}`
+        }
+        return new Date(dateStr).toLocaleDateString()
+    }
+
     async function handleDeleteResponsibility(id: string) {
         if (!confirm("Are you sure you want to delete this responsibility? This will also delete associated assignments.")) return
 
@@ -1526,7 +1537,7 @@ export default function ManagerAssignmentsPage() {
                                                     <TableCell>
                                                         {resp.startDate && resp.endDate ? (
                                                             <span className="text-sm">
-                                                                {new Date(resp.startDate).toLocaleDateString()} - {new Date(resp.endDate).toLocaleDateString()}
+                                                                {formatDateOnly(resp.startDate)} - {formatDateOnly(resp.endDate)}
                                                             </span>
                                                         ) : (
                                                             <span className="text-muted-foreground">—</span>
@@ -1841,7 +1852,7 @@ export default function ManagerAssignmentsPage() {
                                     <Label className="text-muted-foreground text-sm">Date Range</Label>
                                     <p className="mt-1 text-sm">
                                         {viewingResponsibility.startDate && viewingResponsibility.endDate ? (
-                                            `${new Date(viewingResponsibility.startDate).toLocaleDateString()} - ${new Date(viewingResponsibility.endDate).toLocaleDateString()}`
+                                            `${formatDateOnly(viewingResponsibility.startDate)} - ${formatDateOnly(viewingResponsibility.endDate)}`
                                         ) : (
                                             <span className="text-muted-foreground">Not set</span>
                                         )}
