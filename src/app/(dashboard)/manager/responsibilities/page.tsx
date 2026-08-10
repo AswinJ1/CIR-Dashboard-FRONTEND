@@ -160,11 +160,11 @@ export default function ManagerResponsibilitiesPage() {
 
             for (const resp of groupResps) {
                 if (resp.startDate) {
-                    const start = parseISO(resp.startDate)
+                    const start = parseISO(resp.startDate.split('T')[0])
                     if (!groupStart || start < groupStart) groupStart = start
                 }
                 if (resp.endDate) {
-                    const end = parseISO(resp.endDate)
+                    const end = parseISO(resp.endDate.split('T')[0])
                     if (!groupEnd || end > groupEnd) groupEnd = end
                 }
             }
@@ -208,8 +208,8 @@ export default function ManagerResponsibilitiesPage() {
 
             const color = COLORS[colorIndex % COLORS.length]
             colorIndex++
-            const start = parseISO(resp.startDate)
-            const end = parseISO(resp.endDate)
+            const start = parseISO(resp.startDate.split('T')[0])
+            const end = parseISO(resp.endDate.split('T')[0])
 
             calendarDays.forEach(day => {
                 if (isWithinInterval(day, { start, end })) {
@@ -403,7 +403,7 @@ export default function ManagerResponsibilitiesPage() {
                                     <p className="font-medium text-sm truncate">{resp.title}</p>
                                     {resp.startDate && resp.endDate && (
                                         <p className="text-xs text-muted-foreground">
-                                            {format(parseISO(resp.startDate), "MMM d")} - {format(parseISO(resp.endDate), "MMM d")}
+                                            {format(parseISO(resp.startDate.split('T')[0]), "MMM d")} - {format(parseISO(resp.endDate.split('T')[0]), "MMM d")}
                                         </p>
                                     )}
                                     {resp.description && (
@@ -451,7 +451,7 @@ export default function ManagerResponsibilitiesPage() {
                                     <div>
                                         <p className="text-sm font-medium mb-1">Date Range</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {format(parseISO(selectedResponsibility.startDate), "MMM d")} - {format(parseISO(selectedResponsibility.endDate), "MMM d, yyyy")}
+                                            {format(parseISO(selectedResponsibility.startDate.split('T')[0]), "MMM d")} - {format(parseISO(selectedResponsibility.endDate.split('T')[0]), "MMM d, yyyy")}
                                         </p>
                                     </div>
                                 )}
@@ -493,7 +493,7 @@ export default function ManagerResponsibilitiesPage() {
                                         {item.isGroup 
                                             ? `${item.responsibilities.length} responsibilities`
                                             : item.responsibilities[0]?.startDate && item.responsibilities[0]?.endDate
-                                                ? `${format(parseISO(item.responsibilities[0].startDate), "MMM d")} - ${format(parseISO(item.responsibilities[0].endDate), "MMM d")}`
+                                                ? `${format(parseISO(item.responsibilities[0].startDate.split('T')[0]), "MMM d")} - ${format(parseISO(item.responsibilities[0].endDate.split('T')[0]), "MMM d")}`
                                                 : ''
                                         }
                                     </p>
